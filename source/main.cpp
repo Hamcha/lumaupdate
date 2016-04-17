@@ -414,7 +414,7 @@ int main() {
 				consoleClear();
 				printHeader();
 				printf("\n  Update complete.");
-				printf("\n\n  In case something goes wrong you can restore the\n  old payload from arm9loaderhax.bin.bak\n");
+				printf("\n\n  In case something goes wrong you can restore\n the old payload from arm9loaderhax.bin.bak\n");
 				printf("\n  Press START to reboot.");
 				redraw = false;
 			}
