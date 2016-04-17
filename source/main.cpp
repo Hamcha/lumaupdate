@@ -1,6 +1,7 @@
 /* stdlib includes */
 #include <string>
 #include <sstream>
+#include <fstream>
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -89,7 +90,6 @@ int HTTPGet(const std::string url, u8** buf, u32* size) {
 /* States */
 
 enum UpdateState {
-	ObtainingRequiredInfo,
 	UpdateConfirmationScreen,
 	Updating,
 	UpdateComplete,
@@ -137,10 +137,39 @@ UpdateChoice drawConfirmationScreen(std::string name, std::string url) {
 	return NoReply;
 };
 
+bool backupA9LH() {
+	std::ifstream original("/arm9loaderhax.bin", std::ifstream::binary);
+	if (!original.good()) {
+		printf("Could not open arm9loaderhax.bin\n");
+		return false;
+	}
+
+	std::ofstream target("/arm9loaderhax.bin.bak", std::ofstream::binary);
+	if (!target.good()) {
+		printf("Could not open arm9loaderhax.bin.bak\n");
+		original.close();
+		return false;
+	}
+
+	target << original.rdbuf();
+
+	original.close();
+	target.close();
+	return true;
+}
+
 bool update(std::string name, std::string url) {
 	consoleClear();
 
+	// Back up local file
+	printf("Copying arm9loaderhax.bin to arm9loaderhax.bin.bak...\n");
+	if (!backupA9LH()) {
+		printf("\nCould not backup arm9loaderhax.bin (!!), aborting...\n");
+		return false;
+	}
+
 	printf("Downloading 7z file...\n");
+	gfxFlushBuffers();
 
 	u8* fileData = nullptr;
 	u32 fileSize = 0;
@@ -152,12 +181,13 @@ bool update(std::string name, std::string url) {
 		return false;
 	}
 	printf("Download complete! Size: %lu\n", fileSize);
-
 	printf("\nDecompressing archive in memory...\n");
+	gfxFlushBuffers();
 
 	CMemInStream memStream;
 	MemInStream_Init(&memStream, fileData, fileSize);
 	printf("Created 7z InStream, opening as archive...\n");
+	gfxFlushBuffers();
 
 	CSzArEx db;
 	ISzAlloc allocImp;
@@ -173,7 +203,8 @@ bool update(std::string name, std::string url) {
 	SRes res = SzArEx_Open(&db, &memStream.s, &allocImp, &allocTempImp);
 	int codeIndex = -1;
 	if (res == SZ_OK) {
-		printf("Archive opened in memory.\n\nFiles:\n");
+		printf("Archive opened in memory.\n\nSearching for arm9loaderhax.bin:\n");
+		gfxFlushBuffers();
 		for (u32 i = 0; i < db.NumFiles; i++) {
 			// Skip directories
 			unsigned isDir = SzArEx_IsDir(&db, i);
@@ -197,25 +228,67 @@ bool update(std::string name, std::string url) {
 				name8[j] = name[j] % 0xff;
 			}
 
+			wprintf(L"  - %ls\n", (wchar_t*)name);
+			gfxFlushBuffers();
+
 			// Check if it's the A9LH payload
 			int res = strncmp(name8, "arm9loaderhax.bin", len - 1);
 			if (res == 0) {
 				codeIndex = i;
+				printf("      FOUND!\n");
+				break;
 			}
-
-			wprintf(L"  - %ls (%d)\n", (wchar_t*)name, res, sizeof(wchar_t));
 		}
 	} else {
 		printf("Could not open archive (SzArEx_Open)\n");
+		SzArEx_Free(&db, &allocImp);
 		return false;
 	}
 
 	if (codeIndex < 0) {
 		printf("\nCould not find arm9loaderhax.bin\n");
+		SzArEx_Free(&db, &allocImp);
 		return false;
 	}
 
-	printf("\nFound arm9loaderhax.bin (index %d)\n", codeIndex);
+	printf("\nExtracting arm9loaderhax.bin from archive...\n");
+	gfxFlushBuffers();
+
+	u8* fileBuf;
+	UInt32 blockIndex = 0xffffffff;
+	size_t fileBufSize = 0;
+	size_t fileOutSize = 0;
+	size_t offset = 0;
+
+	res = SzArEx_Extract(
+		&db,
+		&memStream.s,
+		codeIndex,
+		&blockIndex,
+		&fileBuf,
+		&fileBufSize,
+		&offset,
+		&fileOutSize,
+		&allocImp,
+		&allocTempImp
+	);
+	if (res != SZ_OK) {
+		printf("\nCould not extract arm9loaderhax.bin\n");
+		SzArEx_Free(&db, &allocImp);
+		return false;
+	}
+
+	printf("File extracted successfully (%d bytes)\n", fileOutSize);
+	gfxFlushBuffers();
+
+	printf("Saving arm9loaderhax.bin to SD...\n");
+	std::ofstream a9lhfile("/arm9loaderhax.bin", std::ofstream::binary);
+	a9lhfile.write((const char*)fileBuf, fileOutSize);
+	a9lhfile.close();
+
+	printf("All done, freeing resources and exiting...\n");
+	IAlloc_Free(&allocImp, fileBuf);
+	SzArEx_Free(&db, &allocImp);
 	return true;
 }
 
@@ -228,6 +301,8 @@ static int jsoneq(const char *json, jsmntok_t *tok, const char *s) {
 }
 
 int main() {
+	UpdateState state = UpdateConfirmationScreen;
+
 	jsmn_parser p;
 	jsmn_init(&p);
 
@@ -240,8 +315,6 @@ int main() {
 	u8* apiReqData = nullptr;
 	u32 apiReqSize = 0;
 	int ret = 0;
-
-	UpdateState state = ObtainingRequiredInfo;
 
 	bool namefound = false, releasefound = false;
 	std::string name, url;
@@ -260,6 +333,7 @@ int main() {
 			throw formatErrMessage("Failed to parse JSON", r);
 		}
 		printf("JSON parsed successfully!\n");
+		gfxFlushBuffers();
 
 		for (int i = 0; i < r; i++) {
 			if (!namefound && jsoneq((const char*)apiReqData, &t[i], "name") == 0) {
@@ -276,8 +350,8 @@ int main() {
 				break;
 			}
 		}
+		gfxFlushBuffers();
 
-		state = UpdateConfirmationScreen;
 		redraw = true;
 	}
 	catch (std::string e) {
@@ -304,6 +378,7 @@ int main() {
 	{
 		gspWaitForVBlank();
 		hidScanInput();
+		u32 kDown = hidKeysDown();
 
 		switch (state) {
 		case UpdateConfirmationScreen:
@@ -334,6 +409,22 @@ int main() {
 				redraw = false;
 			}
 			break;
+		case UpdateComplete:
+			if (redraw) {
+				consoleClear();
+				printHeader();
+				printf("\n  Update complete.");
+				printf("\n\n  In case something goes wrong you can restore the\n  old payload from arm9loaderhax.bin.bak\n");
+				printf("\n  Press START to reboot.");
+				redraw = false;
+			}
+			if ((kDown & KEY_START) != 0) {
+				// Reboot!
+				aptOpenSession();
+				APT_HardwareResetAsync();
+				aptCloseSession();
+			}
+			break;
 		case UpdateAborted:
 			if (redraw) {
 				con.cursorX = 2;
@@ -345,9 +436,9 @@ int main() {
 		}
 
 
-		u32 kDown = hidKeysDown();
-		if (kDown & KEY_START)
-			break; // break in order to return to hbmenu
+		if (kDown & KEY_START) {
+			break; // Exit to HBMenu
+		}
 
 		// Flush and swap framebuffers
 		gfxFlushBuffers();

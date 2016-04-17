@@ -34,8 +34,9 @@ DATA		:=	data
 INCLUDES	:=	include
 #ROMFS		:=	romfs
 
-APP_TITLE   :=  AuReiNand Updated
-APP_AUTHOR  :=  Hamcha
+APP_TITLE       :=  ARN Updater
+APP_DESCRIPTION :=  Updater for AuReiNand releases  
+APP_AUTHOR      :=  Hamcha
 
 #---------------------------------------------------------------------------------
 # options for code generation
