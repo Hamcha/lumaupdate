@@ -1,6 +1,5 @@
 /* stdlib includes */
 #include <string>
-#include <sstream>
 #include <fstream>
 #include <stdlib.h>
 #include <stdio.h>
@@ -16,77 +15,17 @@
 #include "7z/7zMemInStream.h"
 
 /* Local includes */
+#include "http.h"
+#include "menu.h"
+#include "utils.h"
+
 #include "jsmn.h"
-#include "digicert.h"
-#include "cybertrust.h"
 
+#define VERSION "0.1.2"
 #define RELEASEURL "https://api.github.com/repos/AuroraWright/AuReiNand/releases/latest"
-#define VERSION "0.1.1"
-
-/* Console utils */
 
 bool redraw = false;
 PrintConsole con;
-
-void printHeader() {
-	con.cursorX = 2;
-	con.cursorY = 1;
-	printf("ARN Updater v%s\n\n", VERSION);
-}
-
-void printFooter() {
-	con.cursorX = 2;
-	con.cursorY = con.consoleHeight - 1;
-	printf("< > select options   A choose   START quit");
-}
-
-std::string formatErrMessage(const std::string msg, const Result val) {
-	std::ostringstream os;
-	os << msg << "\nRet code: " << val;
-	return os.str();
-}
-
-/* HTTP util */
-
-#define CHECK(val, msg) if (val != 0) { throw formatErrMessage(msg, val); }
-
-int HTTPGet(const std::string url, u8** buf, u32* size) {
-	httpcContext context;
-	CHECK(httpcOpenContext(&context, HTTPC_METHOD_GET, (char*)url.c_str(), 0), "Could not open HTTP context");
-	// Add User Agent field (required by Github API calls)
-	CHECK(httpcAddRequestHeaderField(&context, (char*)"User-Agent", (char*)"ARN-UPDATER"), "Could not set User Agent");
-
-	CHECK(httpcBeginRequest(&context), "Could not begin request");
-
-	// Add root CA required for Github and AWS URLs
-	CHECK(httpcAddTrustedRootCA(&context, digicert_cer, digicert_cer_len), "Could not add Digicert root CA");
-	CHECK(httpcAddTrustedRootCA(&context, cybertrust_cer, cybertrust_cer_len), "Could not add Cybertrust root CA");
-
-	u32 statuscode = 0;
-	CHECK(httpcGetResponseStatusCode(&context, &statuscode, 0), "Could not get status code");
-	if (statuscode != 200) {
-		// Handle 3xx codes
-		if (statuscode >= 300 && statuscode < 400) {
-			char newUrl[1024];
-			CHECK(httpcGetResponseHeader(&context, (char*)"Location", newUrl, 1024), "Could not get Location header for 3xx reply");
-			CHECK(httpcCloseContext(&context), "Could not close HTTP context");
-			return HTTPGet(std::string(newUrl), buf, size);
-		}
-		throw formatErrMessage("Non-200 status code", statuscode);
-	}
-
-	CHECK(httpcGetDownloadSizeState(&context, NULL, size), "Could not get file size");
-
-	*buf = (u8*)malloc(*size);
-	if (*buf == NULL) throw formatErrMessage("Could not allocate enough memory", *size);
-	memset(*buf, 0, *size);
-
-	CHECK(httpcDownloadData(&context, *buf, *size, NULL), "Could not download data");
-
-	CHECK(httpcCloseContext(&context), "Could not close HTTP context");
-
-	return 1;
-}
 
 /* States */
 
@@ -104,7 +43,12 @@ enum UpdateChoice {
 	No
 };
 
-UpdateChoice drawConfirmationScreen(const std::string name, const std::string url) {
+struct ARNRelease {
+	std::string name;
+	std::string url;
+};
+
+UpdateChoice drawConfirmationScreen(const ARNRelease release) {
 	static bool status = false;
 	static bool partialredraw = false;
 
@@ -123,9 +67,9 @@ UpdateChoice drawConfirmationScreen(const std::string name, const std::string ur
 
 	if (redraw) {
 		consoleClear();
-		printHeader();
-		printf("  Latest version (from Github): %s\n\n", name.c_str());
-		printFooter();
+		menuPrintHeader(&con, VERSION);
+		printf("  Latest version (from Github): %s\n\n", release.name.c_str());
+		menuPrintFooter(&con);
 	}
 
 	con.cursorX = 4;
@@ -159,11 +103,12 @@ bool backupA9LH() {
 	return true;
 }
 
-bool update(const std::string name, const std::string url) {
+bool update(const ARNRelease release) {
 	consoleClear();
 
 	// Back up local file
 	printf("Copying arm9loaderhax.bin to arm9loaderhax.bin.bak...\n");
+	gfxFlushBuffers();
 	if (!backupA9LH()) {
 		printf("\nCould not backup arm9loaderhax.bin (!!), aborting...\n");
 		return false;
@@ -176,7 +121,7 @@ bool update(const std::string name, const std::string url) {
 	u32 fileSize = 0;
 
 	try {
-		HTTPGet(url, &fileData, &fileSize);
+		httpGet(release.url.c_str(), &fileData, &fileSize);
 	} catch (std::string& e) {
 		printf("%s\n", e.c_str());
 		return false;
@@ -202,9 +147,9 @@ bool update(const std::string name, const std::string url) {
 	SzArEx_Init(&db);
 
 	SRes res = SzArEx_Open(&db, &memStream.s, &allocImp, &allocTempImp);
-	int codeIndex = -1;
+	u32 codeIndex = UINT32_MAX;
 	if (res == SZ_OK) {
-		printf("Archive opened in memory.\n\nSearching for arm9loaderhax.bin:\n");
+		printf("Archive opened in memory.\n\nSearching for arm9loaderhax.bin: ");
 		gfxFlushBuffers();
 		for (u32 i = 0; i < db.NumFiles; i++) {
 			// Skip directories
@@ -229,26 +174,25 @@ bool update(const std::string name, const std::string url) {
 				name8[j] = name[j] % 0xff;
 			}
 
-			wprintf(L"  - %ls\n", (wchar_t*)name);
-			gfxFlushBuffers();
-
 			// Check if it's the A9LH payload
 			int res = strncmp(name8, "arm9loaderhax.bin", len - 1);
 			if (res == 0) {
 				codeIndex = i;
-				printf("      FOUND!\n");
+				printf("FOUND! (%lu)\n", codeIndex);
 				break;
 			}
 		}
 	} else {
 		printf("Could not open archive (SzArEx_Open)\n");
 		SzArEx_Free(&db, &allocImp);
+		free(fileData);
 		return false;
 	}
 
-	if (codeIndex < 0) {
+	if (codeIndex == UINT32_MAX) {
 		printf("\nCould not find arm9loaderhax.bin\n");
 		SzArEx_Free(&db, &allocImp);
+		free(fileData);
 		return false;
 	}
 
@@ -256,7 +200,7 @@ bool update(const std::string name, const std::string url) {
 	gfxFlushBuffers();
 
 	u8* fileBuf;
-	UInt32 blockIndex = 0xffffffff;
+	UInt32 blockIndex = UINT32_MAX;
 	size_t fileBufSize = 0;
 	size_t fileOutSize = 0;
 	size_t offset = 0;
@@ -276,6 +220,7 @@ bool update(const std::string name, const std::string url) {
 	if (res != SZ_OK) {
 		printf("\nCould not extract arm9loaderhax.bin\n");
 		SzArEx_Free(&db, &allocImp);
+		free(fileData);
 		return false;
 	}
 
@@ -290,6 +235,7 @@ bool update(const std::string name, const std::string url) {
 	printf("All done, freeing resources and exiting...\n");
 	IAlloc_Free(&allocImp, fileBuf);
 	SzArEx_Free(&db, &allocImp);
+	free(fileData);
 	return true;
 }
 
@@ -301,11 +247,54 @@ static int jsoneq(const char *json, jsmntok_t *tok, const char *s) {
 	return -1;
 }
 
-int main() {
-	UpdateState state = UpdateConfirmationScreen;
+ARNRelease fetchLatestRelease() {
+	ARNRelease release;
 
 	jsmn_parser p;
 	jsmn_init(&p);
+
+	bool namefound = false, releasefound = false;
+	u8* apiReqData = nullptr;
+	u32 apiReqSize = 0;
+
+	printf("Downloading %s...\n", RELEASEURL);
+
+	httpGet(RELEASEURL, &apiReqData, &apiReqSize);
+
+	printf("Downloaded %lu bytes\n", apiReqSize);
+	gfxFlushBuffers();
+
+	jsmntok_t t[128];
+	int r = jsmn_parse(&p, (const char*)apiReqData, apiReqSize, t, sizeof(t) / sizeof(t[0]));
+	if (r < 0) {
+		throw formatErrMessage("Failed to parse JSON", r);
+	}
+	printf("JSON parsed successfully!\n");
+	gfxFlushBuffers();
+
+	for (int i = 0; i < r; i++) {
+		if (!namefound && jsoneq((const char*)apiReqData, &t[i], "name") == 0) {
+			release.name = std::string((const char*)apiReqData + t[i + 1].start, t[i + 1].end - t[i + 1].start);
+			printf("Release found: %s\n", release.name.c_str());
+			namefound = true;
+		}
+		if (!releasefound && jsoneq((const char*)apiReqData, &t[i], "browser_download_url") == 0) {
+			release.url = std::string((const char*)apiReqData + t[i + 1].start, t[i + 1].end - t[i + 1].start);
+			printf("Asset found: %s\n", release.url.c_str());
+			releasefound = true;
+		}
+		if (namefound && releasefound) {
+			break;
+		}
+	}
+	gfxFlushBuffers();
+	free(apiReqData);
+
+	return release;
+}
+
+int main() {
+	UpdateState state = UpdateConfirmationScreen;
 
 	gfxInitDefault();
 	httpcInit(0);
@@ -313,57 +302,13 @@ int main() {
 	consoleInit(GFX_TOP, &con);
 	consoleDebugInit(debugDevice_CONSOLE);
 
-	u8* apiReqData = nullptr;
-	u32 apiReqSize = 0;
-	int ret = 0;
-
-	bool namefound = false, releasefound = false;
-	std::string name, url;
+	ARNRelease release;
 
 	try {
-		printf("Downloading %s...\n", RELEASEURL);
-
-		ret = HTTPGet(RELEASEURL, &apiReqData, &apiReqSize);
-
-		printf("Downloaded %lu bytes\n", apiReqSize);
-		gfxFlushBuffers();
-
-		jsmntok_t t[128];
-		int r = jsmn_parse(&p, (const char*)apiReqData, apiReqSize, t, sizeof(t) / sizeof(t[0]));
-		if (r < 0) {
-			throw formatErrMessage("Failed to parse JSON", r);
-		}
-		printf("JSON parsed successfully!\n");
-		gfxFlushBuffers();
-
-		for (int i = 0; i < r; i++) {
-			if (!namefound && jsoneq((const char*)apiReqData, &t[i], "name") == 0) {
-				name = std::string((const char*)apiReqData + t[i + 1].start, t[i + 1].end - t[i + 1].start);
-				printf("Release found: %s\n", name.c_str());
-				namefound = true;
-			}
-			if (!releasefound && jsoneq((const char*)apiReqData, &t[i], "browser_download_url") == 0) {
-				url = std::string((const char*)apiReqData + t[i + 1].start, t[i + 1].end - t[i + 1].start);
-				printf("Asset found: %s\n", url.c_str());
-				releasefound = true;
-			}
-			if (namefound && releasefound) {
-				break;
-			}
-		}
-		gfxFlushBuffers();
-
-		redraw = true;
+		release = fetchLatestRelease();
 	}
 	catch (std::string& e) {
 		printf("%s\n", e.c_str());
-		gfxFlushBuffers();
-		ret = 0;
-	}
-
-	free(apiReqData);
-
-	if (!ret) {
 		printf("\nFailed to obtain required data. Press START to exit.\n");
 		gfxFlushBuffers();
 		while (aptMainLoop() && !(hidKeysDown() & KEY_START))
@@ -374,6 +319,8 @@ int main() {
 		goto cleanup;
 	}
 
+	redraw = true;
+
 	// Main loop
 	while (aptMainLoop())
 	{
@@ -383,7 +330,7 @@ int main() {
 
 		switch (state) {
 		case UpdateConfirmationScreen:
-			switch (drawConfirmationScreen(name, url)) {
+			switch (drawConfirmationScreen(release)) {
 			case Yes:
 				state = Updating;
 				redraw = true;
@@ -397,7 +344,7 @@ int main() {
 			}
 			break;
 		case Updating:
-			if (update(name, url)) {
+			if (update(release)) {
 				state = UpdateComplete;
 			} else {
 				state = UpdateFailed;
@@ -413,7 +360,7 @@ int main() {
 		case UpdateComplete:
 			if (redraw) {
 				consoleClear();
-				printHeader();
+				menuPrintHeader(&con, VERSION);
 				printf("\n  Update complete.");
 				printf("\n\n  In case something goes wrong you can restore\n the old payload from arm9loaderhax.bin.bak\n");
 				printf("\n  Press START to reboot.");
