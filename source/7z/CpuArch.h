@@ -16,31 +16,12 @@ If MY_CPU_LE and MY_CPU_BE are not defined, we don't know about ENDIANNESS of pl
 MY_CPU_LE_UNALIGN means that CPU is LITTLE ENDIAN and CPU supports unaligned memory accesses.
 */
 
-#if defined(_M_X64) \
-   || defined(_M_AMD64) \
-   || defined(__x86_64__) \
-   || defined(__AMD64__) \
-   || defined(__amd64__)
-  #define MY_CPU_AMD64
-#endif
-
-#if defined(MY_CPU_AMD64) \
-    || defined(_M_IA64) \
-    || defined(__AARCH64EL__) \
+#if defined(__AARCH64EL__) \
     || defined(__AARCH64EB__)
   #define MY_CPU_64BIT
 #endif
 
-#if defined(_M_IX86) || defined(__i386__)
-#define MY_CPU_X86
-#endif
-
-#if defined(MY_CPU_X86) || defined(MY_CPU_AMD64)
-#define MY_CPU_X86_OR_AMD64
-#endif
-
-#if defined(MY_CPU_X86) \
-    || defined(_M_ARM) \
+#if defined(_M_ARM) \
     || defined(__ARMEL__) \
     || defined(__THUMBEL__) \
     || defined(__ARMEB__) \
@@ -48,17 +29,7 @@ MY_CPU_LE_UNALIGN means that CPU is LITTLE ENDIAN and CPU supports unaligned mem
   #define MY_CPU_32BIT
 #endif
 
-#if defined(_WIN32) && defined(_M_ARM)
-#define MY_CPU_ARM_LE
-#endif
-
-#if defined(_WIN32) && defined(_M_IA64)
-#define MY_CPU_IA64_LE
-#endif
-
-#if defined(MY_CPU_X86_OR_AMD64) \
-    || defined(MY_CPU_ARM_LE) \
-    || defined(MY_CPU_IA64_LE) \
+#if defined(MY_CPU_ARM_LE) \
     || defined(__LITTLE_ENDIAN__) \
     || defined(__ARMEL__) \
     || defined(__THUMBEL__) \
@@ -74,13 +45,6 @@ MY_CPU_LE_UNALIGN means that CPU is LITTLE ENDIAN and CPU supports unaligned mem
     || defined(__ARMEB__) \
     || defined(__THUMBEB__) \
     || defined(__AARCH64EB__) \
-    || defined(__MIPSEB__) \
-    || defined(__MIPSEB) \
-    || defined(_MIPSEB) \
-    || defined(__m68k__) \
-    || defined(__s390__) \
-    || defined(__s390x__) \
-    || defined(__zarch__) \
     || (defined(__BYTE_ORDER__) && (__BYTE_ORDER__ == __ORDER_BIG_ENDIAN__))
   #define MY_CPU_BE
 #endif
@@ -88,15 +52,6 @@ MY_CPU_LE_UNALIGN means that CPU is LITTLE ENDIAN and CPU supports unaligned mem
 #if defined(MY_CPU_LE) && defined(MY_CPU_BE)
 Stop_Compiling_Bad_Endian
 #endif
-
-
-#ifdef MY_CPU_LE
-  #if defined(MY_CPU_X86_OR_AMD64) \
-      /* || defined(__AARCH64EL__) */
-    #define MY_CPU_LE_UNALIGN
-  #endif
-#endif
-
 
 #ifdef MY_CPU_LE_UNALIGN
 
@@ -182,40 +137,6 @@ Stop_Compiling_Bad_Endian
     ((UInt16)((const Byte *)(p))[0] << 8) | \
              ((const Byte *)(p))[1] ))
 
-
-
-#ifdef MY_CPU_X86_OR_AMD64
-
-typedef struct
-{
-  UInt32 maxFunc;
-  UInt32 vendor[3];
-  UInt32 ver;
-  UInt32 b;
-  UInt32 c;
-  UInt32 d;
-} Cx86cpuid;
-
-enum
-{
-  CPU_FIRM_INTEL,
-  CPU_FIRM_AMD,
-  CPU_FIRM_VIA
-};
-
-void MyCPUID(UInt32 function, UInt32 *a, UInt32 *b, UInt32 *c, UInt32 *d);
-
-Bool x86cpuid_CheckAndRead(Cx86cpuid *p);
-int x86cpuid_GetFirm(const Cx86cpuid *p);
-
-#define x86cpuid_GetFamily(ver) (((ver >> 16) & 0xFF0) | ((ver >> 8) & 0xF))
-#define x86cpuid_GetModel(ver)  (((ver >> 12) &  0xF0) | ((ver >> 4) & 0xF))
-#define x86cpuid_GetStepping(ver) (ver & 0xF)
-
-Bool CPU_Is_InOrder();
-Bool CPU_Is_Aes_Supported();
-
-#endif
 
 EXTERN_C_END
 

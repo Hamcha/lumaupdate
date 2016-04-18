@@ -16,9 +16,6 @@
 #include "Delta.h"
 #include "LzmaDec.h"
 #include "Lzma2Dec.h"
-#ifdef _7ZIP_PPMD_SUPPPORT
-#include "Ppmd7.h"
-#endif
 
 #define k_Copy 0
 #define k_Delta 3
@@ -28,105 +25,6 @@
 #define k_BCJ2  0x303011B
 #define k_ARM   0x3030501
 #define k_ARMT  0x3030701
-
-
-#ifdef _7ZIP_PPMD_SUPPPORT
-
-#define k_PPMD 0x30401
-
-typedef struct
-{
-  IByteIn p;
-  const Byte *cur;
-  const Byte *end;
-  const Byte *begin;
-  UInt64 processed;
-  Bool extra;
-  SRes res;
-  ILookInStream *inStream;
-} CByteInToLook;
-
-static Byte ReadByte(void *pp)
-{
-  CByteInToLook *p = (CByteInToLook *)pp;
-  if (p->cur != p->end)
-    return *p->cur++;
-  if (p->res == SZ_OK)
-  {
-    size_t size = p->cur - p->begin;
-    p->processed += size;
-    p->res = p->inStream->Skip(p->inStream, size);
-    size = (1 << 25);
-    p->res = p->inStream->Look(p->inStream, (const void **)&p->begin, &size);
-    p->cur = p->begin;
-    p->end = p->begin + size;
-    if (size != 0)
-      return *p->cur++;;
-  }
-  p->extra = True;
-  return 0;
-}
-
-static SRes SzDecodePpmd(const Byte *props, unsigned propsSize, UInt64 inSize, ILookInStream *inStream,
-    Byte *outBuffer, SizeT outSize, ISzAlloc *allocMain)
-{
-  CPpmd7 ppmd;
-  CByteInToLook s;
-  SRes res = SZ_OK;
-
-  s.p.Read = ReadByte;
-  s.inStream = inStream;
-  s.begin = s.end = s.cur = NULL;
-  s.extra = False;
-  s.res = SZ_OK;
-  s.processed = 0;
-
-  if (propsSize != 5)
-    return SZ_ERROR_UNSUPPORTED;
-
-  {
-    unsigned order = props[0];
-    UInt32 memSize = GetUi32(props + 1);
-    if (order < PPMD7_MIN_ORDER ||
-        order > PPMD7_MAX_ORDER ||
-        memSize < PPMD7_MIN_MEM_SIZE ||
-        memSize > PPMD7_MAX_MEM_SIZE)
-      return SZ_ERROR_UNSUPPORTED;
-    Ppmd7_Construct(&ppmd);
-    if (!Ppmd7_Alloc(&ppmd, memSize, allocMain))
-      return SZ_ERROR_MEM;
-    Ppmd7_Init(&ppmd, order);
-  }
-  {
-    CPpmd7z_RangeDec rc;
-    Ppmd7z_RangeDec_CreateVTable(&rc);
-    rc.Stream = &s.p;
-    if (!Ppmd7z_RangeDec_Init(&rc))
-      res = SZ_ERROR_DATA;
-    else if (s.extra)
-      res = (s.res != SZ_OK ? s.res : SZ_ERROR_DATA);
-    else
-    {
-      SizeT i;
-      for (i = 0; i < outSize; i++)
-      {
-        int sym = Ppmd7_DecodeSymbol(&ppmd, &rc.p);
-        if (s.extra || sym < 0)
-          break;
-        outBuffer[i] = (Byte)sym;
-      }
-      if (i != outSize)
-        res = (s.res != SZ_OK ? s.res : SZ_ERROR_DATA);
-      else if (s.processed + (s.cur - s.begin) != inSize || !Ppmd7z_RangeDec_IsFinishedOK(&rc))
-        res = SZ_ERROR_DATA;
-    }
-  }
-  Ppmd7_Free(&ppmd, allocMain);
-  return res;
-}
-
-#endif
-
 
 static SRes SzDecodeLzma(const Byte *props, unsigned propsSize, UInt64 inSize, ILookInStream *inStream,
     Byte *outBuffer, SizeT outSize, ISzAlloc *allocMain)
