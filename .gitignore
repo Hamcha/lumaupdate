@@ -1,12 +1,3 @@
-*.sln
-*.opendb
-*.db
-*.vcxproj*
-Debug
-*.3dsx
-*.elf
-*.smdh
-build
-*.cer
-.vs
-send.cmd
+.*
+build/*
+output/*

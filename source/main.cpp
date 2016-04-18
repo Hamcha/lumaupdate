@@ -224,7 +224,7 @@ bool update(std::string name, std::string url) {
 
 			// Convert name to ASCII (just cut the other bytes)
 			char name8[256] = { 0 };
-			for (int j = 0; j < len; j++) {
+			for (unsigned int j = 0; j < len; j++) {
 				name8[j] = name[j] % 0xff;
 			}
 
