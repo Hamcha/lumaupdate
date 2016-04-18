@@ -26,11 +26,8 @@
 #define k_LZMA  0x30101
 #define k_BCJ   0x3030103
 #define k_BCJ2  0x303011B
-#define k_PPC   0x3030205
-#define k_IA64  0x3030401
 #define k_ARM   0x3030501
 #define k_ARMT  0x3030701
-#define k_SPARC 0x3030805
 
 
 #ifdef _7ZIP_PPMD_SUPPPORT
@@ -328,9 +325,6 @@ static SRes CheckSupportedFolder(const CSzFolder *f)
     {
       case k_Delta:
       case k_BCJ:
-      case k_PPC:
-      case k_IA64:
-      case k_SPARC:
       case k_ARM:
       case k_ARMT:
         break;
@@ -527,9 +521,6 @@ static SRes SzFolder_Decode2(const CSzFolder *folder,
             x86_Convert(outBuffer, outSize, 0, &state, 0);
             break;
           }
-          CASE_BRA_CONV(PPC)
-          CASE_BRA_CONV(IA64)
-          CASE_BRA_CONV(SPARC)
           CASE_BRA_CONV(ARM)
           CASE_BRA_CONV(ARMT)
           default:

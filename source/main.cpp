@@ -1,25 +1,12 @@
-/* stdlib includes */
 #include <string>
 #include <fstream>
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
 
-/* ctrulib includes */
 #include <3ds.h>
 
-/* 7z includes */
-#include "7z/7z.h"
-#include "7z/7zAlloc.h"
-#include "7z/7zCrc.h"
-#include "7z/7zMemInStream.h"
-
-/* Local includes */
-#include "http.h"
-#include "menu.h"
-#include "utils.h"
-
-#include "jsmn.h"
+#include "libs.h"
 
 #define VERSION "0.1.2"
 #define RELEASEURL "https://api.github.com/repos/AuroraWright/AuReiNand/releases/latest"
@@ -199,7 +186,7 @@ bool update(const ARNRelease release) {
 	printf("\nExtracting arm9loaderhax.bin from archive...\n");
 	gfxFlushBuffers();
 
-	u8* fileBuf;
+	u8* fileBuf = nullptr;
 	UInt32 blockIndex = UINT32_MAX;
 	size_t fileBufSize = 0;
 	size_t fileOutSize = 0;
@@ -219,6 +206,7 @@ bool update(const ARNRelease release) {
 	);
 	if (res != SZ_OK) {
 		printf("\nCould not extract arm9loaderhax.bin\n");
+		gfxFlushBuffers();
 		SzArEx_Free(&db, &allocImp);
 		free(fileData);
 		return false;

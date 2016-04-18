@@ -55,9 +55,6 @@ in CALL instructions to increase the compression ratio.
 SizeT x86_Convert(Byte *data, SizeT size, UInt32 ip, UInt32 *state, int encoding);
 SizeT ARM_Convert(Byte *data, SizeT size, UInt32 ip, int encoding);
 SizeT ARMT_Convert(Byte *data, SizeT size, UInt32 ip, int encoding);
-SizeT PPC_Convert(Byte *data, SizeT size, UInt32 ip, int encoding);
-SizeT SPARC_Convert(Byte *data, SizeT size, UInt32 ip, int encoding);
-SizeT IA64_Convert(Byte *data, SizeT size, UInt32 ip, int encoding);
 
 EXTERN_C_END
 
