@@ -21,7 +21,7 @@
 #include "cybertrust.h"
 
 #define RELEASEURL "https://api.github.com/repos/AuroraWright/AuReiNand/releases/latest"
-#define VERSION "0.1.0"
+#define VERSION "0.1.1"
 
 /* Console utils */
 
@@ -29,7 +29,9 @@ bool redraw = false;
 PrintConsole con;
 
 void printHeader() {
-	printf("\n  ARN Updater v%s\n\n", VERSION);
+	con.cursorX = 2;
+	con.cursorY = 1;
+	printf("ARN Updater v%s\n\n", VERSION);
 }
 
 void printFooter() {
@@ -38,7 +40,7 @@ void printFooter() {
 	printf("< > select options   A choose   START quit");
 }
 
-std::string formatErrMessage(std::string msg, Result val) {
+std::string formatErrMessage(const std::string msg, const Result val) {
 	std::ostringstream os;
 	os << msg << "\nRet code: " << val;
 	return os.str();
@@ -50,7 +52,6 @@ std::string formatErrMessage(std::string msg, Result val) {
 
 int HTTPGet(const std::string url, u8** buf, u32* size) {
 	httpcContext context;
-	std::string out;
 	CHECK(httpcOpenContext(&context, HTTPC_METHOD_GET, (char*)url.c_str(), 0), "Could not open HTTP context");
 	// Add User Agent field (required by Github API calls)
 	CHECK(httpcAddRequestHeaderField(&context, (char*)"User-Agent", (char*)"ARN-UPDATER"), "Could not set User Agent");
@@ -103,7 +104,7 @@ enum UpdateChoice {
 	No
 };
 
-UpdateChoice drawConfirmationScreen(std::string name, std::string url) {
+UpdateChoice drawConfirmationScreen(const std::string name, const std::string url) {
 	static bool status = false;
 	static bool partialredraw = false;
 
@@ -158,7 +159,7 @@ bool backupA9LH() {
 	return true;
 }
 
-bool update(std::string name, std::string url) {
+bool update(const std::string name, const std::string url) {
 	consoleClear();
 
 	// Back up local file
@@ -176,7 +177,7 @@ bool update(std::string name, std::string url) {
 
 	try {
 		HTTPGet(url, &fileData, &fileSize);
-	} catch (std::string e) {
+	} catch (std::string& e) {
 		printf("%s\n", e.c_str());
 		return false;
 	}
@@ -224,7 +225,7 @@ bool update(std::string name, std::string url) {
 
 			// Convert name to ASCII (just cut the other bytes)
 			char name8[256] = { 0 };
-			for (int j = 0; j < len; j++) {
+			for (size_t j = 0; j < len; j++) {
 				name8[j] = name[j] % 0xff;
 			}
 
@@ -278,7 +279,7 @@ bool update(std::string name, std::string url) {
 		return false;
 	}
 
-	printf("File extracted successfully (%d bytes)\n", fileOutSize);
+	printf("File extracted successfully (%zu bytes)\n", fileOutSize);
 	gfxFlushBuffers();
 
 	printf("Saving arm9loaderhax.bin to SD...\n");
@@ -354,7 +355,7 @@ int main() {
 
 		redraw = true;
 	}
-	catch (std::string e) {
+	catch (std::string& e) {
 		printf("%s\n", e.c_str());
 		gfxFlushBuffers();
 		ret = 0;
