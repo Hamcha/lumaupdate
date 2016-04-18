@@ -5,7 +5,6 @@
 */
 
 #include "7zMemInStream.h"
-#include <string.h>
 
 static SRes MemInStream_Look(void *pp, const void **buf, size_t *size)
 {
