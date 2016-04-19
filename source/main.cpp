@@ -11,8 +11,11 @@
 #define VERSION "0.1.2"
 #define RELEASEURL "https://api.github.com/repos/AuroraWright/AuReiNand/releases/latest"
 
+#define WAIT_START while (aptMainLoop() && !(hidKeysDown() & KEY_START)) { gspWaitForVBlank(); hidScanInput(); }
+
 bool redraw = false;
 PrintConsole con;
+Config config;
 
 /* States */
 
@@ -35,7 +38,11 @@ struct ARNRelease {
 	std::string url;
 };
 
-UpdateChoice drawConfirmationScreen(const ARNRelease release) {
+struct UpdateArgs {
+	std::string payloadPath;
+};
+
+UpdateChoice drawConfirmationScreen(const ARNRelease release, const UpdateArgs args) {
 	static bool status = false;
 	static bool partialredraw = false;
 
@@ -55,19 +62,20 @@ UpdateChoice drawConfirmationScreen(const ARNRelease release) {
 	if (redraw) {
 		consoleClear();
 		menuPrintHeader(&con, VERSION);
-		printf("  Latest version (from Github): %s\n\n", release.name.c_str());
+		printf("  Payload path: %s\n\n", args.payloadPath.c_str());
+		printf("  Latest version (from Github): %s%s%s\n\n", CONSOLE_WHITE, release.name.c_str(), CONSOLE_RESET);
 		menuPrintFooter(&con);
 	}
 
 	con.cursorX = 4;
-	con.cursorY = 5;
+	con.cursorY = 7;
 	printf("Do you want to install it? ");
 	printf(status ? "< YES >" : "< NO > ");
 
 	redraw = false;
 	partialredraw = false;
 	return NoReply;
-};
+}
 
 bool backupA9LH() {
 	std::ifstream original("/arm9loaderhax.bin", std::ifstream::binary);
@@ -90,7 +98,7 @@ bool backupA9LH() {
 	return true;
 }
 
-bool update(const ARNRelease release) {
+bool update(const ARNRelease release, const UpdateArgs args) {
 	consoleClear();
 
 	// Back up local file
@@ -283,6 +291,8 @@ ARNRelease fetchLatestRelease() {
 
 int main() {
 	UpdateState state = UpdateConfirmationScreen;
+	ARNRelease release;
+	UpdateArgs updateArgs;
 
 	gfxInitDefault();
 	httpcInit(0);
@@ -290,20 +300,34 @@ int main() {
 	consoleInit(GFX_TOP, &con);
 	consoleDebugInit(debugDevice_CONSOLE);
 
-	ARNRelease release;
+	// Read config file
+	bool loaded = config.LoadFile("arnupdate.cfg");
+	if (!loaded) {
+		printf("\nFATAL ERROR\nConfiguration file is missing or could not be\nparsed.\n\nPress START to exit.\n");
+		gfxFlushBuffers();
+		WAIT_START
+		goto cleanup;
+	}
+	printf("Configuration file loaded successfully.\n");
+
+	// Check required values in config
+	if (!config.Has("payload path")) {
+		printf("Missing required config value: payload path\n");
+		gfxFlushBuffers();
+		WAIT_START
+		goto cleanup;
+	}
+
+	updateArgs.payloadPath = config.Get("payload path");
 
 	try {
 		release = fetchLatestRelease();
 	}
 	catch (std::string& e) {
 		printf("%s\n", e.c_str());
-		printf("\nFailed to obtain required data. Press START to exit.\n");
+		printf("\nFATAL ERROR\nFailed to obtain required data.\n\nPress START to exit.\n");
 		gfxFlushBuffers();
-		while (aptMainLoop() && !(hidKeysDown() & KEY_START))
-		{
-			gspWaitForVBlank();
-			hidScanInput();
-		}
+		WAIT_START
 		goto cleanup;
 	}
 
@@ -318,7 +342,7 @@ int main() {
 
 		switch (state) {
 		case UpdateConfirmationScreen:
-			switch (drawConfirmationScreen(release)) {
+			switch (drawConfirmationScreen(release, updateArgs)) {
 			case Yes:
 				state = Updating;
 				redraw = true;
@@ -332,7 +356,7 @@ int main() {
 			}
 			break;
 		case Updating:
-			if (update(release)) {
+			if (update(release, updateArgs)) {
 				state = UpdateComplete;
 			} else {
 				state = UpdateFailed;
@@ -341,7 +365,7 @@ int main() {
 			break;
 		case UpdateFailed:
 			if (redraw) {
-				printf("\n  Update failed. Press START to exit.\n");
+				printf("\n  %sUpdate failed%s. Press START to exit.\n", CONSOLE_RED, CONSOLE_RESET);
 				redraw = false;
 			}
 			break;
@@ -349,8 +373,8 @@ int main() {
 			if (redraw) {
 				consoleClear();
 				menuPrintHeader(&con, VERSION);
-				printf("\n  Update complete.");
-				printf("\n\n  In case something goes wrong you can restore\n the old payload from arm9loaderhax.bin.bak\n");
+				printf("\n  %sUpdate complete.%s", CONSOLE_GREEN, CONSOLE_RESET);
+				printf("\n\n  In case something goes wrong you can restore\n  the old payload from arm9loaderhax.bin.bak\n");
 				printf("\n  Press START to reboot.");
 				redraw = false;
 			}
