@@ -1,9 +1,13 @@
 #include "menu.h"
 
-void menuPrintHeader(PrintConsole* con, const char* version) {
+#ifndef GIT_VER
+#define GIT_VER "<unknown>"
+#endif
+
+void menuPrintHeader(PrintConsole* con) {
 	con->cursorX = 2;
 	con->cursorY = 1;
-	printf("%sARN Updater v%s%s\n\n", CONSOLE_YELLOW, version, CONSOLE_RESET);
+	printf("%sARN Updater %s%s\n\n", CONSOLE_YELLOW, GIT_VER, CONSOLE_RESET);
 }
 
 void menuPrintFooter(PrintConsole* con) {

@@ -8,7 +8,6 @@
 
 #include "libs.h"
 
-#define VERSION "0.1.2"
 #define RELEASEURL "https://api.github.com/repos/AuroraWright/AuReiNand/releases/latest"
 
 #define WAIT_START while (aptMainLoop() && !(hidKeysDown() & KEY_START)) { gspWaitForVBlank(); hidScanInput(); }
@@ -61,7 +60,7 @@ UpdateChoice drawConfirmationScreen(const ARNRelease release, const UpdateArgs a
 
 	if (redraw) {
 		consoleClear();
-		menuPrintHeader(&con, VERSION);
+		menuPrintHeader(&con);
 		printf("  Payload path: %s\n\n", args.payloadPath.c_str());
 		printf("  Latest version (from Github): %s%s%s\n\n", CONSOLE_WHITE, release.name.c_str(), CONSOLE_RESET);
 		menuPrintFooter(&con);
@@ -372,7 +371,7 @@ int main() {
 		case UpdateComplete:
 			if (redraw) {
 				consoleClear();
-				menuPrintHeader(&con, VERSION);
+				menuPrintHeader(&con);
 				printf("\n  %sUpdate complete.%s", CONSOLE_GREEN, CONSOLE_RESET);
 				printf("\n\n  In case something goes wrong you can restore\n  the old payload from arm9loaderhax.bin.bak\n");
 				printf("\n  Press START to reboot.");

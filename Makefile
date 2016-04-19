@@ -38,6 +38,9 @@ APP_TITLE       :=  ARN Updater
 APP_DESCRIPTION :=  Updater for AuReiNand releases  
 APP_AUTHOR      :=  Hamcha
 
+GIT_VER := $(shell git describe --dirty --always --tags)
+
+
 #---------------------------------------------------------------------------------
 # options for code generation
 #---------------------------------------------------------------------------------
@@ -48,6 +51,10 @@ CFLAGS	:=	-g -Wall -Wextra -pedantic -O2 -mword-relocations \
 			$(ARCH)
 
 CFLAGS	+=	$(INCLUDE) -DARM11 -D_3DS
+
+ifdef GIT_VER
+	CFLAGS	+=	-DGIT_VER=\"$(GIT_VER)\"
+endif
 
 CXXFLAGS	:= $(CFLAGS) -fno-rtti -fexceptions -std=gnu++11
 
