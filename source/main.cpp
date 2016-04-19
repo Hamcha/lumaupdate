@@ -76,16 +76,23 @@ UpdateChoice drawConfirmationScreen(const ARNRelease release, const UpdateArgs a
 	return NoReply;
 }
 
-bool backupA9LH() {
-	std::ifstream original("/arm9loaderhax.bin", std::ifstream::binary);
+bool fileExists(std::string path) {
+	std::ifstream file(path);
+	return file.is_open();
+}
+
+bool backupA9LH(std::string payloadName) {
+	std::string originalName = "/" + payloadName;
+	std::ifstream original(originalName, std::ifstream::binary);
 	if (!original.good()) {
-		printf("Could not open arm9loaderhax.bin\n");
+		printf("Could not open %s\n", originalName.c_str());
 		return false;
 	}
 
-	std::ofstream target("/arm9loaderhax.bin.bak", std::ofstream::binary);
+	std::string backupName = originalName + ".bak";
+	std::ofstream target(backupName, std::ofstream::binary);
 	if (!target.good()) {
-		printf("Could not open arm9loaderhax.bin.bak\n");
+		printf("Could not open %s\n", backupName.c_str());
 		original.close();
 		return false;
 	}
@@ -100,12 +107,17 @@ bool backupA9LH() {
 bool update(const ARNRelease release, const UpdateArgs args) {
 	consoleClear();
 
-	// Back up local file
-	printf("Copying arm9loaderhax.bin to arm9loaderhax.bin.bak...\n");
-	gfxFlushBuffers();
-	if (!backupA9LH()) {
-		printf("\nCould not backup arm9loaderhax.bin (!!), aborting...\n");
-		return false;
+	// Back up local file if it exists
+	if (args.payloadPath == "arm9loaderhax.bin" || fileExists("/" + args.payloadPath)) {
+		printf("Copying %s to %s.bak...\n", args.payloadPath.c_str(), args.payloadPath.c_str());
+		gfxFlushBuffers();
+		if (!backupA9LH(args.payloadPath)) {
+			printf("\nCould not backup %s (!!), aborting...\n", args.payloadPath.c_str());
+			return false;
+		}
+	}
+	else {
+		printf("Original payload not found, skipping backup...\n");
 	}
 
 	printf("Downloading 7z file...\n");
@@ -222,8 +234,8 @@ bool update(const ARNRelease release, const UpdateArgs args) {
 	printf("File extracted successfully (%zu bytes)\n", fileOutSize);
 	gfxFlushBuffers();
 
-	printf("Saving arm9loaderhax.bin to SD...\n");
-	std::ofstream a9lhfile("/arm9loaderhax.bin", std::ofstream::binary);
+	printf("Saving arm9loaderhax.bin to SD (as %s)...\n", args.payloadPath.c_str());
+	std::ofstream a9lhfile("/" + args.payloadPath, std::ofstream::binary);
 	a9lhfile.write((const char*)fileBuf, fileOutSize);
 	a9lhfile.close();
 
@@ -373,7 +385,7 @@ int main() {
 				consoleClear();
 				menuPrintHeader(&con);
 				printf("\n  %sUpdate complete.%s", CONSOLE_GREEN, CONSOLE_RESET);
-				printf("\n\n  In case something goes wrong you can restore\n  the old payload from arm9loaderhax.bin.bak\n");
+				printf("\n\n  In case something goes wrong you can restore\n  the old payload from %s.bak\n", updateArgs.payloadPath.c_str());
 				printf("\n  Press START to reboot.");
 				redraw = false;
 			}
