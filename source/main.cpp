@@ -8,6 +8,7 @@
 
 #include "libs.h"
 
+#define CFGFILE    "arnupdate.cfg"
 #define RELEASEURL "https://api.github.com/repos/AuroraWright/AuReiNand/releases/latest"
 
 #define WAIT_START while (aptMainLoop() && !(hidKeysDown() & KEY_START)) { gspWaitForVBlank(); hidScanInput(); }
@@ -41,7 +42,7 @@ struct UpdateArgs {
 	std::string payloadPath;
 };
 
-UpdateChoice drawConfirmationScreen(const ARNRelease release, const UpdateArgs args) {
+UpdateChoice drawConfirmationScreen(const ARNRelease release, const UpdateArgs args, const bool usingConfig) {
 	static bool status = false;
 	static bool partialredraw = false;
 
@@ -61,13 +62,18 @@ UpdateChoice drawConfirmationScreen(const ARNRelease release, const UpdateArgs a
 	if (redraw) {
 		consoleClear();
 		menuPrintHeader(&con);
+
+		if (usingConfig == false){
+			printf("  Config file not found: assuming defaults...\n");
+		}
+
 		printf("  Payload path: %s\n\n", args.payloadPath.c_str());
 		printf("  Latest version (from Github): %s%s%s\n\n", CONSOLE_WHITE, release.name.c_str(), CONSOLE_RESET);
 		menuPrintFooter(&con);
 	}
 
 	con.cursorX = 4;
-	con.cursorY = 7;
+	con.cursorY = usingConfig ? 8 : 7;
 	printf("Do you want to install it? ");
 	printf(status ? "< YES >" : "< NO > ");
 
@@ -312,24 +318,38 @@ int main() {
 	consoleDebugInit(debugDevice_CONSOLE);
 
 	// Read config file
-	bool loaded = config.LoadFile("arnupdate.cfg");
-	if (!loaded) {
-		printf("\nFATAL ERROR\nConfiguration file is missing or could not be\nparsed.\n\nPress START to exit.\n");
-		gfxFlushBuffers();
-		WAIT_START
-		goto cleanup;
+	LoadConfigError confStatus = config.LoadFile(CFGFILE);
+	bool usingConfig = false;
+	switch (confStatus) {
+		case CFGE_NOTEXISTS:
+			printf("The configuration file could not be found, skipping...\n");
+			break;
+		case CFGE_UNREADABLE:
+			printf("FATAL\nConfiguration file is unreadable!\n\nPress START to quit.\n");
+			gfxFlushBuffers();
+			WAIT_START
+			goto cleanup;
+		case CFGE_MALFORMED:
+			printf("FATAL\nConfiguration file is malformed!\n\nPress START to quit.\n");
+			gfxFlushBuffers();
+			WAIT_START
+			goto cleanup;
+		case CFGE_NONE:
+			printf("Configuration file loaded successfully.\n");
+			usingConfig = true;
+			break;
 	}
-	printf("Configuration file loaded successfully.\n");
 
-	// Check required values in config
-	if (!config.Has("payload path")) {
+	// Check required values in config, if existing
+	if (usingConfig && !config.Has("payload path")) {
 		printf("Missing required config value: payload path\n");
 		gfxFlushBuffers();
 		WAIT_START
 		goto cleanup;
 	}
 
-	updateArgs.payloadPath = config.Get("payload path");
+	// Load config values
+	updateArgs.payloadPath = config.Get("payload path", "arm9loaderhax.bin");
 
 	try {
 		release = fetchLatestRelease();
@@ -353,7 +373,7 @@ int main() {
 
 		switch (state) {
 		case UpdateConfirmationScreen:
-			switch (drawConfirmationScreen(release, updateArgs)) {
+			switch (drawConfirmationScreen(release, updateArgs, usingConfig)) {
 			case Yes:
 				state = Updating;
 				redraw = true;

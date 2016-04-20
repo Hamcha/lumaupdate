@@ -1,7 +1,7 @@
 #include "config.h"
 
 #include <fstream>
-#include <algorithm> 
+#include <algorithm>
 #include <functional>
 #include <cctype>
 
@@ -10,12 +10,15 @@ static inline void trim(std::string &s) {
 	s.erase(std::find_if(s.rbegin(), s.rend(), std::not1(std::ptr_fun<int, int>(std::isspace))).base(), s.end());
 }
 
-bool Config::LoadFile(const std::string path) {
+LoadConfigError Config::LoadFile(const std::string path) {
 	std::ifstream cfgfile(path);
 
+	if (!cfgfile.is_open()) {
+		return CFGE_NOTEXISTS;
+	}
+
 	if (!cfgfile.good()) {
-		printf("Could not open configuration file.\n");
-		return false;
+		return CFGE_UNREADABLE;
 	}
 
 	std::string curLine;
@@ -29,11 +32,11 @@ bool Config::LoadFile(const std::string path) {
 			values[key] = value;
 		} else {
 			printf("Invalid line detected in config: %s\n", curLine.c_str());
-			return false;
+			return CFGE_MALFORMED;
 		}
 	}
 
-	return true;
+	return CFGE_NONE;
 }
 
 bool Config::Has(const std::string key) {
@@ -41,9 +44,9 @@ bool Config::Has(const std::string key) {
 	return it != values.end();
 }
 
-std::string Config::Get(const std::string key) {
+std::string Config::Get(const std::string key, const std::string fallback) {
 	if (!this->Has(key)) {
-		return "";
+		return fallback;
 	}
 	return values[key];
 }
