@@ -9,6 +9,5 @@ A `arm9loaderhax.bin` updater for AuReiNand as a 3DS homebrew (no more SD swaps!
 
 ## What's missing (aka TODO)
 
-- Config file reading and parsing
 - Path changing, saving to a different filename
 - Support for [astronautlevel's hourlies](https://astronautlevel2.github.io/AuReiNand/)
