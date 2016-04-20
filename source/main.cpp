@@ -8,8 +8,9 @@
 
 #include "libs.h"
 
-#define CFGFILE    "arnupdate.cfg"
-#define RELEASEURL "https://api.github.com/repos/AuroraWright/AuReiNand/releases/latest"
+#define CFGFILE     "arnupdate.cfg"
+#define PAYLOADPATH "arm9loaderhax.bin"
+#define RELEASEURL  "https://api.github.com/repos/AuroraWright/AuReiNand/releases/latest"
 
 #define WAIT_START while (aptMainLoop() && !(hidKeysDown() & KEY_START)) { gspWaitForVBlank(); hidScanInput(); }
 
@@ -63,8 +64,8 @@ UpdateChoice drawConfirmationScreen(const ARNRelease release, const UpdateArgs a
 		consoleClear();
 		menuPrintHeader(&con);
 
-		if (usingConfig == false){
-			printf("  Config file not found: assuming defaults...\n");
+		if (!usingConfig){
+			printf("  %s%s not found, using default values%s\n\n", CONSOLE_MAGENTA, CFGFILE, CONSOLE_RESET);
 		}
 
 		printf("  Payload path: %s\n\n", args.payloadPath.c_str());
@@ -73,7 +74,7 @@ UpdateChoice drawConfirmationScreen(const ARNRelease release, const UpdateArgs a
 	}
 
 	con.cursorX = 4;
-	con.cursorY = usingConfig ? 8 : 7;
+	con.cursorY = 7 + (usingConfig ? 0 : 2);
 	printf("Do you want to install it? ");
 	printf(status ? "< YES >" : "< NO > ");
 
@@ -114,7 +115,7 @@ bool update(const ARNRelease release, const UpdateArgs args) {
 	consoleClear();
 
 	// Back up local file if it exists
-	if (args.payloadPath == "arm9loaderhax.bin" || fileExists("/" + args.payloadPath)) {
+	if (fileExists("/" + args.payloadPath)) {
 		printf("Copying %s to %s.bak...\n", args.payloadPath.c_str(), args.payloadPath.c_str());
 		gfxFlushBuffers();
 		if (!backupA9LH(args.payloadPath)) {
@@ -161,7 +162,7 @@ bool update(const ARNRelease release, const UpdateArgs args) {
 	SRes res = SzArEx_Open(&db, &memStream.s, &allocImp, &allocTempImp);
 	u32 codeIndex = UINT32_MAX;
 	if (res == SZ_OK) {
-		printf("Archive opened in memory.\n\nSearching for arm9loaderhax.bin: ");
+		printf("Archive opened in memory.\n\nSearching for %s: ", PAYLOADPATH);
 		gfxFlushBuffers();
 		for (u32 i = 0; i < db.NumFiles; i++) {
 			// Skip directories
@@ -187,7 +188,7 @@ bool update(const ARNRelease release, const UpdateArgs args) {
 			}
 
 			// Check if it's the A9LH payload
-			int res = strncmp(name8, "arm9loaderhax.bin", len - 1);
+			int res = strncmp(name8, PAYLOADPATH, len - 1);
 			if (res == 0) {
 				codeIndex = i;
 				printf("FOUND! (%lu)\n", codeIndex);
@@ -202,13 +203,13 @@ bool update(const ARNRelease release, const UpdateArgs args) {
 	}
 
 	if (codeIndex == UINT32_MAX) {
-		printf("\nCould not find arm9loaderhax.bin\n");
+		printf("\nCould not find %s\n", PAYLOADPATH);
 		SzArEx_Free(&db, &allocImp);
 		free(fileData);
 		return false;
 	}
 
-	printf("\nExtracting arm9loaderhax.bin from archive...\n");
+	printf("\nExtracting %s from archive...\n", PAYLOADPATH);
 	gfxFlushBuffers();
 
 	u8* fileBuf = nullptr;
@@ -230,8 +231,17 @@ bool update(const ARNRelease release, const UpdateArgs args) {
 		&allocTempImp
 	);
 	if (res != SZ_OK) {
-		printf("\nCould not extract arm9loaderhax.bin\n");
+		printf("\nCould not extract %s\n", PAYLOADPATH);
 		gfxFlushBuffers();
+		SzArEx_Free(&db, &allocImp);
+		free(fileData);
+		return false;
+	}
+
+	if (fileOutSize > 0x20000) {
+		printf("File is too big to be a valid A9LH payload!\n");
+		gfxFlushBuffers();
+		IAlloc_Free(&allocImp, fileBuf);
 		SzArEx_Free(&db, &allocImp);
 		free(fileData);
 		return false;
@@ -240,7 +250,18 @@ bool update(const ARNRelease release, const UpdateArgs args) {
 	printf("File extracted successfully (%zu bytes)\n", fileOutSize);
 	gfxFlushBuffers();
 
-	printf("Saving arm9loaderhax.bin to SD (as %s)...\n", args.payloadPath.c_str());
+	if (args.payloadPath != PAYLOADPATH) {
+		printf("Requested payload path is not %s, applying path patch...\n", PAYLOADPATH);
+		bool res = pathchange(fileBuf, fileOutSize, args.payloadPath);
+		if (!res) {
+			IAlloc_Free(&allocImp, fileBuf);
+			SzArEx_Free(&db, &allocImp);
+			free(fileData);
+			return false;
+		}
+	}
+
+	printf("Saving %s to SD (as %s)...\n", PAYLOADPATH, args.payloadPath.c_str());
 	std::ofstream a9lhfile("/" + args.payloadPath, std::ofstream::binary);
 	a9lhfile.write((const char*)fileBuf, fileOutSize);
 	a9lhfile.close();
@@ -318,7 +339,7 @@ int main() {
 	consoleDebugInit(debugDevice_CONSOLE);
 
 	// Read config file
-	LoadConfigError confStatus = config.LoadFile(CFGFILE);
+	LoadConfigError confStatus = config.LoadFile(std::string("/") + CFGFILE);
 	bool usingConfig = false;
 	switch (confStatus) {
 		case CFGE_NOTEXISTS:
@@ -349,7 +370,15 @@ int main() {
 	}
 
 	// Load config values
-	updateArgs.payloadPath = config.Get("payload path", "arm9loaderhax.bin");
+	updateArgs.payloadPath = config.Get("payload path", PAYLOADPATH);
+
+	// Check that the payload path is valid
+	if (updateArgs.payloadPath.length() > MAXPATHLEN) {
+		printf("\nFATAL\nPayload path is too long!\nIt can contain at most %d characters!\n\nPress START to quit.\n", MAXPATHLEN);
+		gfxFlushBuffers();
+		WAIT_START
+		goto cleanup;
+	}
 
 	try {
 		release = fetchLatestRelease();
@@ -418,9 +447,7 @@ int main() {
 			break;
 		case UpdateAborted:
 			if (redraw) {
-				con.cursorX = 2;
-				con.cursorY = 7;
-				printf("Update aborted. Press START to exit.\n");
+				printf("\n\n  Update aborted. Press START to exit.");
 				redraw = false;
 			}
 			break;
