@@ -41,7 +41,7 @@ struct UpdateArgs {
 	std::string payloadPath;
 };
 
-UpdateChoice drawConfirmationScreen(const ARNRelease release, const UpdateArgs args) {
+UpdateChoice drawConfirmationScreen(const ARNRelease release, const UpdateArgs args, bool configfile) {
 	static bool status = false;
 	static bool partialredraw = false;
 
@@ -68,6 +68,11 @@ UpdateChoice drawConfirmationScreen(const ARNRelease release, const UpdateArgs a
 
 	con.cursorX = 4;
 	con.cursorY = 7;
+	
+	if (configfile == false){
+		printf("Configuration file NOT found!\n");
+		printf("Assuming default values!\n\n");
+	}
 	printf("Do you want to install it? ");
 	printf(status ? "< YES >" : "< NO > ");
 
@@ -305,6 +310,8 @@ int main() {
 	ARNRelease release;
 	UpdateArgs updateArgs;
 
+	bool configfile = true;
+	
 	gfxInitDefault();
 	httpcInit(0);
 
@@ -312,24 +319,35 @@ int main() {
 	consoleDebugInit(debugDevice_CONSOLE);
 
 	// Read config file
-	bool loaded = config.LoadFile("arnupdate.cfg");
-	if (!loaded) {
-		printf("\nFATAL ERROR\nConfiguration file is missing or could not be\nparsed.\n\nPress START to exit.\n");
-		gfxFlushBuffers();
-		WAIT_START
-		goto cleanup;
+	if (std::ifstream("arnupdate.cfg")){
+		bool loaded = config.LoadFile("arnupdate.cfg");
+		if (!loaded) {
+			printf("\n Config corrupted... Skipping. \n");
+		}
+		else{
+			printf("Configuration file loaded successfully.\n");
+		}
 	}
-	printf("Configuration file loaded successfully.\n");
+	else{
+		configfile = false;
+	}
+	
 
 	// Check required values in config
-	if (!config.Has("payload path")) {
-		printf("Missing required config value: payload path\n");
-		gfxFlushBuffers();
-		WAIT_START
-		goto cleanup;
+	if (configfile == true){
+		if (!config.Has("payload path")) {
+			printf("Missing required config value: payload path\n");
+			gfxFlushBuffers();
+			WAIT_START
+			goto cleanup;
+		}
 	}
 
-	updateArgs.payloadPath = config.Get("payload path");
+	updateArgs.payloadPath = "arm9loaderhax.bin"; //default value
+
+	if (configfile == true){
+		updateArgs.payloadPath = config.Get("payload path");
+	}
 
 	try {
 		release = fetchLatestRelease();
@@ -353,7 +371,7 @@ int main() {
 
 		switch (state) {
 		case UpdateConfirmationScreen:
-			switch (drawConfirmationScreen(release, updateArgs)) {
+			switch (drawConfirmationScreen(release, updateArgs, configfile)) {
 			case Yes:
 				state = Updating;
 				redraw = true;
