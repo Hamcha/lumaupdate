@@ -2,7 +2,7 @@
 
 #include <string>
 
-#include <3ds\types.h>
+#include <3ds/types.h>
 
 #define CHECK(val, msg) if (val != 0) { throw formatErrMessage(msg, val); }
 
