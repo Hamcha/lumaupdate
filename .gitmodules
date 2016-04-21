@@ -1,0 +1,3 @@
+[submodule "buildtools"]
+	path = buildtools
+	url = http://github.com/steveice10/buildtools

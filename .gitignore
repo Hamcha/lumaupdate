@@ -10,3 +10,4 @@ build
 *.cer
 .vs
 send.cmd
+output
