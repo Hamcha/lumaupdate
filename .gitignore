@@ -1,12 +1,19 @@
-*.sln
-*.opendb
-*.db
-*.vcxproj*
-Debug
+# Build output
 *.3dsx
 *.elf
 *.smdh
+
+# Visual studio stuff
+*.sln
+*.opendb
+*.sdf
+*.opensdf
+*.db
+*.vcxproj*
+Debug
 build
 *.cer
 .vs
+
+# Hamcha's terrible commands
 send.cmd
