@@ -58,6 +58,7 @@ std::string versionMemsearch(const std::string path) {
 				break;
 			}
 		}
+		// Get full version string
 		versionString = std::string(payloadData + verOffset, verLength);
 	}
 

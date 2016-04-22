@@ -68,7 +68,7 @@ UpdateChoice drawConfirmationScreen(const ARNRelease release, const UpdateArgs a
 		menuPrintHeader(&con);
 
 		if (!usingConfig){
-			printf("  %s not found, using default values%s\n\n", CONSOLE_MAGENTA, CONSOLE_RESET);
+			printf("  %sConfiguration not found, using default values%s\n\n", CONSOLE_MAGENTA, CONSOLE_RESET);
 		}
 
 		printf("  Payload path: %s\n\n", args.payloadPath.c_str());
@@ -77,7 +77,7 @@ UpdateChoice drawConfirmationScreen(const ARNRelease release, const UpdateArgs a
 			printf("  Current installed version:    %s%s%s\n", (haveLatest ? CONSOLE_GREEN : CONSOLE_RED), args.currentVersion.c_str(), CONSOLE_RESET);
 		}
 		else {
-			printf("  Could not detect current installed version\n\n");
+			printf("  %sCould not detect current version%s\n\n", CONSOLE_MAGENTA, CONSOLE_RESET);
 		}
 		printf("  Latest version (from Github): %s%s%s\n\n", CONSOLE_GREEN, release.name.c_str(), CONSOLE_RESET);
 
@@ -90,7 +90,7 @@ UpdateChoice drawConfirmationScreen(const ARNRelease release, const UpdateArgs a
 	}
 
 	con.cursorX = 4;
-	con.cursorY = 10 + (usingConfig ? 0 : 2);
+	con.cursorY = 10 + (usingConfig ? 0 : 3);
 	printf("Do you %swant to install it? ", (haveLatest ? "still " : ""));
 	printf(status ? "< YES >" : "< NO > ");
 
@@ -339,12 +339,18 @@ ARNRelease fetchLatestRelease() {
 
 	for (int i = 0; i < r; i++) {
 		if (!namefound && jsoneq((const char*)apiReqData, &t[i], "name") == 0) {
-			release.name = std::string((const char*)apiReqData + t[i + 1].start, t[i + 1].end - t[i + 1].start);
+			jsmntok_t val = t[i+1];
+			// Strip the "v" in front of the version name
+			if (apiReqData[val.start] == 'v') {
+				val.start += 1;
+			}
+			release.name = std::string((const char*)apiReqData + val.start, val.end - val.start);
 			printf("Release found: %s\n", release.name.c_str());
 			namefound = true;
 		}
 		if (!releasefound && jsoneq((const char*)apiReqData, &t[i], "browser_download_url") == 0) {
-			release.url = std::string((const char*)apiReqData + t[i + 1].start, t[i + 1].end - t[i + 1].start);
+			jsmntok_t val = t[i+1];
+			release.url = std::string((const char*)apiReqData + val.start, val.end - val.start);
 			printf("Asset found: %s\n", release.url.c_str());
 			releasefound = true;
 		}
@@ -376,7 +382,7 @@ int main() {
 
 	// Read config file
 	bool usingConfig = false;
-	for (size_t cfgIndex = 0; usingConfig && (cfgIndex < cfgPathsLen); cfgIndex++) {
+	for (size_t cfgIndex = 0; !usingConfig && (cfgIndex < cfgPathsLen); cfgIndex++) {
 		LoadConfigError confStatus = config.LoadFile(cfgPaths[cfgIndex]);
 		switch (confStatus) {
 		case CFGE_NOTEXISTS:
