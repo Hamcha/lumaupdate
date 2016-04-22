@@ -361,11 +361,8 @@ ARNRelease fetchLatestRelease() {
 }
 
 int main() {
-	std::vector <std::string> pathsList;
-
-	pathsList.push_back("arnupdate.cfg");
-	pathsList.push_back("aurei/arnupdate.cfg");
-	pathsList.push_back("3DS/arnupdate.cfg");
+	const char* cfgPaths[] = { "/arnupdate.cfg", "/aurei/arnupdate.cfg", "/3DS/arnupdate.cfg" };
+	const size_t cfgPathsLen = sizeof(cfgPaths) / sizeof(cfgPaths[0]);
 
 	UpdateState state = UpdateConfirmationScreen;
 	ARNRelease release;
@@ -379,30 +376,26 @@ int main() {
 
 	// Read config file
 	bool usingConfig = false;
-	int i=0;
-	while((i < pathsList.size()) && usingConfig == false)
-	{
-		LoadConfigError confStatus = config.LoadFile(std::string("/") + pathsList[i]);
-		switch (confStatus) 
-		{
-			case CFGE_NOTEXISTS:
-				break;
-			case CFGE_UNREADABLE:
-				printf("FATAL\nConfiguration file is unreadable!\n\nPress START to quit.\n");
-				gfxFlushBuffers();
-				WAIT_START
-				goto cleanup;
-			case CFGE_MALFORMED:
-				printf("FATAL\nConfiguration file is malformed!\n\nPress START to quit.\n");
-				gfxFlushBuffers();
-				WAIT_START
-				goto cleanup;
-			case CFGE_NONE:
-				printf("Configuration file loaded successfully.\n");
-				usingConfig = true;
-				break;
+	for (size_t cfgIndex = 0; usingConfig && (cfgIndex < cfgPathsLen); cfgIndex++) {
+		LoadConfigError confStatus = config.LoadFile(cfgPaths[cfgIndex]);
+		switch (confStatus) {
+		case CFGE_NOTEXISTS:
+			break;
+		case CFGE_UNREADABLE:
+			printf("FATAL\nConfiguration file is unreadable!\n\nPress START to quit.\n");
+			gfxFlushBuffers();
+			WAIT_START
+			goto cleanup;
+		case CFGE_MALFORMED:
+			printf("FATAL\nConfiguration file is malformed!\n\nPress START to quit.\n");
+			gfxFlushBuffers();
+			WAIT_START
+			goto cleanup;
+		case CFGE_NONE:
+			printf("Configuration file loaded successfully.\n");
+			usingConfig = true;
+			break;
 		}
-		i += 1;
 	}
 
 	// Check required values in config, if existing

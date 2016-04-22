@@ -1,7 +1,5 @@
 #pragma once
 
-#include <vector>
-
 #include "7z.h"
 
 #include "config.h"
