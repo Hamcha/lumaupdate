@@ -150,7 +150,16 @@ bool update(const ARNRelease release, const UpdateArgs args) {
 	u32 fileSize = 0;
 
 	try {
+#ifdef FAKEDL
+		// Read predownloaded file
+		std::ifstream predownloaded(release.name + ".7z", std::ios::binary | std::ios::ate);
+		fileSize = predownloaded.tellg();
+		predownloaded.seekg(0, std::ios::beg);
+		fileData = (u8*)malloc(fileSize);
+		predownloaded.read((char*)fileData, fileSize);
+#else
 		httpGet(release.url.c_str(), &fileData, &fileSize);
+#endif
 	} catch (std::string& e) {
 		printf("%s\n", e.c_str());
 		return false;
@@ -300,6 +309,12 @@ static int jsoneq(const char *json, jsmntok_t *tok, const char *s) {
 ARNRelease fetchLatestRelease() {
 	ARNRelease release;
 
+#ifdef FAKEDL
+	// Citra doesn't support HTTPc right now, so just fake a successful request
+	release.name = "5.1.2";
+	release.url = "https://github.com/AuroraWright/AuReiNand/releases/download/v5.1.2/AuReiNandv5.1.2.7z";
+#else
+
 	jsmn_parser p;
 	jsmn_init(&p);
 
@@ -339,6 +354,8 @@ ARNRelease fetchLatestRelease() {
 	}
 	gfxFlushBuffers();
 	free(apiReqData);
+
+#endif
 
 	return release;
 }

@@ -52,6 +52,11 @@ CFLAGS	:=	-g -Wall -Wextra -pedantic -O2 -mword-relocations \
 
 CFLAGS	+=	$(INCLUDE) -DARM11 -D_3DS
 
+# Use fallbacks and mocks to compile a version that works on Citra if wanted
+ifdef CITRA
+	CFLAGS += -DFAKEDL
+endif
+
 ifdef GIT_VER
 	CFLAGS	+=	-DGIT_VER=\"$(GIT_VER)\"
 endif
