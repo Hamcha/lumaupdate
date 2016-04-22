@@ -40,12 +40,15 @@ struct ARNRelease {
 };
 
 struct UpdateArgs {
+	std::string currentVersion;
 	std::string payloadPath;
 };
 
 UpdateChoice drawConfirmationScreen(const ARNRelease release, const UpdateArgs args, const bool usingConfig) {
 	static bool status = false;
 	static bool partialredraw = false;
+
+	bool haveLatest = args.currentVersion == release.name;
 
 	u32 keydown = hidKeysDown();
 	if (keydown & (KEY_RIGHT | KEY_LEFT)) {
@@ -69,13 +72,26 @@ UpdateChoice drawConfirmationScreen(const ARNRelease release, const UpdateArgs a
 		}
 
 		printf("  Payload path: %s\n\n", args.payloadPath.c_str());
-		printf("  Latest version (from Github): %s%s%s\n\n", CONSOLE_WHITE, release.name.c_str(), CONSOLE_RESET);
+
+		if (args.currentVersion != "") {
+			printf("  Current installed version:    %s%s%s\n", (haveLatest ? CONSOLE_GREEN : CONSOLE_RED), args.currentVersion.c_str(), CONSOLE_RESET);
+		}
+		else {
+			printf("  Could not detect current installed version\n\n");
+		}
+		printf("  Latest version (from Github): %s%s%s\n\n", CONSOLE_GREEN, release.name.c_str(), CONSOLE_RESET);
+
+		if (haveLatest) {
+			printf("  You seem to have the latest version already.\n");
+		} else {
+			printf("  A new version of AuReiNand is available.\n");
+		}
 		menuPrintFooter(&con);
 	}
 
 	con.cursorX = 4;
-	con.cursorY = 7 + (usingConfig ? 0 : 2);
-	printf("Do you want to install it? ");
+	con.cursorY = 10 + (usingConfig ? 0 : 2);
+	printf("Do you %swant to install it? ", (haveLatest ? "still " : ""));
 	printf(status ? "< YES >" : "< NO > ");
 
 	redraw = false;
@@ -379,6 +395,10 @@ int main() {
 		WAIT_START
 		goto cleanup;
 	}
+
+	// Try to detect current version
+	printf("Trying detection of current payload version...\n");
+	updateArgs.currentVersion = versionMemsearch(updateArgs.payloadPath);
 
 	try {
 		release = fetchLatestRelease();

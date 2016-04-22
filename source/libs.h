@@ -7,5 +7,6 @@
 #include "menu.h"
 #include "pathchange.h"
 #include "utils.h"
+#include "version.h"
 
 #include "jsmn.h"
