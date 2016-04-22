@@ -8,7 +8,9 @@
 
 #include "libs.h"
 
-#define CFGFILE     "arnupdate.cfg"
+#define CFGFILEROOT     "arnupdate.cfg"
+#define CFGFILE3DSX	"3DS/arnupdate.cfg"
+#define CFGFILEAUREI	"aurei/arnupdate.cfg"
 #define PAYLOADPATH "arm9loaderhax.bin"
 #define RELEASEURL  "https://api.github.com/repos/AuroraWright/AuReiNand/releases/latest"
 
@@ -68,7 +70,7 @@ UpdateChoice drawConfirmationScreen(const ARNRelease release, const UpdateArgs a
 		menuPrintHeader(&con);
 
 		if (!usingConfig){
-			printf("  %s%s not found, using default values%s\n\n", CONSOLE_MAGENTA, CFGFILE, CONSOLE_RESET);
+			printf("  %s not found, using default values%s\n\n", CONSOLE_MAGENTA, CONSOLE_RESET);
 		}
 
 		printf("  Payload path: %s\n\n", args.payloadPath.c_str());
@@ -372,26 +374,90 @@ int main() {
 	consoleDebugInit(debugDevice_CONSOLE);
 
 	// Read config file
-	LoadConfigError confStatus = config.LoadFile(std::string("/") + CFGFILE);
+	LoadConfigError confStatusRoot = config.LoadFile(std::string("/") + CFGFILEROOT);
 	bool usingConfig = false;
-	switch (confStatus) {
+	switch (confStatusRoot) 
+	{
 		case CFGE_NOTEXISTS:
-			printf("The configuration file could not be found, skipping...\n");
+		{
+			LoadConfigError confStatusAuRei = config.LoadFile(std::string("/") + CFGFILEAUREI);
+			switch (confStatusAuRei) {
+				case CFGE_NOTEXISTS:
+				{
+					LoadConfigError confStatus3dsx = config.LoadFile(std::string("/") + CFGFILE3DSX);
+					switch (confStatus3dsx) 
+					{
+						case CFGE_NOTEXISTS:
+						{
+							printf("The configuration file could not be found, skipping...\n");
+							break;
+						}
+						case CFGE_UNREADABLE:
+						{
+							printf("FATAL\nConfiguration file is unreadable!\n\nPress START to quit.\n");
+							gfxFlushBuffers();
+							WAIT_START
+							goto cleanup;
+						}
+						case CFGE_MALFORMED:
+						{
+							printf("FATAL\nConfiguration file is malformed!\n\nPress START to quit.\n");
+							gfxFlushBuffers();
+							WAIT_START
+							goto cleanup;
+						}
+						case CFGE_NONE:
+						{
+							printf("Configuration file loaded successfully.\n");
+							usingConfig = true;
+							break;
+						}
+					}
+					break;
+				}
+				case CFGE_UNREADABLE:
+				{
+					printf("FATAL\nConfiguration file is unreadable!\n\nPress START to quit.\n");
+					gfxFlushBuffers();
+					WAIT_START
+					goto cleanup;
+				}
+				case CFGE_MALFORMED:
+				{
+					printf("FATAL\nConfiguration file is malformed!\n\nPress START to quit.\n");
+					gfxFlushBuffers();
+					WAIT_START
+					goto cleanup;
+				}
+				case CFGE_NONE:
+				{
+					printf("Configuration file loaded successfully.\n");
+					usingConfig = true;
+					break;
+				}
+			}
 			break;
+		}
 		case CFGE_UNREADABLE:
+		{
 			printf("FATAL\nConfiguration file is unreadable!\n\nPress START to quit.\n");
 			gfxFlushBuffers();
 			WAIT_START
 			goto cleanup;
+		}
 		case CFGE_MALFORMED:
+		{
 			printf("FATAL\nConfiguration file is malformed!\n\nPress START to quit.\n");
 			gfxFlushBuffers();
 			WAIT_START
 			goto cleanup;
+		}
 		case CFGE_NONE:
+		{
 			printf("Configuration file loaded successfully.\n");
 			usingConfig = true;
 			break;
+		}
 	}
 
 	// Check required values in config, if existing
