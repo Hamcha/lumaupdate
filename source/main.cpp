@@ -42,6 +42,7 @@ struct ARNRelease {
 struct UpdateArgs {
 	std::string currentVersion;
 	std::string payloadPath;
+	bool        backupExisting;
 };
 
 UpdateChoice drawConfirmationScreen(const ARNRelease release, const UpdateArgs args, const bool usingConfig) {
@@ -71,7 +72,12 @@ UpdateChoice drawConfirmationScreen(const ARNRelease release, const UpdateArgs a
 			printf("  %sConfiguration not found, using default values%s\n\n", CONSOLE_MAGENTA, CONSOLE_RESET);
 		}
 
-		printf("  Payload path: %s\n\n", args.payloadPath.c_str());
+		printf("  Payload path:   %s%s%s\n", CONSOLE_WHITE, args.payloadPath.c_str(), CONSOLE_RESET);
+		printf("  Backup payload: %s%s%s\n\n",
+			(args.backupExisting ? CONSOLE_GREEN : CONSOLE_RED),
+			(args.backupExisting ? "Yes" : "No"),
+			CONSOLE_RESET
+		);
 
 		if (args.currentVersion != "") {
 			printf("  Current installed version:    %s%s%s\n", (haveLatest ? CONSOLE_GREEN : CONSOLE_RED), args.currentVersion.c_str(), CONSOLE_RESET);
@@ -105,14 +111,13 @@ bool fileExists(std::string path) {
 }
 
 bool backupA9LH(std::string payloadName) {
-	std::string originalName = "/" + payloadName;
-	std::ifstream original(originalName, std::ifstream::binary);
+	std::ifstream original(payloadName, std::ifstream::binary);
 	if (!original.good()) {
-		printf("Could not open %s\n", originalName.c_str());
+		printf("Could not open %s\n", payloadName.c_str());
 		return false;
 	}
 
-	std::string backupName = originalName + ".bak";
+	std::string backupName = payloadName + ".bak";
 	std::ofstream target(backupName, std::ofstream::binary);
 	if (!target.good()) {
 		printf("Could not open %s\n", backupName.c_str());
@@ -131,16 +136,17 @@ bool update(const ARNRelease release, const UpdateArgs args) {
 	consoleClear();
 
 	// Back up local file if it exists
-	if (fileExists("/" + args.payloadPath)) {
+	if (!args.backupExisting) {
+		printf("Payload backup is disabled in config, skipping...\n");
+	} else if (!fileExists(args.payloadPath)) {
+		printf("Original payload not found, skipping backup...\n");
+	} else {
 		printf("Copying %s to %s.bak...\n", args.payloadPath.c_str(), args.payloadPath.c_str());
 		gfxFlushBuffers();
 		if (!backupA9LH(args.payloadPath)) {
 			printf("\nCould not backup %s (!!), aborting...\n", args.payloadPath.c_str());
 			return false;
 		}
-	}
-	else {
-		printf("Original payload not found, skipping backup...\n");
 	}
 
 	printf("Downloading 7z file...\n");
@@ -419,6 +425,12 @@ int main() {
 
 	// Load config values
 	updateArgs.payloadPath = config.Get("payload path", PAYLOADPATH);
+	updateArgs.backupExisting = tolower(config.Get("backup", "y")[0]) == 'y';
+
+	// Add initial slash to payload path, if missing
+	if (updateArgs.payloadPath[0] != '/') {
+		updateArgs.payloadPath = "/" + updateArgs.payloadPath;
+	}
 
 	// Check that the payload path is valid
 	if (updateArgs.payloadPath.length() > MAXPATHLEN) {
