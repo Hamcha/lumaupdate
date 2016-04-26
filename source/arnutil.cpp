@@ -60,15 +60,25 @@ bool arnMigrate() {
 	// If there is already a luma skip migration
 	if (FSUSER_OpenDirectory(NULL, sdmcArchive, lumaDir) == 0) {
 		printf("/luma directory found, no migration performed.\n\n");
+		FSUSER_CloseArchive(&sdmcArchive);
 		return true;
 	}
 
 	// If there is not /aurei AND no /luma we can't migrate!
 	if (FSUSER_OpenDirectory(NULL, sdmcArchive, arnDir) != 0) {
 		printf("\n/aurei folder not found, migration aborted.\n\n");
+		FSUSER_CloseArchive(&sdmcArchive);
 		return false;
 	}
 
 	// Try to rename the directory and check if it succeeds
-	return FSUSER_RenameDirectory(sdmcArchive, arnDir, sdmcArchive, lumaDir) == 0;
+	Result res = FSUSER_RenameDirectory(sdmcArchive, arnDir, sdmcArchive, lumaDir) == 0;
+	if (res != 0) {
+		printf("\nCould not rename /aurei directory!\n\n");
+		FSUSER_CloseArchive(&sdmcArchive);
+		return false;
+	}
+
+	FSUSER_CloseArchive(&sdmcArchive);
+	return true;
 }
