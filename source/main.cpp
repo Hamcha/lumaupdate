@@ -280,7 +280,7 @@ bool update(const ReleaseInfo release, const UpdateArgs args) {
 	if (fileOutSize > 0x20000) {
 		std::printf("File is too big to be a valid A9LH payload!\n");
 		gfxFlushBuffers();
-		IAlloc_Free(&allocImp, fileBuf);
+		IAlloc_Free(&allocImp, fileBuf - offset);
 		SzArEx_Free(&db, &allocImp);
 		std::free(fileData);
 		return false;
@@ -293,7 +293,7 @@ bool update(const ReleaseInfo release, const UpdateArgs args) {
 		std::printf("Requested payload path is not %s, applying path patch...\n", PAYLOADPATH);
 		bool res = pathchange(fileBuf, fileOutSize, args.payloadPath);
 		if (!res) {
-			IAlloc_Free(&allocImp, fileBuf);
+			IAlloc_Free(&allocImp, fileBuf - offset);
 			SzArEx_Free(&db, &allocImp);
 			std::free(fileData);
 			return false;
@@ -314,7 +314,7 @@ bool update(const ReleaseInfo release, const UpdateArgs args) {
 	a9lhfile.close();
 
 	std::printf("All done, freeing resources and exiting...\n");
-	IAlloc_Free(&allocImp, fileBuf);
+	IAlloc_Free(&allocImp, fileBuf - offset);
 	SzArEx_Free(&db, &allocImp);
 	std::free(fileData);
 	return true;
