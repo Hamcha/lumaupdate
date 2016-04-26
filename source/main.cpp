@@ -96,6 +96,7 @@ UpdateChoice drawConfirmationScreen(const ReleaseInfo release, const UpdateArgs 
 		} else {
 			printf("  A new version of Luma3DS is available.\n");
 		}
+
 		menuPrintFooter(&con);
 	}
 
@@ -299,6 +300,14 @@ bool update(const ReleaseInfo release, const UpdateArgs args) {
 		}
 	}
 
+	if (args.migrateARN) {
+		printf("Migrating AuReiNand install to Luma3DS...\n");
+		if (!arnMigrate()) {
+			printf("FATAL\nCould not migrate AuReiNand install (?)\n");
+			return false;
+		}
+	}
+
 	printf("Saving %s to SD (as %s)...\n", PAYLOADPATH, args.payloadPath.c_str());
 	std::ofstream a9lhfile("/" + args.payloadPath, std::ofstream::binary);
 	a9lhfile.write((const char*)fileBuf, fileOutSize);
@@ -380,18 +389,19 @@ ReleaseInfo fetchLatestRelease() {
 }
 
 int main() {
-	const char* cfgPaths[] = {
+	const static char* cfgPaths[] = {
 		"/lumaupdater.cfg",
 		"/3DS/lumaupdater.cfg",
 		"/luma/lumaupdater.cfg",
 	};
-	const size_t cfgPathsLen = sizeof(cfgPaths) / sizeof(cfgPaths[0]);
+	const static size_t cfgPathsLen = sizeof(cfgPaths) / sizeof(cfgPaths[0]);
 
 	UpdateState state = UpdateConfirmationScreen;
 	ReleaseInfo release;
 	UpdateArgs updateArgs;
 
 	gfxInitDefault();
+	fsInit();
 	httpcInit(0);
 
 	consoleInit(GFX_TOP, &con);

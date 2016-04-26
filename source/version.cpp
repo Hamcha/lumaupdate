@@ -4,8 +4,8 @@
 #include <stdlib.h>
 
 std::string versionMemsearch(const std::string path) {
-	const char searchString[] = " configuration";
-	const size_t searchStringLen = sizeof(searchString)/sizeof(char) - 1;
+	const static char searchString[] = " configuration";
+	const static size_t searchStringLen = sizeof(searchString)/sizeof(char) - 1;
 
 	std::ifstream payloadFile(path, std::ios::binary | std::ios::ate);
 	if (!payloadFile) {

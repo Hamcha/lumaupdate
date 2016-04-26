@@ -16,4 +16,3 @@ You can use `make CITRA=1` to disable features that aren't properly emulated on 
 - Support for [astronautlevel's hourlies](https://astronautlevel2.github.io/AuReiNand/)
 - CIA compiling (with its own shiny banner and everything)
 - Downgrading to a version of choice
-- Migration from ARN to Luma
