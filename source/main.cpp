@@ -10,7 +10,7 @@
 
 
 #define PAYLOADPATH "arm9loaderhax.bin"
-#define RELEASEURL  "https://api.github.com/repos/AuroraWright/AuReiNand/releases/latest"
+#define RELEASEURL  "https://api.github.com/repos/AuroraWright/Luma3DS/releases/latest"
 
 #define WAIT_START while (aptMainLoop() && !(hidKeysDown() & KEY_START)) { gspWaitForVBlank(); hidScanInput(); }
 

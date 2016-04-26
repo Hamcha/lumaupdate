@@ -2,7 +2,7 @@
 
 #include <string>
 
-/*! \brief Tries to detect currently installed AuReiNand version
+/*! \brief Tries to detect currently installed Luma3DS/AuReiNand version
  *
  *  \param path Path to existing payload
  *
