@@ -273,6 +273,9 @@ bool update(const ReleaseInfo release, const UpdateArgs args) {
 		return false;
 	}
 
+	// Move pointer to chosen file
+	fileBuf += offset;
+
 	if (fileOutSize > 0x20000) {
 		printf("File is too big to be a valid A9LH payload!\n");
 		gfxFlushBuffers();
