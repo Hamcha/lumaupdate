@@ -238,7 +238,7 @@ bool update(const ReleaseInfo release, const UpdateArgs args) {
 	}
 
 	if (codeIndex == UINT32_MAX) {
-		printf("\nCould not find %s\n", PAYLOADPATH);
+		printf("ERR\nCould not find %s\n", PAYLOADPATH);
 		SzArEx_Free(&db, &allocImp);
 		free(fileData);
 		return false;
@@ -285,7 +285,7 @@ bool update(const ReleaseInfo release, const UpdateArgs args) {
 	printf("File extracted successfully (%zu bytes)\n", fileOutSize);
 	gfxFlushBuffers();
 
-	if (args.payloadPath != PAYLOADPATH) {
+	if (args.payloadPath != std::string("/") + PAYLOADPATH) {
 		printf("Requested payload path is not %s, applying path patch...\n", PAYLOADPATH);
 		bool res = pathchange(fileBuf, fileOutSize, args.payloadPath);
 		if (!res) {
@@ -377,7 +377,7 @@ ReleaseInfo fetchLatestRelease() {
 }
 
 int main() {
-	const char* cfgPaths[] = { 
+	const char* cfgPaths[] = {
 		"/lumaupdater.cfg",
 		"/3DS/lumaupdater.cfg",
 		"/luma/lumaupdater.cfg",
