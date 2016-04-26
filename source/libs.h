@@ -2,6 +2,7 @@
 
 #include "7z.h"
 
+#include "arnutil.h"
 #include "config.h"
 #include "http.h"
 #include "menu.h"

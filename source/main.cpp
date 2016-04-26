@@ -452,6 +452,9 @@ int main() {
 	printf("Trying detection of current payload version...\n");
 	updateArgs.currentVersion = versionMemsearch(updateArgs.payloadPath);
 
+	// Check for eventual migration from ARN to Luma
+	updateArgs.migrateARN = arnVersionCheck(updateArgs.currentVersion);
+
 	try {
 		release = fetchLatestRelease();
 	}
