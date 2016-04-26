@@ -9,11 +9,11 @@ bool pathchange(u8* buf, const size_t bufSize, const std::string path) {
 	u8 pathLength = path.length();
 
 	if (pathLength > MAXPATHLEN) {
-		printf("Cannot accept payload path: too long (max %d chars)\n", MAXPATHLEN);
+		std::printf("Cannot accept payload path: too long (max %d chars)\n", MAXPATHLEN);
 		return false;
 	}
 
-	printf("Searching for \"%s\" in payload...\n", original);
+	std::printf("Searching for \"%s\" in payload...\n", original);
 
 	size_t curProposedOffset = 0;
 	u8 curStringIndex = 0;
@@ -41,7 +41,7 @@ bool pathchange(u8* buf, const size_t bufSize, const std::string path) {
 
 	// Not found?
 	if (!found) {
-		printf("Could not find payload path, is this even a valid payload?\n");
+		std::printf("Could not find payload path, is this even a valid payload?\n");
 		return false;
 	}
 

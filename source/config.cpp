@@ -31,7 +31,7 @@ LoadConfigError Config::LoadFile(const std::string path) {
 			trim(value);
 			values[key] = value;
 		} else {
-			printf("Invalid line detected in config: %s\n", curLine.c_str());
+			std::printf("Invalid line detected in config: %s\n", curLine.c_str());
 			return CFGE_MALFORMED;
 		}
 	}

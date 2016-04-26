@@ -9,7 +9,7 @@ std::string versionMemsearch(const std::string path) {
 
 	std::ifstream payloadFile(path, std::ios::binary | std::ios::ate);
 	if (!payloadFile) {
-		printf("Could not open existing payload, does it exists?\n");
+		std::printf("Could not open existing payload, does it exists?\n");
 		return "";
 	}
 
@@ -20,7 +20,7 @@ std::string versionMemsearch(const std::string path) {
 	payloadFile.read(payloadData, payloadSize);
 	payloadFile.close();
 
-	printf("Loaded existing payload in memory, searching for version number...\n");
+	std::printf("Loaded existing payload in memory, searching for version number...\n");
 
 	size_t curProposedOffset = 0;
 	unsigned short curStringIndex = 0;
@@ -60,6 +60,6 @@ std::string versionMemsearch(const std::string path) {
 		versionString = std::string(payloadData+verOffset+1, curProposedOffset-verOffset-1);
 	}
 
-	free(payloadData);
+	std::free(payloadData);
 	return versionString;
 }

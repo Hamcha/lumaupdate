@@ -73,28 +73,28 @@ UpdateChoice drawConfirmationScreen(const ReleaseInfo release, const UpdateArgs 
 		menuPrintHeader(&con);
 
 		if (!usingConfig){
-			printf("  %sConfiguration not found, using default values%s\n\n", CONSOLE_MAGENTA, CONSOLE_RESET);
+			std::printf("  %sConfiguration not found, using default values%s\n\n", CONSOLE_MAGENTA, CONSOLE_RESET);
 		}
 
-		printf("  Payload path:   %s%s%s\n", CONSOLE_WHITE, args.payloadPath.c_str(), CONSOLE_RESET);
-		printf("  Backup payload: %s%s%s\n\n",
+		std::printf("  Payload path:   %s%s%s\n", CONSOLE_WHITE, args.payloadPath.c_str(), CONSOLE_RESET);
+		std::printf("  Backup payload: %s%s%s\n\n",
 			(args.backupExisting ? CONSOLE_GREEN : CONSOLE_RED),
 			(args.backupExisting ? "Yes" : "No"),
 			CONSOLE_RESET
 		);
 
 		if (args.currentVersion != "") {
-			printf("  Current installed version:    %s%s%s\n", (haveLatest ? CONSOLE_GREEN : CONSOLE_RED), args.currentVersion.c_str(), CONSOLE_RESET);
+			std::printf("  Current installed version:    %s%s%s\n", (haveLatest ? CONSOLE_GREEN : CONSOLE_RED), args.currentVersion.c_str(), CONSOLE_RESET);
 		}
 		else {
-			printf("  %sCould not detect current version%s\n\n", CONSOLE_MAGENTA, CONSOLE_RESET);
+			std::printf("  %sCould not detect current version%s\n\n", CONSOLE_MAGENTA, CONSOLE_RESET);
 		}
-		printf("  Latest version (from Github): %s%s%s\n\n", CONSOLE_GREEN, release.name.c_str(), CONSOLE_RESET);
+		std::printf("  Latest version (from Github): %s%s%s\n\n", CONSOLE_GREEN, release.name.c_str(), CONSOLE_RESET);
 
 		if (haveLatest) {
-			printf("  You seem to have the latest version already.\n");
+			std::printf("  You seem to have the latest version already.\n");
 		} else {
-			printf("  A new version of Luma3DS is available.\n");
+			std::printf("  A new version of Luma3DS is available.\n");
 		}
 
 		menuPrintFooter(&con);
@@ -102,8 +102,8 @@ UpdateChoice drawConfirmationScreen(const ReleaseInfo release, const UpdateArgs 
 
 	con.cursorX = 4;
 	con.cursorY = 10 + (usingConfig ? 0 : 3);
-	printf("Do you %swant to install it? ", (haveLatest ? "still " : ""));
-	printf(status ? "< YES >" : "< NO > ");
+	std::printf("Do you %swant to install it? ", (haveLatest ? "still " : ""));
+	std::printf(status ? "< YES >" : "< NO > ");
 
 	redraw = false;
 	partialredraw = false;
@@ -118,14 +118,14 @@ bool fileExists(std::string path) {
 bool backupA9LH(std::string payloadName) {
 	std::ifstream original(payloadName, std::ifstream::binary);
 	if (!original.good()) {
-		printf("Could not open %s\n", payloadName.c_str());
+		std::printf("Could not open %s\n", payloadName.c_str());
 		return false;
 	}
 
 	std::string backupName = payloadName + ".bak";
 	std::ofstream target(backupName, std::ofstream::binary);
 	if (!target.good()) {
-		printf("Could not open %s\n", backupName.c_str());
+		std::printf("Could not open %s\n", backupName.c_str());
 		original.close();
 		return false;
 	}
@@ -142,19 +142,19 @@ bool update(const ReleaseInfo release, const UpdateArgs args) {
 
 	// Back up local file if it exists
 	if (!args.backupExisting) {
-		printf("Payload backup is disabled in config, skipping...\n");
+		std::printf("Payload backup is disabled in config, skipping...\n");
 	} else if (!fileExists(args.payloadPath)) {
-		printf("Original payload not found, skipping backup...\n");
+		std::printf("Original payload not found, skipping backup...\n");
 	} else {
-		printf("Copying %s to %s.bak...\n", args.payloadPath.c_str(), args.payloadPath.c_str());
+		std::printf("Copying %s to %s.bak...\n", args.payloadPath.c_str(), args.payloadPath.c_str());
 		gfxFlushBuffers();
 		if (!backupA9LH(args.payloadPath)) {
-			printf("\nCould not backup %s (!!), aborting...\n", args.payloadPath.c_str());
+			std::printf("\nCould not backup %s (!!), aborting...\n", args.payloadPath.c_str());
 			return false;
 		}
 	}
 
-	printf("Downloading 7z file...\n");
+	std::printf("Downloading 7z file...\n");
 	gfxFlushBuffers();
 
 	u8* fileData = nullptr;
@@ -172,16 +172,16 @@ bool update(const ReleaseInfo release, const UpdateArgs args) {
 		httpGet(release.url.c_str(), &fileData, &fileSize);
 #endif
 	} catch (std::string& e) {
-		printf("%s\n", e.c_str());
+		std::printf("%s\n", e.c_str());
 		return false;
 	}
-	printf("Download complete! Size: %lu\n", fileSize);
-	printf("\nDecompressing archive in memory...\n");
+	std::printf("Download complete! Size: %lu\n", fileSize);
+	std::printf("\nDecompressing archive in memory...\n");
 	gfxFlushBuffers();
 
 	CMemInStream memStream;
 	MemInStream_Init(&memStream, fileData, fileSize);
-	printf("Created 7z InStream, opening as archive...\n");
+	std::printf("Created 7z InStream, opening as archive...\n");
 	gfxFlushBuffers();
 
 	CSzArEx db;
@@ -198,7 +198,7 @@ bool update(const ReleaseInfo release, const UpdateArgs args) {
 	SRes res = SzArEx_Open(&db, &memStream.s, &allocImp, &allocTempImp);
 	u32 codeIndex = UINT32_MAX;
 	if (res == SZ_OK) {
-		printf("Archive opened in memory.\n\nSearching for %s: ", PAYLOADPATH);
+		std::printf("Archive opened in memory.\n\nSearching for %s: ", PAYLOADPATH);
 		gfxFlushBuffers();
 		for (u32 i = 0; i < db.NumFiles; i++) {
 			// Skip directories
@@ -227,25 +227,25 @@ bool update(const ReleaseInfo release, const UpdateArgs args) {
 			int res = strncmp(name8, PAYLOADPATH, len - 1);
 			if (res == 0) {
 				codeIndex = i;
-				printf("FOUND! (%lu)\n", codeIndex);
+				std::printf("FOUND! (%lu)\n", codeIndex);
 				break;
 			}
 		}
 	} else {
-		printf("Could not open archive (SzArEx_Open)\n");
+		std::printf("Could not open archive (SzArEx_Open)\n");
 		SzArEx_Free(&db, &allocImp);
-		free(fileData);
+		std::free(fileData);
 		return false;
 	}
 
 	if (codeIndex == UINT32_MAX) {
-		printf("ERR\nCould not find %s\n", PAYLOADPATH);
+		std::printf("ERR\nCould not find %s\n", PAYLOADPATH);
 		SzArEx_Free(&db, &allocImp);
-		free(fileData);
+		std::free(fileData);
 		return false;
 	}
 
-	printf("\nExtracting %s from archive...\n", PAYLOADPATH);
+	std::printf("\nExtracting %s from archive...\n", PAYLOADPATH);
 	gfxFlushBuffers();
 
 	u8* fileBuf = nullptr;
@@ -267,10 +267,10 @@ bool update(const ReleaseInfo release, const UpdateArgs args) {
 		&allocTempImp
 	);
 	if (res != SZ_OK) {
-		printf("\nCould not extract %s\n", PAYLOADPATH);
+		std::printf("\nCould not extract %s\n", PAYLOADPATH);
 		gfxFlushBuffers();
 		SzArEx_Free(&db, &allocImp);
-		free(fileData);
+		std::free(fileData);
 		return false;
 	}
 
@@ -278,51 +278,51 @@ bool update(const ReleaseInfo release, const UpdateArgs args) {
 	fileBuf += offset;
 
 	if (fileOutSize > 0x20000) {
-		printf("File is too big to be a valid A9LH payload!\n");
+		std::printf("File is too big to be a valid A9LH payload!\n");
 		gfxFlushBuffers();
 		IAlloc_Free(&allocImp, fileBuf);
 		SzArEx_Free(&db, &allocImp);
-		free(fileData);
+		std::free(fileData);
 		return false;
 	}
 
-	printf("File extracted successfully (%zu bytes)\n", fileOutSize);
+	std::printf("File extracted successfully (%zu bytes)\n", fileOutSize);
 	gfxFlushBuffers();
 
 	if (args.payloadPath != std::string("/") + PAYLOADPATH) {
-		printf("Requested payload path is not %s, applying path patch...\n", PAYLOADPATH);
+		std::printf("Requested payload path is not %s, applying path patch...\n", PAYLOADPATH);
 		bool res = pathchange(fileBuf, fileOutSize, args.payloadPath);
 		if (!res) {
 			IAlloc_Free(&allocImp, fileBuf);
 			SzArEx_Free(&db, &allocImp);
-			free(fileData);
+			std::free(fileData);
 			return false;
 		}
 	}
 
 	if (args.migrateARN) {
-		printf("Migrating AuReiNand install to Luma3DS...\n");
+		std::printf("Migrating AuReiNand install to Luma3DS...\n");
 		if (!arnMigrate()) {
-			printf("FATAL\nCould not migrate AuReiNand install (?)\n");
+			std::printf("FATAL\nCould not migrate AuReiNand install (?)\n");
 			return false;
 		}
 	}
 
-	printf("Saving %s to SD (as %s)...\n", PAYLOADPATH, args.payloadPath.c_str());
+	std::printf("Saving %s to SD (as %s)...\n", PAYLOADPATH, args.payloadPath.c_str());
 	std::ofstream a9lhfile("/" + args.payloadPath, std::ofstream::binary);
 	a9lhfile.write((const char*)fileBuf, fileOutSize);
 	a9lhfile.close();
 
-	printf("All done, freeing resources and exiting...\n");
+	std::printf("All done, freeing resources and exiting...\n");
 	IAlloc_Free(&allocImp, fileBuf);
 	SzArEx_Free(&db, &allocImp);
-	free(fileData);
+	std::free(fileData);
 	return true;
 }
 
 static int jsoneq(const char *json, jsmntok_t *tok, const char *s) {
 	if (tok->type == JSMN_STRING && (int)strlen(s) == tok->end - tok->start &&
-		strncmp(json + tok->start, s, tok->end - tok->start) == 0) {
+		std::strncmp(json + tok->start, s, tok->end - tok->start) == 0) {
 		return 0;
 	}
 	return -1;
@@ -344,11 +344,11 @@ ReleaseInfo fetchLatestRelease() {
 	u8* apiReqData = nullptr;
 	u32 apiReqSize = 0;
 
-	printf("Downloading %s...\n", RELEASEURL);
+	std::printf("Downloading %s...\n", RELEASEURL);
 
 	httpGet(RELEASEURL, &apiReqData, &apiReqSize);
 
-	printf("Downloaded %lu bytes\n", apiReqSize);
+	std::printf("Downloaded %lu bytes\n", apiReqSize);
 	gfxFlushBuffers();
 
 	jsmntok_t t[128];
@@ -356,7 +356,7 @@ ReleaseInfo fetchLatestRelease() {
 	if (r < 0) {
 		throw formatErrMessage("Failed to parse JSON", r);
 	}
-	printf("JSON parsed successfully!\n");
+	std::printf("JSON parsed successfully!\n");
 	gfxFlushBuffers();
 
 	for (int i = 0; i < r; i++) {
@@ -367,13 +367,13 @@ ReleaseInfo fetchLatestRelease() {
 				val.start += 1;
 			}
 			release.name = std::string((const char*)apiReqData + val.start, val.end - val.start);
-			printf("Release found: %s\n", release.name.c_str());
+			std::printf("Release found: %s\n", release.name.c_str());
 			namefound = true;
 		}
 		if (!releasefound && jsoneq((const char*)apiReqData, &t[i], "browser_download_url") == 0) {
 			jsmntok_t val = t[i+1];
 			release.url = std::string((const char*)apiReqData + val.start, val.end - val.start);
-			printf("Asset found: %s\n", release.url.c_str());
+			std::printf("Asset found: %s\n", release.url.c_str());
 			releasefound = true;
 		}
 		if (namefound && releasefound) {
@@ -381,7 +381,7 @@ ReleaseInfo fetchLatestRelease() {
 		}
 	}
 	gfxFlushBuffers();
-	free(apiReqData);
+	std::free(apiReqData);
 
 #endif
 
@@ -415,17 +415,17 @@ int main() {
 		case CFGE_NOTEXISTS:
 			break;
 		case CFGE_UNREADABLE:
-			printf("FATAL\nConfiguration file is unreadable!\n\nPress START to quit.\n");
+			std::printf("FATAL\nConfiguration file is unreadable!\n\nPress START to quit.\n");
 			gfxFlushBuffers();
 			WAIT_START
 			goto cleanup;
 		case CFGE_MALFORMED:
-			printf("FATAL\nConfiguration file is malformed!\n\nPress START to quit.\n");
+			std::printf("FATAL\nConfiguration file is malformed!\n\nPress START to quit.\n");
 			gfxFlushBuffers();
 			WAIT_START
 			goto cleanup;
 		case CFGE_NONE:
-			printf("Configuration file loaded successfully.\n");
+			std::printf("Configuration file loaded successfully.\n");
 			usingConfig = true;
 			break;
 		}
@@ -433,7 +433,7 @@ int main() {
 
 	// Check required values in config, if existing
 	if (usingConfig && !config.Has("payload path")) {
-		printf("Missing required config value: payload path\n");
+		std::printf("Missing required config value: payload path\n");
 		gfxFlushBuffers();
 		WAIT_START
 		goto cleanup;
@@ -441,7 +441,7 @@ int main() {
 	
 	if (!usingConfig)
 	{
-		printf("The configuration file could not be found, skipping...\n");
+		std::printf("The configuration file could not be found, skipping...\n");
 	}
 
 	// Load config values
@@ -455,14 +455,14 @@ int main() {
 
 	// Check that the payload path is valid
 	if (updateArgs.payloadPath.length() > MAXPATHLEN) {
-		printf("\nFATAL\nPayload path is too long!\nIt can contain at most %d characters!\n\nPress START to quit.\n", MAXPATHLEN);
+		std::printf("\nFATAL\nPayload path is too long!\nIt can contain at most %d characters!\n\nPress START to quit.\n", MAXPATHLEN);
 		gfxFlushBuffers();
 		WAIT_START
 		goto cleanup;
 	}
 
 	// Try to detect current version
-	printf("Trying detection of current payload version...\n");
+	std::printf("Trying detection of current payload version...\n");
 	updateArgs.currentVersion = versionMemsearch(updateArgs.payloadPath);
 
 	// Check for eventual migration from ARN to Luma
@@ -472,8 +472,8 @@ int main() {
 		release = fetchLatestRelease();
 	}
 	catch (std::string& e) {
-		printf("%s\n", e.c_str());
-		printf("\nFATAL ERROR\nFailed to obtain required data.\n\nPress START to exit.\n");
+		std::printf("%s\n", e.c_str());
+		std::printf("\nFATAL ERROR\nFailed to obtain required data.\n\nPress START to exit.\n");
 		gfxFlushBuffers();
 		WAIT_START
 		goto cleanup;
@@ -513,7 +513,7 @@ int main() {
 			break;
 		case UpdateFailed:
 			if (redraw) {
-				printf("\n  %sUpdate failed%s. Press START to exit.\n", CONSOLE_RED, CONSOLE_RESET);
+				std::printf("\n  %sUpdate failed%s. Press START to exit.\n", CONSOLE_RED, CONSOLE_RESET);
 				redraw = false;
 			}
 			break;
@@ -521,9 +521,9 @@ int main() {
 			if (redraw) {
 				consoleClear();
 				menuPrintHeader(&con);
-				printf("\n  %sUpdate complete.%s", CONSOLE_GREEN, CONSOLE_RESET);
-				printf("\n\n  In case something goes wrong you can restore\n  the old payload from %s.bak\n", updateArgs.payloadPath.c_str());
-				printf("\n  Press START to reboot.");
+				std::printf("\n  %sUpdate complete.%s", CONSOLE_GREEN, CONSOLE_RESET);
+				std::printf("\n\n  In case something goes wrong you can restore\n  the old payload from %s.bak\n", updateArgs.payloadPath.c_str());
+				std::printf("\n  Press START to reboot.");
 				redraw = false;
 			}
 			if ((kDown & KEY_START) != 0) {
@@ -535,7 +535,7 @@ int main() {
 			break;
 		case UpdateAborted:
 			if (redraw) {
-				printf("\n\n  Update aborted. Press START to exit.");
+				std::printf("\n\n  Update aborted. Press START to exit.");
 				redraw = false;
 			}
 			break;

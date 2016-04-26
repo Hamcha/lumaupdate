@@ -9,11 +9,11 @@
 void menuPrintHeader(PrintConsole* con) {
 	con->cursorX = 2;
 	con->cursorY = 1;
-	printf("%sLuma3DS Updater %s%s\n\n", CONSOLE_YELLOW, GIT_VER, CONSOLE_RESET);
+	std::printf("%sLuma3DS Updater %s%s\n\n", CONSOLE_YELLOW, GIT_VER, CONSOLE_RESET);
 }
 
 void menuPrintFooter(PrintConsole* con) {
 	con->cursorX = 2;
 	con->cursorY = con->consoleHeight - 1;
-	printf("< > select options   A choose   START quit");
+	std::printf("< > select options   A choose   START quit");
 }

@@ -1,6 +1,6 @@
 #include "http.h"
 
-#include <stdlib.h>
+#include <cstdlib>
 #include <cstring>
 
 #include "utils.h"
@@ -35,9 +35,9 @@ int httpGet(const char* url, u8** buf, u32* size) {
 
 	CHECK(httpcGetDownloadSizeState(&context, NULL, size), "Could not get file size");
 
-	*buf = (u8*)malloc(*size);
+	*buf = (u8*)std::malloc(*size);
 	if (*buf == NULL) throw formatErrMessage("Could not allocate enough memory", *size);
-	memset(*buf, 0, *size);
+	std::memset(*buf, 0, *size);
 
 	CHECK(httpcDownloadData(&context, *buf, *size, NULL), "Could not download data");
 
