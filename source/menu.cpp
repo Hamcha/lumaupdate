@@ -7,7 +7,7 @@
 void menuPrintHeader(PrintConsole* con) {
 	con->cursorX = 2;
 	con->cursorY = 1;
-	printf("%sARN Updater %s%s\n\n", CONSOLE_YELLOW, GIT_VER, CONSOLE_RESET);
+	printf("%sLuma3DS Updater %s%s\n\n", CONSOLE_YELLOW, GIT_VER, CONSOLE_RESET);
 }
 
 void menuPrintFooter(PrintConsole* con) {

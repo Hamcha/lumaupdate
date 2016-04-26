@@ -34,18 +34,22 @@ enum UpdateChoice {
 	No
 };
 
-struct ARNRelease {
+struct ReleaseInfo {
 	std::string name;
 	std::string url;
 };
 
 struct UpdateArgs {
+	// Detected options
 	std::string currentVersion;
+	bool        migrateARN;
+
+	// Configuration options
 	std::string payloadPath;
 	bool        backupExisting;
 };
 
-UpdateChoice drawConfirmationScreen(const ARNRelease release, const UpdateArgs args, const bool usingConfig) {
+UpdateChoice drawConfirmationScreen(const ReleaseInfo release, const UpdateArgs args, const bool usingConfig) {
 	static bool status = false;
 	static bool partialredraw = false;
 
@@ -90,7 +94,7 @@ UpdateChoice drawConfirmationScreen(const ARNRelease release, const UpdateArgs a
 		if (haveLatest) {
 			printf("  You seem to have the latest version already.\n");
 		} else {
-			printf("  A new version of AuReiNand is available.\n");
+			printf("  A new version of Luma3DS is available.\n");
 		}
 		menuPrintFooter(&con);
 	}
@@ -132,7 +136,7 @@ bool backupA9LH(std::string payloadName) {
 	return true;
 }
 
-bool update(const ARNRelease release, const UpdateArgs args) {
+bool update(const ReleaseInfo release, const UpdateArgs args) {
 	consoleClear();
 
 	// Back up local file if it exists
@@ -312,13 +316,13 @@ static int jsoneq(const char *json, jsmntok_t *tok, const char *s) {
 	return -1;
 }
 
-ARNRelease fetchLatestRelease() {
-	ARNRelease release;
+ReleaseInfo fetchLatestRelease() {
+	ReleaseInfo release;
 
 #ifdef FAKEDL
 	// Citra doesn't support HTTPc right now, so just fake a successful request
-	release.name = "5.1.2";
-	release.url = "https://github.com/AuroraWright/AuReiNand/releases/download/v5.1.2/AuReiNandv5.1.2.7z";
+	release.name = "5.2";
+	release.url = "https://github.com/AuroraWright/Luma3DS/releases/download/v5.2/Luma3DSv5.2.7z";
 #else
 
 	jsmn_parser p;
@@ -373,11 +377,15 @@ ARNRelease fetchLatestRelease() {
 }
 
 int main() {
-	const char* cfgPaths[] = { "/arnupdate.cfg", "/aurei/arnupdate.cfg", "/3DS/arnupdate.cfg" };
+	const char* cfgPaths[] = { 
+		"/lumaupdater.cfg",
+		"/3DS/lumaupdater.cfg",
+		"/luma/lumaupdater.cfg",
+	};
 	const size_t cfgPathsLen = sizeof(cfgPaths) / sizeof(cfgPaths[0]);
 
 	UpdateState state = UpdateConfirmationScreen;
-	ARNRelease release;
+	ReleaseInfo release;
 	UpdateArgs updateArgs;
 
 	gfxInitDefault();

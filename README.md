@@ -1,6 +1,8 @@
-# ARN Updater
+# Luma3DS Updater
 
-A `arm9loaderhax.bin` updater for AuReiNand as a 3DS homebrew (no more SD swaps!)
+Formerly known as "ARN Updater"
+
+A `arm9loaderhax.bin` updater for Luma3DS (formerly AuReiNand) as a 3DS homebrew (no more SD swaps!)
 
 ## Requirements
 
@@ -13,3 +15,5 @@ You can use `make CITRA=1` to disable features that aren't properly emulated on 
 
 - Support for [astronautlevel's hourlies](https://astronautlevel2.github.io/AuReiNand/)
 - CIA compiling (with its own shiny banner and everything)
+- Downgrading to a version of choice
+- Migration from ARN to Luma

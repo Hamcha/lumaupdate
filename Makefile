@@ -34,8 +34,8 @@ DATA		:=	data
 INCLUDES	:=	include
 #ROMFS		:=	romfs
 
-APP_TITLE       :=  ARN Updater
-APP_DESCRIPTION :=  Updater for AuReiNand releases  
+APP_TITLE       :=  Luma3DS Updater
+APP_DESCRIPTION :=  Updater for Luma3DS releases
 APP_AUTHOR      :=  Hamcha
 
 GIT_VER := $(shell git describe --dirty --always --tags)

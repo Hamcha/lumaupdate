@@ -4,7 +4,7 @@
 #include <stdlib.h>
 
 std::string versionMemsearch(const std::string path) {
-	const char searchString[] = "AuReiNand v";
+	const char searchString[] = " configuration";
 	const size_t searchStringLen = sizeof(searchString)/sizeof(char) - 1;
 
 	std::ifstream payloadFile(path, std::ios::binary | std::ios::ate);
@@ -28,7 +28,7 @@ std::string versionMemsearch(const std::string path) {
 	std::string versionString = "";
 
 	// Byte-by-byte search. (memcmp might be faster?)
-	// Since "A" (1st char) is only used once in the whole string we can search in O(n)
+	// Since " " (1st char) is only used once in the whole string we can search in O(n)
 	for (size_t offset = 0; offset < payloadSize - searchStringLen; offset++) {
 		if (payloadData[offset] == searchString[curStringIndex]) {
 			if (curStringIndex == searchStringLen - 1) {
@@ -48,18 +48,16 @@ std::string versionMemsearch(const std::string path) {
 	}
 
 	if (found) {
-		// Version is what comes between "configuration"
-		size_t verOffset = curProposedOffset + searchStringLen;
-		size_t verLength = 0;
-		size_t remaining = verOffset - payloadSize;
-		for (; verLength < remaining; verLength++) {
-			char current = payloadData[verOffset + verLength];
-			if (current == ' ' || current == '\0') {
+		// Version is what comes before "configuration" but after "v"
+		size_t verOffset = curProposedOffset;
+		for (; verOffset > 0; verOffset--) {
+			char current = payloadData[verOffset];
+			if (current == 'v') {
 				break;
 			}
 		}
 		// Get full version string
-		versionString = std::string(payloadData + verOffset, verLength);
+		versionString = std::string(payloadData+verOffset+1, curProposedOffset-verOffset-1);
 	}
 
 	free(payloadData);
