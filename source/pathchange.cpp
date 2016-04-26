@@ -21,8 +21,8 @@ bool pathchange(u8* buf, const size_t bufSize, const std::string path) {
 
 	// Byte-by-byte search. (memcmp might be faster?)
 	// Since "s" (1st char) is only used once in the whole string we can search in O(n)
-	for (size_t offset = 0; offset < bufSize - originalSize; offset++) {
-		if (buf[offset] == original[curStringIndex]) {
+	for (size_t offset = 0; offset < bufSize-originalSize; offset++) {
+		if (buf[offset] == original[curStringIndex] && buf[offset+1] == 0) {
 			if (curStringIndex == originalSize - 1) {
 				found = true;
 				break;
