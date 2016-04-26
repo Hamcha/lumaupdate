@@ -1,7 +1,5 @@
 #pragma once
 
-#include <stdio.h>
-
 #include <3ds.h>
 
 /* \brief Prints the menu header

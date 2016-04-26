@@ -2,8 +2,8 @@
 
 #include <3ds.h>
 
-#include <stdio.h>
-#include <stdlib.h>
+#include <cstdio>
+#include <cstdlib>
 
 bool arnVersionCheck(std::string versionString) {
 	// Bound checking before trying to do naughty things

@@ -1,5 +1,7 @@
 #include "menu.h"
 
+#include <cstdio>
+
 #ifndef GIT_VER
 #define GIT_VER "<unknown>"
 #endif

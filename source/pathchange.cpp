@@ -1,6 +1,6 @@
 #include "pathchange.h"
 
-#include <stdio.h>
+#include <cstdio>
 
 bool pathchange(u8* buf, const size_t bufSize, const std::string path) {
 	const char original[] = "sdmc:/arm9loaderhax.bin";

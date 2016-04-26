@@ -1,7 +1,7 @@
 #include "version.h"
 
 #include <fstream>
-#include <stdlib.h>
+#include <cstdlib>
 
 std::string versionMemsearch(const std::string path) {
 	const static char searchString[] = " configuration";

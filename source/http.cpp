@@ -1,7 +1,7 @@
 #include "http.h"
 
 #include <stdlib.h>
-#include <string.h>
+#include <cstring>
 
 #include "utils.h"
 
