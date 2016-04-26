@@ -28,18 +28,18 @@ bool arnVersionCheck(std::string versionString) {
 	// Check major version if found and release is 5.x
 	if (release == 5 && hasMajor) {
 		// Parse major version number
-		std::string majorStr = versionString;
-		size_t minSeparator = versionString.find('.', relSeparator+1);
+		std::string majorStr = versionString.substr(relSeparator+1);
+		size_t minSeparator = majorStr.find('.');
 
 		// "." found, get only release part and set major version flag
 		if (minSeparator != std::string::npos) {
-			majorStr = versionString.substr(relSeparator, minSeparator);
+			majorStr = majorStr.substr(0, minSeparator);
 		}
 
-		int minor = std::atoi(majorStr.c_str());
-		
+		int major = std::atoi(majorStr.c_str());
+
 		// Check if major is lower than 2
-		return minor < 2;
+		return major < 2;
 	} else {
 		// If version if not 5.x (or is 5.0) just check if it's <= 5
 		return release <= 5;

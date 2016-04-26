@@ -12,7 +12,7 @@ int httpGet(const char* url, u8** buf, u32* size) {
 	httpcContext context;
 	CHECK(httpcOpenContext(&context, HTTPC_METHOD_GET, (char*)url, 0), "Could not open HTTP context");
 	// Add User Agent field (required by Github API calls)
-	CHECK(httpcAddRequestHeaderField(&context, (char*)"User-Agent", (char*)"ARN-UPDATER"), "Could not set User Agent");
+	CHECK(httpcAddRequestHeaderField(&context, (char*)"User-Agent", (char*)"LUMA-UPDATER"), "Could not set User Agent");
 
 	CHECK(httpcBeginRequest(&context), "Could not begin request");
 

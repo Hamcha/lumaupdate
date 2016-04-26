@@ -401,7 +401,6 @@ int main() {
 	UpdateArgs updateArgs;
 
 	gfxInitDefault();
-	fsInit();
 	httpcInit(0);
 
 	consoleInit(GFX_TOP, &con);
