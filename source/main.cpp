@@ -337,7 +337,7 @@ ReleaseInfo fetchLatestRelease() {
 	release.url = "https://github.com/AuroraWright/Luma3DS/releases/download/v5.2/Luma3DSv5.2.7z";
 #else
 
-	jsmn_parser p;
+	jsmn_parser p = { 0 };
 	jsmn_init(&p);
 
 	bool namefound = false, releasefound = false;
@@ -351,7 +351,7 @@ ReleaseInfo fetchLatestRelease() {
 	std::printf("Downloaded %lu bytes\n", apiReqSize);
 	gfxFlushBuffers();
 
-	jsmntok_t t[128];
+	jsmntok_t t[512] = {};
 	int r = jsmn_parse(&p, (const char*)apiReqData, apiReqSize, t, sizeof(t) / sizeof(t[0]));
 	if (r < 0) {
 		throw formatErrMessage("Failed to parse JSON", r);
