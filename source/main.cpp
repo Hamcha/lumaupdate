@@ -520,8 +520,10 @@ int main() {
 			if (redraw) {
 				consoleClear();
 				menuPrintHeader(&con);
-				std::printf("\n  %sUpdate complete.%s", CONSOLE_GREEN, CONSOLE_RESET);
-				std::printf("\n\n  In case something goes wrong you can restore\n  the old payload from %s.bak\n", updateArgs.payloadPath.c_str());
+				std::printf("\n  %sUpdate complete.%s\n", CONSOLE_GREEN, CONSOLE_RESET);
+				if (updateArgs.backupExisting) {
+					std::printf("\n  In case something goes wrong you can restore\n  the old payload from %s.bak\n", updateArgs.payloadPath.c_str());
+				}
 				std::printf("\n  Press START to reboot.");
 				redraw = false;
 			}
