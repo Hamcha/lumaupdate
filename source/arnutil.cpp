@@ -71,7 +71,7 @@ bool arnMigrate() {
 
 	// Delete the source directory and check if it succeeds
 	Result res = FSUSER_DeleteDirectoryRecursively(sdmcArchive, aurei);
-	if (res != 0) {
+	if (res != 0 || std::remove("/aurei") != 0)
 		std::printf("\nWARN: Could not delete original /aurei (%d)!\n\n",  res);
 	}
 	
