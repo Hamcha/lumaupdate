@@ -49,6 +49,8 @@ bool arnVersionCheck(std::string versionString) {
 }
 
 bool arnMigrate() {
+	const static FS_Path aurei = fsMakePath(PATH_ASCII, "/aurei");
+	const static FS_Path luma = fsMakePath(PATH_ASCII, "/luma");
 	FS_Archive sdmcArchive = { 0x00000009,{ PATH_EMPTY, 1, (u8*) "" } };
 
 	if (FSUSER_OpenArchive(&sdmcArchive) != 0) {
@@ -56,9 +58,21 @@ bool arnMigrate() {
 		return false;
 	}
 
+	// Check if /luma already existsHandle directory = { 0 };
+	if (FSUSER_OpenDirectory(NULL, sdmcArchive, luma) == 0) {
+		std::printf("Luma directory already exists, skipping migration..\n");
+		return true;
+	}
+
 	if (!renameRecursive(sdmcArchive, "/aurei", "/luma")) {
 		FSUSER_CloseArchive(&sdmcArchive);
 		return false;
+	}
+
+	// Delete the source directory and check if it succeeds
+	Result res = FSUSER_DeleteDirectoryRecursively(sdmcArchive, aurei);
+	if (res != 0) {
+		std::printf("\nWARN: Could not delete original /aurei (%d)!\n\n",  res);
 	}
 	
 	FSUSER_CloseArchive(&sdmcArchive);
@@ -114,13 +128,6 @@ bool renameRecursive(const FS_Archive archive, const std::string source, const s
 			}
 			std::printf("  %s -> %s\n", (char*)sourceFilePath.data, (char*)targetFilePath.data);
 		}
-	}
-
-	// Delete the source directory and check if it succeeds
-	Result res = FSUSER_DeleteDirectory(archive, sourcePath);
-	if (res != 0) {
-		std::printf("\nCould not delete %s!\n\n", source.c_str());
-		return false;
 	}
 
 	return true;
