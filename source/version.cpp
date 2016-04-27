@@ -16,7 +16,7 @@ std::string versionMemsearch(const std::string path) {
 	/* Load entire file into local buffer */
 	size_t payloadSize = payloadFile.tellg();
 	payloadFile.seekg(0, std::ios::beg);
-	char* payloadData = new char[payloadSize];
+	char* payloadData = (char*)std::malloc(payloadSize);
 	payloadFile.read(payloadData, payloadSize);
 	payloadFile.close();
 
