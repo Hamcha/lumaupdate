@@ -5,13 +5,11 @@
 #include <cstdio>
 #include <cstdlib>
 
-#include "utils.h"
-
-bool renameRecursive(FS_Archive archive, std::string source, std::string target);
+bool renameRecursive(const FS_Archive archive, const std::string source, const std::string target);
 
 bool arnVersionCheck(std::string versionString) {
 	// Bound checking before trying to do naughty things
-	size_t verLength = versionString.length();
+	const size_t verLength = versionString.length();
 	if (verLength < 1) {
 		std::printf("Weird version string: it's empty (?)\n");
 		return false;
@@ -51,8 +49,6 @@ bool arnVersionCheck(std::string versionString) {
 }
 
 bool arnMigrate() {
-	const static FS_Path arnDir = fsMakePath(PATH_ASCII, "/aurei");
-	
 	FS_Archive sdmcArchive = { 0x00000009,{ PATH_EMPTY, 1, (u8*) "" } };
 
 	if (FSUSER_OpenArchive(&sdmcArchive) != 0) {
@@ -69,7 +65,7 @@ bool arnMigrate() {
 	return true;
 }
 
-bool renameRecursive(FS_Archive archive, std::string source, std::string target) {
+bool renameRecursive(const FS_Archive archive, const std::string source, const std::string target) {
 	const FS_Path sourcePath = fsMakePath(PATH_ASCII, source.c_str());
 	const FS_Path targetPath = fsMakePath(PATH_ASCII, target.c_str());
 
@@ -100,7 +96,6 @@ bool renameRecursive(FS_Archive archive, std::string source, std::string target)
 			name8[i] = entry.name[i] % 0xff;
 		}
 		std::string filePath = std::string("/") + name8;
-
 		std::string from = source + filePath;
 		std::string to = target + filePath;
 
@@ -114,7 +109,7 @@ bool renameRecursive(FS_Archive archive, std::string source, std::string target)
 			FS_Path sourceFilePath = fsMakePath(PATH_ASCII, from.c_str());
 			FS_Path targetFilePath = fsMakePath(PATH_ASCII, to.c_str());
 			if (FSUSER_RenameFile(archive, sourceFilePath, archive, targetFilePath) != 0) {
-				std::wprintf(L"\nCould not rename %s\n\n", (char*)sourceFilePath.data);
+				std::printf("\nCould not rename %s\n\n", (char*)sourceFilePath.data);
 				return false;
 			}
 			std::printf("  %s -> %s\n", (char*)sourceFilePath.data, (char*)targetFilePath.data);

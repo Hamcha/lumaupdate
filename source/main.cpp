@@ -110,12 +110,12 @@ UpdateChoice drawConfirmationScreen(const ReleaseInfo release, const UpdateArgs 
 	return NoReply;
 }
 
-bool fileExists(std::string path) {
+bool fileExists(const std::string path) {
 	std::ifstream file(path);
 	return file.is_open();
 }
 
-bool backupA9LH(std::string payloadName) {
+bool backupA9LH(const std::string payloadName) {
 	std::ifstream original(payloadName, std::ifstream::binary);
 	if (!original.good()) {
 		std::printf("Could not open %s\n", payloadName.c_str());
