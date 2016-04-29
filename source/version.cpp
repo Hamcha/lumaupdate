@@ -29,7 +29,7 @@ std::string versionMemsearch(const std::string path) {
 
 	// Byte-by-byte search. (memcmp might be faster?)
 	// Since " " (1st char) is only used once in the whole string we can search in O(n)
-	for (size_t offset = 0; offset < payloadSize - searchStringLen; offset++) {
+	for (size_t offset = 0; offset < payloadSize - searchStringLen; ++offset) {
 		if (payloadData[offset] == searchString[curStringIndex]) {
 			if (curStringIndex == searchStringLen - 1) {
 				found = true;
@@ -50,7 +50,7 @@ std::string versionMemsearch(const std::string path) {
 	if (found) {
 		// Version is what comes before "configuration" but after "v"
 		size_t verOffset = curProposedOffset;
-		for (; verOffset > 0; verOffset--) {
+		for (; verOffset > 0; --verOffset) {
 			char current = payloadData[verOffset];
 			if (current == 'v') {
 				break;

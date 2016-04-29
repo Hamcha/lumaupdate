@@ -200,7 +200,7 @@ bool update(const ReleaseInfo release, const UpdateArgs args) {
 	if (res == SZ_OK) {
 		std::printf("Archive opened in memory.\n\nSearching for %s: ", PAYLOADPATH);
 		gfxFlushBuffers();
-		for (u32 i = 0; i < db.NumFiles; i++) {
+		for (u32 i = 0; i < db.NumFiles; ++i) {
 			// Skip directories
 			unsigned isDir = SzArEx_IsDir(&db, i);
 			if (isDir) {
@@ -219,7 +219,7 @@ bool update(const ReleaseInfo release, const UpdateArgs args) {
 
 			// Convert name to ASCII (just cut the other bytes)
 			char name8[256] = { 0 };
-			for (size_t j = 0; j < len; j++) {
+			for (size_t j = 0; j < len; ++j) {
 				name8[j] = name[j] % 0xff;
 			}
 
@@ -408,7 +408,7 @@ int main() {
 
 	// Read config file
 	bool usingConfig = false;
-	for (size_t cfgIndex = 0; !usingConfig && (cfgIndex < cfgPathsLen); cfgIndex++) {
+	for (size_t cfgIndex = 0; !usingConfig && (cfgIndex < cfgPathsLen); ++cfgIndex) {
 		LoadConfigError confStatus = config.LoadFile(cfgPaths[cfgIndex]);
 		switch (confStatus) {
 		case CFGE_NOTEXISTS:
