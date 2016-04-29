@@ -72,7 +72,7 @@ bool arnMigrate() {
 	// Delete the source directory and check if it succeeds
 	Result res = FSUSER_DeleteDirectoryRecursively(sdmcArchive, aurei);
 	if (res != 0) {
-		std::printf("\nWARN: Could not delete original /aurei (%d)!\n\n",  res);
+		std::printf("\nWARN: Could not delete original /aurei (%ld)!\n\n",  res);
 	}
 	
 	FSUSER_CloseArchive(&sdmcArchive);
@@ -84,7 +84,7 @@ bool renameRecursive(const FS_Archive archive, const std::string source, const s
 	const FS_Path targetPath = fsMakePath(PATH_ASCII, target.c_str());
 
 	// Open source directory
-	Handle directory = { 0 };
+	Handle directory = NULL;
 	if (FSUSER_OpenDirectory(&directory, archive, sourcePath) != 0) {
 		std::printf("\nCould not open %s\n\n", source.c_str());
 		return false;
@@ -98,7 +98,7 @@ bool renameRecursive(const FS_Archive archive, const std::string source, const s
 
 	u32 fileRead = 0;
 	while (true) {
-		FS_DirectoryEntry entry = { 0 };
+		FS_DirectoryEntry entry = {};
 		FSDIR_Read(directory, &fileRead, 1, &entry);
 		if (!fileRead) {
 			break;
