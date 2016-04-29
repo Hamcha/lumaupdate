@@ -1,5 +1,7 @@
 #include <string>
 #include <fstream>
+#include <vector>
+
 #include <cstdlib>
 #include <cstdio>
 #include <cstring>
@@ -28,44 +30,57 @@ enum UpdateState {
 	UpdateAborted
 };
 
-enum UpdateChoice {
-	NoReply,
-	Yes,
-	No
+struct ReleaseVer {
+	std::string filename;
+	std::string friendlyName;
+	std::string url;
 };
 
 struct ReleaseInfo {
 	std::string name;
-	std::string url;
+	std::vector<ReleaseVer> versions;
+};
+
+struct UpdateChoice {
+	bool       isReply;
+	ReleaseVer chosenVersion;
 };
 
 struct UpdateArgs {
 	// Detected options
-	std::string currentVersion;
-	bool        migrateARN;
+	std::string  currentVersion;
+	bool         migrateARN;
 
 	// Configuration options
-	std::string payloadPath;
-	bool        backupExisting;
+	std::string  payloadPath;
+	bool         backupExisting;
+
+	// Chosen settings
+	UpdateChoice choice;
 };
 
 UpdateChoice drawConfirmationScreen(const ReleaseInfo release, const UpdateArgs args, const bool usingConfig) {
-	static bool status = false;
 	static bool partialredraw = false;
+	static int  selected = 0;
 
 	bool haveLatest = args.currentVersion == release.name;
 
 	u32 keydown = hidKeysDown();
-	if (keydown & (KEY_RIGHT | KEY_LEFT)) {
+	if (keydown & (KEY_UP | KEY_DOWN)) {
 		partialredraw = true;
-		status = !status;
+		if (keydown & KEY_UP) {
+			--selected;
+		}
+		if (keydown & KEY_DOWN) {
+			++selected;
+		}
 	}
 	if (keydown & KEY_A) {
-		return status ? Yes : No;
+		return UpdateChoice{ true, release.versions[selected] };
 	}
 
 	if (!redraw && !partialredraw) {
-		return NoReply;
+		return UpdateChoice{ false };
 	}
 
 	if (redraw) {
@@ -97,17 +112,29 @@ UpdateChoice drawConfirmationScreen(const ReleaseInfo release, const UpdateArgs 
 			std::printf("  A new version of Luma3DS is available.\n");
 		}
 
+		std::printf("\n  Choose action:\n");
+
 		menuPrintFooter(&con);
 	}
 
-	con.cursorX = 4;
-	con.cursorY = 10 + (usingConfig ? 0 : 3);
-	std::printf("Do you %swant to install it? ", (haveLatest ? "still " : ""));
-	std::printf(status ? "< YES >" : "< NO > ");
+	con.cursorX = 0;
+	con.cursorY = 11 + (usingConfig ? 0 : 3);
+	//std::printf("Do you %swant to install it? ", (haveLatest ? "still " : ""));
+	//std::printf(status ? "< YES >" : "< NO > ");
+
+	int optionCount = release.versions.size();
+	selected = selected % optionCount;
+
+	int curOption = 0;
+	for (ReleaseVer r : release.versions) {
+		printf(curOption == selected ? "   * " : "     ");
+		printf("Install %s\n", r.friendlyName.c_str());
+		++curOption;
+	}
 
 	redraw = false;
 	partialredraw = false;
-	return NoReply;
+	return UpdateChoice{ false };
 }
 
 bool fileExists(const std::string path) {
@@ -137,7 +164,7 @@ bool backupA9LH(const std::string payloadName) {
 	return true;
 }
 
-bool update(const ReleaseInfo release, const UpdateArgs args) {
+bool update(const UpdateArgs args) {
 	consoleClear();
 
 	// Back up local file if it exists
@@ -169,7 +196,7 @@ bool update(const ReleaseInfo release, const UpdateArgs args) {
 		fileData = (u8*)malloc(fileSize);
 		predownloaded.read((char*)fileData, fileSize);
 #else
-		httpGet(release.url.c_str(), &fileData, &fileSize);
+		httpGet(args.choice.chosenVersion.url.c_str(), &fileData, &fileSize);
 #endif
 	} catch (std::string& e) {
 		std::printf("%s\n", e.c_str());
@@ -337,10 +364,9 @@ ReleaseInfo fetchLatestRelease() {
 	release.url = "https://github.com/AuroraWright/Luma3DS/releases/download/v5.2/Luma3DSv5.2.7z";
 #else
 
-	jsmn_parser p = { 0 };
+	jsmn_parser p = {};
 	jsmn_init(&p);
 
-	bool namefound = false, releasefound = false;
 	u8* apiReqData = nullptr;
 	u32 apiReqSize = 0;
 
@@ -359,6 +385,8 @@ ReleaseInfo fetchLatestRelease() {
 	std::printf("JSON parsed successfully!\n");
 	gfxFlushBuffers();
 
+	bool namefound = false, inassets = false, verHasName = false, verHasURL = false;
+	ReleaseVer current;
 	for (int i = 0; i < r; i++) {
 		if (!namefound && jsoneq((const char*)apiReqData, &t[i], "name") == 0) {
 			jsmntok_t val = t[i+1];
@@ -370,14 +398,27 @@ ReleaseInfo fetchLatestRelease() {
 			std::printf("Release found: %s\n", release.name.c_str());
 			namefound = true;
 		}
-		if (!releasefound && jsoneq((const char*)apiReqData, &t[i], "browser_download_url") == 0) {
-			jsmntok_t val = t[i+1];
-			release.url = std::string((const char*)apiReqData + val.start, val.end - val.start);
-			std::printf("Asset found: %s\n", release.url.c_str());
-			releasefound = true;
+		if (!inassets && jsoneq((const char*)apiReqData, &t[i], "assets") == 0) {
+			inassets = true;
 		}
-		if (namefound && releasefound) {
-			break;
+		if (inassets) {
+			if (jsoneq((const char*)apiReqData, &t[i], "name") == 0) {
+				jsmntok_t val = t[i + 1];
+				current.filename = std::string((const char*)apiReqData + val.start, val.end - val.start);
+				// TODO Get friendly name
+				current.friendlyName = "<" + current.filename + ">";
+				verHasName = true;
+			}
+			if (jsoneq((const char*)apiReqData, &t[i], "browser_download_url") == 0) {
+				jsmntok_t val = t[i + 1];
+				current.url = std::string((const char*)apiReqData + val.start, val.end - val.start);
+				verHasURL = true;
+			}
+			if (verHasName && verHasURL) {
+				printf("Found version: %s\n", current.filename.c_str());
+				release.versions.push_back(ReleaseVer{ current.filename, current.friendlyName, current.url });
+				verHasName = verHasURL = false;
+			}
 		}
 	}
 	gfxFlushBuffers();
@@ -489,21 +530,20 @@ int main() {
 
 		switch (state) {
 		case UpdateConfirmationScreen:
-			switch (drawConfirmationScreen(release, updateArgs, usingConfig)) {
-			case Yes:
+			// Handle aborting updates
+			if (kDown & KEY_START) {
+				state = UpdateAborted;
+				break;
+			}
+
+			updateArgs.choice = drawConfirmationScreen(release, updateArgs, usingConfig);
+			if (updateArgs.choice.isReply) {
 				state = Updating;
 				redraw = true;
-				break;
-			case No:
-				state = UpdateAborted;
-				redraw = true;
-				break;
-			case NoReply:
-				break;
 			}
 			break;
 		case Updating:
-			if (update(release, updateArgs)) {
+			if (update(updateArgs)) {
 				state = UpdateComplete;
 			} else {
 				state = UpdateFailed;
