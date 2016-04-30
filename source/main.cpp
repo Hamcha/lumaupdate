@@ -23,19 +23,29 @@ enum UpdateState {
 	Updating,
 	UpdateComplete,
 	UpdateFailed,
-	UpdateAborted
+	UpdateAborted,
+	Restoring,
+	RestoreComplete,
+	RestoreFailed
+};
+
+enum ChoiceType {
+	NoChoice,
+	UpdatePayload,
+	RestoreBackup
 };
 
 struct UpdateChoice {
-	bool       isReply;
+	ChoiceType type;
 	ReleaseVer chosenVersion;
 	bool       isHourly;
 };
 
 struct UpdateArgs {
 	// Detected options
-	std::string  currentVersion;
+	std::string  currentVersion, backupVersion;
 	bool         migrateARN;
+	bool         backupExists;
 
 	// Configuration options
 	std::string  payloadPath;
@@ -52,9 +62,10 @@ struct UpdateArgs {
 UpdateChoice drawConfirmationScreen(const UpdateArgs args, const bool usingConfig) {
 	static bool partialredraw = false;
 	static int  selected = 0;
-	static int  hourlyOptionStart = INT_MAX;
+	static int  hourlyOptionStart = INT_MAX, extraOptionStart = INT_MAX;
 
 	bool haveLatest = args.currentVersion == args.stable->name;
+	bool backupVersionDetected = args.backupExists && args.backupVersion != "";
 
 	u32 keydown = hidKeysDown();
 	if (keydown & (KEY_UP | KEY_DOWN)) {
@@ -68,13 +79,34 @@ UpdateChoice drawConfirmationScreen(const UpdateArgs args, const bool usingConfi
 	}
 	if (keydown & KEY_A) {
 		if (selected < hourlyOptionStart) {
-			return UpdateChoice{ true, args.stable->versions[selected], false };
+			return UpdateChoice{ UpdatePayload, args.stable->versions[selected], false };
 		}
-		return UpdateChoice{ true, args.hourly->versions[selected - hourlyOptionStart], true };
+		if (selected < extraOptionStart) {
+			return UpdateChoice{ UpdatePayload, args.hourly->versions[selected - hourlyOptionStart], true };
+		}
+		int extraOptionID = selected - extraOptionStart;
+
+		// Skip restoring backups if they don't exist
+		if (!args.backupExists) {
+			extraOptionID++;
+		}
+
+		switch (extraOptionID) {
+		case 0:
+			// Restore backup
+			return UpdateChoice{ RestoreBackup };
+		default:
+			// Panic!
+			printf("Unknown option selected (??)\n");
+			WAIT_START;
+			redraw = true;
+			selected = 0;
+			return UpdateChoice{ NoChoice };
+		}
 	}
 
 	if (!redraw && !partialredraw) {
-		return UpdateChoice{ false };
+		return UpdateChoice{ NoChoice };
 	}
 
 	if (redraw) {
@@ -94,9 +126,12 @@ UpdateChoice drawConfirmationScreen(const UpdateArgs args, const bool usingConfi
 
 		if (args.currentVersion != "") {
 			std::printf("  Current installed version:    %s%s%s\n", (haveLatest ? CONSOLE_GREEN : CONSOLE_RED), args.currentVersion.c_str(), CONSOLE_RESET);
-		}
-		else {
+		} else {
 			std::printf("  %sCould not detect current version%s\n\n", CONSOLE_MAGENTA, CONSOLE_RESET);
+		}
+		if (backupVersionDetected) {
+			bool backupIsLatest = args.backupVersion == args.stable->name;
+			std::printf("  Current backup version:       %s%s%s\n", (backupIsLatest ? CONSOLE_GREEN : CONSOLE_RED), args.backupVersion.c_str(), CONSOLE_RESET);
 		}
 		std::printf("  Latest version (from Github): %s%s%s\n", CONSOLE_GREEN, args.stable->name.c_str(), CONSOLE_RESET);
 
@@ -116,9 +151,9 @@ UpdateChoice drawConfirmationScreen(const UpdateArgs args, const bool usingConfi
 	}
 
 	con.cursorX = 0;
-	con.cursorY = 11 + (usingConfig ? 0 : 3) + (args.hourly != nullptr ? 1 : 0);
+	con.cursorY = 11 + (usingConfig ? 0 : 3) + (args.hourly != nullptr ? 1 : 0) + (backupVersionDetected ? 1 : 0);
 
-	int optionCount = args.stable->versions.size() + (args.hourly != nullptr ? args.hourly->versions.size() : 0);
+	int optionCount = args.stable->versions.size() + (args.hourly != nullptr ? args.hourly->versions.size() : 0) + (args.backupExists ? 1 : 0);
 
 	// Wrap around cursor
 	while (selected < 0) selected += optionCount;
@@ -131,8 +166,8 @@ UpdateChoice drawConfirmationScreen(const UpdateArgs args, const bool usingConfi
 		++curOption;
 	}
 
+	hourlyOptionStart = curOption;
 	if (args.hourly != nullptr) {
-		hourlyOptionStart = curOption;
 		for (ReleaseVer h : args.hourly->versions) {
 			printf(curOption == selected ? "   * " : "     ");
 			printf("Install %s\n", h.friendlyName.c_str());
@@ -140,9 +175,18 @@ UpdateChoice drawConfirmationScreen(const UpdateArgs args, const bool usingConfi
 		}
 	}
 
+	extraOptionStart = curOption;
+
+	// Extra #0: Restore backup
+	if (args.backupExists) {
+		printf(curOption == selected ? "   * " : "     ");
+		printf("Restore backup\n");
+		++curOption;
+	}
+
 	redraw = false;
 	partialredraw = false;
-	return UpdateChoice{ false };
+	return UpdateChoice{ NoChoice };
 }
 
 bool fileExists(const std::string path) {
@@ -229,6 +273,14 @@ bool update(const UpdateArgs args) {
 	return true;
 }
 
+bool restore(const UpdateArgs args) {
+	if (std::rename((args.payloadPath + ".bak").c_str(), args.payloadPath.c_str()) == 0) {
+		return true;
+	}
+	std::perror("Can't rename backup to payload");
+	return false;
+}
+
 int main() {
 	const static char* cfgPaths[] = {
 		"/lumaupdater.cfg",
@@ -306,6 +358,12 @@ int main() {
 	std::printf("Trying detection of current payload version...\n");
 	updateArgs.currentVersion = versionMemsearch(updateArgs.payloadPath);
 
+	// Detect bak version, if exists
+	if (fileExists(updateArgs.payloadPath + ".bak")) {
+		updateArgs.backupExists = true;
+		updateArgs.backupVersion = versionMemsearch(updateArgs.payloadPath + ".bak");
+	}
+
 	// Check for eventual migration from ARN to Luma
 	updateArgs.migrateARN = arnVersionCheck(updateArgs.currentVersion);
 
@@ -349,13 +407,23 @@ int main() {
 			// Handle aborting updates
 			if (kDown & KEY_START) {
 				state = UpdateAborted;
+				redraw = true;
 				break;
 			}
 
 			updateArgs.choice = drawConfirmationScreen(updateArgs, usingConfig);
-			if (updateArgs.choice.isReply) {
+			switch (updateArgs.choice.type) {
+			case UpdatePayload:
 				state = Updating;
 				redraw = true;
+				break;
+			case RestoreBackup:
+				state = Restoring;
+				redraw = true;
+				break;
+			case NoChoice:
+			default:
+				break;
 			}
 			break;
 		case Updating:
@@ -388,6 +456,35 @@ int main() {
 				aptOpenSession();
 				APT_HardwareResetAsync();
 				aptCloseSession();
+			}
+			break;
+		case Restoring:
+			if (restore(updateArgs)) {
+				state = RestoreComplete;
+			} else {
+				state = RestoreFailed;
+			}
+			redraw = true;
+			break;
+		case RestoreComplete:
+			if (redraw) {
+				consoleClear();
+				menuPrintHeader(&con);
+				std::printf("\n  %sRestore complete.%s\n", CONSOLE_GREEN, CONSOLE_RESET);
+				std::printf("\n  Press START to reboot.");
+				redraw = false;
+			}
+			if ((kDown & KEY_START) != 0) {
+				// Reboot!
+				aptOpenSession();
+				APT_HardwareResetAsync();
+				aptCloseSession();
+			}
+			break;
+		case RestoreFailed:
+			if (redraw) {
+				std::printf("\n  %sRestore failed%s. Press START to exit.\n", CONSOLE_RED, CONSOLE_RESET);
+				redraw = false;
 			}
 			break;
 		case UpdateAborted:

@@ -55,7 +55,7 @@ ReleaseInfo releaseGetLatestStable() {
 	std::printf("JSON parsed successfully!\n");
 	gfxFlushBuffers();
 
-	bool namefound = false, inassets = false, verHasName = false, verHasURL = false;
+	bool namefound = false, inassets = false, verHasName = false, verHasURL = false, isDev = false;
 	ReleaseVer current;
 	for (int i = 0; i < r; i++) {
 		if (!namefound && jsoneq((const char*)apiReqData, &t[i], "name") == 0) {
@@ -75,8 +75,8 @@ ReleaseInfo releaseGetLatestStable() {
 			if (jsoneq((const char*)apiReqData, &t[i], "name") == 0) {
 				jsmntok_t val = t[i + 1];
 				current.filename = std::string((const char*)apiReqData + val.start, val.end - val.start);
-				// TODO Get friendly name
-				current.friendlyName = "<" + current.filename + ">";
+				isDev = current.filename.find("-dev.") < std::string::npos;
+				current.friendlyName = isDev ? "developer version" : "normal version";
 				verHasName = true;
 			}
 			if (jsoneq((const char*)apiReqData, &t[i], "browser_download_url") == 0) {
@@ -86,11 +86,18 @@ ReleaseInfo releaseGetLatestStable() {
 			}
 			if (verHasName && verHasURL) {
 				printf("Found version: %s\n", current.filename.c_str());
-				release.versions.push_back(ReleaseVer{ current.filename, current.friendlyName, current.url });
-				verHasName = verHasURL = false;
+				ReleaseVer version = ReleaseVer{ current.filename, current.friendlyName, current.url };
+				// Put normal version in front, dev on back
+				if (!isDev) {
+					release.versions.insert(release.versions.begin(), version);
+				} else {
+					release.versions.push_back(version);
+				}
+				verHasName = verHasURL = isDev = false;
 			}
 		}
 	}
+
 	gfxFlushBuffers();
 	std::free(apiReqData);
 
