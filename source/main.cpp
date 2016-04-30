@@ -1,18 +1,14 @@
 #include <string>
 #include <fstream>
-#include <vector>
 
 #include <cstdlib>
 #include <cstdio>
 #include <cstring>
+#include <climits>
 
 #include <3ds.h>
 
 #include "libs.h"
-
-
-#define PAYLOADPATH "arm9loaderhax.bin"
-#define RELEASEURL  "https://api.github.com/repos/AuroraWright/Luma3DS/releases/latest"
 
 #define WAIT_START while (aptMainLoop() && !(hidKeysDown() & KEY_START)) { gspWaitForVBlank(); hidScanInput(); }
 
@@ -30,20 +26,10 @@ enum UpdateState {
 	UpdateAborted
 };
 
-struct ReleaseVer {
-	std::string filename;
-	std::string friendlyName;
-	std::string url;
-};
-
-struct ReleaseInfo {
-	std::string name;
-	std::vector<ReleaseVer> versions;
-};
-
 struct UpdateChoice {
 	bool       isReply;
 	ReleaseVer chosenVersion;
+	bool       isHourly;
 };
 
 struct UpdateArgs {
@@ -55,15 +41,20 @@ struct UpdateArgs {
 	std::string  payloadPath;
 	bool         backupExisting;
 
+	// Available data
+	ReleaseInfo* stable = nullptr;
+	ReleaseInfo* hourly = nullptr;
+
 	// Chosen settings
 	UpdateChoice choice;
 };
 
-UpdateChoice drawConfirmationScreen(const ReleaseInfo release, const UpdateArgs args, const bool usingConfig) {
+UpdateChoice drawConfirmationScreen(const UpdateArgs args, const bool usingConfig) {
 	static bool partialredraw = false;
 	static int  selected = 0;
+	static int  hourlyOptionStart = INT_MAX;
 
-	bool haveLatest = args.currentVersion == release.name;
+	bool haveLatest = args.currentVersion == args.stable->name;
 
 	u32 keydown = hidKeysDown();
 	if (keydown & (KEY_UP | KEY_DOWN)) {
@@ -76,7 +67,10 @@ UpdateChoice drawConfirmationScreen(const ReleaseInfo release, const UpdateArgs 
 		}
 	}
 	if (keydown & KEY_A) {
-		return UpdateChoice{ true, release.versions[selected] };
+		if (selected < hourlyOptionStart) {
+			return UpdateChoice{ true, args.stable->versions[selected], false };
+		}
+		return UpdateChoice{ true, args.hourly->versions[selected - hourlyOptionStart], true };
 	}
 
 	if (!redraw && !partialredraw) {
@@ -87,7 +81,7 @@ UpdateChoice drawConfirmationScreen(const ReleaseInfo release, const UpdateArgs 
 		consoleClear();
 		menuPrintHeader(&con);
 
-		if (!usingConfig){
+		if (!usingConfig) {
 			std::printf("  %sConfiguration not found, using default values%s\n\n", CONSOLE_MAGENTA, CONSOLE_RESET);
 		}
 
@@ -104,12 +98,16 @@ UpdateChoice drawConfirmationScreen(const ReleaseInfo release, const UpdateArgs 
 		else {
 			std::printf("  %sCould not detect current version%s\n\n", CONSOLE_MAGENTA, CONSOLE_RESET);
 		}
-		std::printf("  Latest version (from Github): %s%s%s\n\n", CONSOLE_GREEN, release.name.c_str(), CONSOLE_RESET);
+		std::printf("  Latest version (from Github): %s%s%s\n", CONSOLE_GREEN, args.stable->name.c_str(), CONSOLE_RESET);
+
+		if (args.hourly != nullptr) {
+			std::printf("  Latest hourly build:          %s%s%s\n", CONSOLE_GREEN, args.hourly->name.c_str(), CONSOLE_RESET);
+		}
 
 		if (haveLatest) {
-			std::printf("  You seem to have the latest version already.\n");
+			std::printf("\n  You seem to have the latest version already.\n");
 		} else {
-			std::printf("  A new version of Luma3DS is available.\n");
+			std::printf("\n  A new version of Luma3DS is available.\n");
 		}
 
 		std::printf("\n  Choose action:\n");
@@ -118,18 +116,28 @@ UpdateChoice drawConfirmationScreen(const ReleaseInfo release, const UpdateArgs 
 	}
 
 	con.cursorX = 0;
-	con.cursorY = 11 + (usingConfig ? 0 : 3);
-	//std::printf("Do you %swant to install it? ", (haveLatest ? "still " : ""));
-	//std::printf(status ? "< YES >" : "< NO > ");
+	con.cursorY = 11 + (usingConfig ? 0 : 3) + (args.hourly != nullptr ? 1 : 0);
 
-	int optionCount = release.versions.size();
+	int optionCount = args.stable->versions.size() + (args.hourly != nullptr ? args.hourly->versions.size() : 0);
+
+	// Wrap around cursor
+	while (selected < 0) selected += optionCount;
 	selected = selected % optionCount;
 
 	int curOption = 0;
-	for (ReleaseVer r : release.versions) {
+	for (ReleaseVer r : args.stable->versions) {
 		printf(curOption == selected ? "   * " : "     ");
 		printf("Install %s\n", r.friendlyName.c_str());
 		++curOption;
+	}
+
+	if (args.hourly != nullptr) {
+		hourlyOptionStart = curOption;
+		for (ReleaseVer h : args.hourly->versions) {
+			printf(curOption == selected ? "   * " : "     ");
+			printf("Install %s\n", h.friendlyName.c_str());
+			++curOption;
+		}
 	}
 
 	redraw = false;
@@ -181,148 +189,24 @@ bool update(const UpdateArgs args) {
 		}
 	}
 
-	std::printf("Downloading 7z file...\n");
+	std::printf("Downloading %s\n", args.choice.chosenVersion.url.c_str());
 	gfxFlushBuffers();
 
-	u8* fileData = nullptr;
-	u32 fileSize = 0;
-
-	try {
-#ifdef FAKEDL
-		// Read predownloaded file
-		std::ifstream predownloaded(release.name + ".7z", std::ios::binary | std::ios::ate);
-		fileSize = predownloaded.tellg();
-		predownloaded.seekg(0, std::ios::beg);
-		fileData = (u8*)malloc(fileSize);
-		predownloaded.read((char*)fileData, fileSize);
-#else
-		httpGet(args.choice.chosenVersion.url.c_str(), &fileData, &fileSize);
-#endif
-	} catch (std::string& e) {
-		std::printf("%s\n", e.c_str());
-		return false;
-	}
-	std::printf("Download complete! Size: %lu\n", fileSize);
-	std::printf("\nDecompressing archive in memory...\n");
-	gfxFlushBuffers();
-
-	CMemInStream memStream;
-	MemInStream_Init(&memStream, fileData, fileSize);
-	std::printf("Created 7z InStream, opening as archive...\n");
-	gfxFlushBuffers();
-
-	CSzArEx db;
-	ISzAlloc allocImp;
-	ISzAlloc allocTempImp;
-	allocImp.Alloc = SzAlloc;
-	allocImp.Free = SzFree;
-	allocTempImp.Alloc = SzAllocTemp;
-	allocTempImp.Free = SzFreeTemp;
-
-	CrcGenerateTable();
-	SzArEx_Init(&db);
-
-	SRes res = SzArEx_Open(&db, &memStream.s, &allocImp, &allocTempImp);
-	u32 codeIndex = UINT32_MAX;
-	if (res == SZ_OK) {
-		std::printf("Archive opened in memory.\n\nSearching for %s: ", PAYLOADPATH);
-		gfxFlushBuffers();
-		for (u32 i = 0; i < db.NumFiles; ++i) {
-			// Skip directories
-			unsigned isDir = SzArEx_IsDir(&db, i);
-			if (isDir) {
-				continue;
-			}
-
-			// Get name
-			size_t len;
-			len = SzArEx_GetFileNameUtf16(&db, i, NULL);
-			// Super long filename? Just skip it..
-			if (len >= 256) {
-				continue;
-			}
-			u16 name[256] = { 0 };
-			SzArEx_GetFileNameUtf16(&db, i, name);
-
-			// Convert name to ASCII (just cut the other bytes)
-			char name8[256] = { 0 };
-			for (size_t j = 0; j < len; ++j) {
-				name8[j] = name[j] % 0xff;
-			}
-
-			// Check if it's the A9LH payload
-			int res = strncmp(name8, PAYLOADPATH, len - 1);
-			if (res == 0) {
-				codeIndex = i;
-				std::printf("FOUND! (%lu)\n", codeIndex);
-				break;
-			}
-		}
-	} else {
-		std::printf("Could not open archive (SzArEx_Open)\n");
-		SzArEx_Free(&db, &allocImp);
-		std::free(fileData);
-		return false;
-	}
-
-	if (codeIndex == UINT32_MAX) {
-		std::printf("ERR\nCould not find %s\n", PAYLOADPATH);
-		SzArEx_Free(&db, &allocImp);
-		std::free(fileData);
-		return false;
-	}
-
-	std::printf("\nExtracting %s from archive...\n", PAYLOADPATH);
-	gfxFlushBuffers();
-
-	u8* fileBuf = nullptr;
-	UInt32 blockIndex = UINT32_MAX;
-	size_t fileBufSize = 0;
-	size_t fileOutSize = 0;
+	u8* payloadData = nullptr;
 	size_t offset = 0;
-
-	res = SzArEx_Extract(
-		&db,
-		&memStream.s,
-		codeIndex,
-		&blockIndex,
-		&fileBuf,
-		&fileBufSize,
-		&offset,
-		&fileOutSize,
-		&allocImp,
-		&allocTempImp
-	);
-	if (res != SZ_OK) {
-		std::printf("\nCould not extract %s\n", PAYLOADPATH);
-		gfxFlushBuffers();
-		SzArEx_Free(&db, &allocImp);
-		std::free(fileData);
+	size_t payloadSize = 0;
+	bool ret = releaseGetPayload(args.choice.chosenVersion, args.choice.isHourly, &payloadData, &offset, &payloadSize);
+	if (!ret) {
+		std::printf("FATAL\nCould not get A9LH payload...\n");
+		std::free(payloadData);
 		return false;
 	}
-
-	// Move pointer to chosen file
-	fileBuf += offset;
-
-	if (fileOutSize > 0x20000) {
-		std::printf("File is too big to be a valid A9LH payload!\n");
-		gfxFlushBuffers();
-		IAlloc_Free(&allocImp, fileBuf - offset);
-		SzArEx_Free(&db, &allocImp);
-		std::free(fileData);
-		return false;
-	}
-
-	std::printf("File extracted successfully (%zu bytes)\n", fileOutSize);
-	gfxFlushBuffers();
 
 	if (args.payloadPath != std::string("/") + PAYLOADPATH) {
 		std::printf("Requested payload path is not %s, applying path patch...\n", PAYLOADPATH);
-		bool res = pathchange(fileBuf, fileOutSize, args.payloadPath);
+		bool res = pathchange(payloadData + offset, payloadSize, args.payloadPath);
 		if (!res) {
-			IAlloc_Free(&allocImp, fileBuf - offset);
-			SzArEx_Free(&db, &allocImp);
-			std::free(fileData);
+			std::free(payloadData);
 			return false;
 		}
 	}
@@ -337,96 +221,12 @@ bool update(const UpdateArgs args) {
 
 	std::printf("Saving %s to SD (as %s)...\n", PAYLOADPATH, args.payloadPath.c_str());
 	std::ofstream a9lhfile("/" + args.payloadPath, std::ofstream::binary);
-	a9lhfile.write((const char*)fileBuf, fileOutSize);
+	a9lhfile.write((const char*)(payloadData + offset), payloadSize);
 	a9lhfile.close();
 
 	std::printf("All done, freeing resources and exiting...\n");
-	IAlloc_Free(&allocImp, fileBuf - offset);
-	SzArEx_Free(&db, &allocImp);
-	std::free(fileData);
+	std::free(payloadData);
 	return true;
-}
-
-static int jsoneq(const char *json, jsmntok_t *tok, const char *s) {
-	if (tok->type == JSMN_STRING && (int)strlen(s) == tok->end - tok->start &&
-		std::strncmp(json + tok->start, s, tok->end - tok->start) == 0) {
-		return 0;
-	}
-	return -1;
-}
-
-ReleaseInfo fetchLatestRelease() {
-	ReleaseInfo release;
-
-#ifdef FAKEDL
-	// Citra doesn't support HTTPc right now, so just fake a successful request
-	release.name = "5.2";
-	release.url = "https://github.com/AuroraWright/Luma3DS/releases/download/v5.2/Luma3DSv5.2.7z";
-#else
-
-	jsmn_parser p = {};
-	jsmn_init(&p);
-
-	u8* apiReqData = nullptr;
-	u32 apiReqSize = 0;
-
-	std::printf("Downloading %s...\n", RELEASEURL);
-
-	httpGet(RELEASEURL, &apiReqData, &apiReqSize);
-
-	std::printf("Downloaded %lu bytes\n", apiReqSize);
-	gfxFlushBuffers();
-
-	jsmntok_t t[512] = {};
-	int r = jsmn_parse(&p, (const char*)apiReqData, apiReqSize, t, sizeof(t) / sizeof(t[0]));
-	if (r < 0) {
-		throw formatErrMessage("Failed to parse JSON", r);
-	}
-	std::printf("JSON parsed successfully!\n");
-	gfxFlushBuffers();
-
-	bool namefound = false, inassets = false, verHasName = false, verHasURL = false;
-	ReleaseVer current;
-	for (int i = 0; i < r; i++) {
-		if (!namefound && jsoneq((const char*)apiReqData, &t[i], "name") == 0) {
-			jsmntok_t val = t[i+1];
-			// Strip the "v" in front of the version name
-			if (apiReqData[val.start] == 'v') {
-				val.start += 1;
-			}
-			release.name = std::string((const char*)apiReqData + val.start, val.end - val.start);
-			std::printf("Release found: %s\n", release.name.c_str());
-			namefound = true;
-		}
-		if (!inassets && jsoneq((const char*)apiReqData, &t[i], "assets") == 0) {
-			inassets = true;
-		}
-		if (inassets) {
-			if (jsoneq((const char*)apiReqData, &t[i], "name") == 0) {
-				jsmntok_t val = t[i + 1];
-				current.filename = std::string((const char*)apiReqData + val.start, val.end - val.start);
-				// TODO Get friendly name
-				current.friendlyName = "<" + current.filename + ">";
-				verHasName = true;
-			}
-			if (jsoneq((const char*)apiReqData, &t[i], "browser_download_url") == 0) {
-				jsmntok_t val = t[i + 1];
-				current.url = std::string((const char*)apiReqData + val.start, val.end - val.start);
-				verHasURL = true;
-			}
-			if (verHasName && verHasURL) {
-				printf("Found version: %s\n", current.filename.c_str());
-				release.versions.push_back(ReleaseVer{ current.filename, current.friendlyName, current.url });
-				verHasName = verHasURL = false;
-			}
-		}
-	}
-	gfxFlushBuffers();
-	std::free(apiReqData);
-
-#endif
-
-	return release;
 }
 
 int main() {
@@ -438,8 +238,9 @@ int main() {
 	const static size_t cfgPathsLen = sizeof(cfgPaths) / sizeof(cfgPaths[0]);
 
 	UpdateState state = UpdateConfirmationScreen;
-	ReleaseInfo release;
+	ReleaseInfo release, hourly;
 	UpdateArgs updateArgs;
+	bool nohourly = false; // Used if fetching hourlies fails
 
 	gfxInitDefault();
 	httpcInit(0);
@@ -509,7 +310,7 @@ int main() {
 	updateArgs.migrateARN = arnVersionCheck(updateArgs.currentVersion);
 
 	try {
-		release = fetchLatestRelease();
+		release = releaseGetLatestStable();
 	}
 	catch (std::string& e) {
 		std::printf("%s\n", e.c_str());
@@ -517,6 +318,21 @@ int main() {
 		gfxFlushBuffers();
 		WAIT_START
 		goto cleanup;
+	}
+
+	updateArgs.stable = &release;
+
+	try {
+		hourly = releaseGetLatestHourly();
+	} catch (std::string& e) {
+		std::printf("%s\n", e.c_str());
+		std::printf("\nWARN\nCould not obtain latest hourly, skipping...\n");
+		nohourly = true;
+		gfxFlushBuffers();
+	}
+
+	if (!nohourly) {
+		updateArgs.hourly = &hourly;
 	}
 
 	redraw = true;
@@ -536,7 +352,7 @@ int main() {
 				break;
 			}
 
-			updateArgs.choice = drawConfirmationScreen(release, updateArgs, usingConfig);
+			updateArgs.choice = drawConfirmationScreen(updateArgs, usingConfig);
 			if (updateArgs.choice.isReply) {
 				state = Updating;
 				redraw = true;

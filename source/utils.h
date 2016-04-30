@@ -14,3 +14,6 @@
  *  \return Formatted error string for exceptions
  */
 std::string formatErrMessage(const char* msg, const Result val);
+
+/*! \brief Trim whitespace around strings */
+void trim(std::string &s);

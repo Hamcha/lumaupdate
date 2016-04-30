@@ -29,7 +29,7 @@ include $(DEVKITARM)/3ds_rules
 #---------------------------------------------------------------------------------
 TARGET		:=	$(notdir $(CURDIR))
 BUILD		:=	build
-SOURCES		:=	source source/7z
+SOURCES		:=	source source/7z source/minizip
 DATA		:=	data
 INCLUDES	:=	include
 #ROMFS		:=	romfs
@@ -66,7 +66,7 @@ CXXFLAGS	:= $(CFLAGS) -fno-rtti -fexceptions -std=gnu++11
 ASFLAGS	:=	-g $(ARCH)
 LDFLAGS	=	-specs=3dsx.specs -g $(ARCH) -Wl,-Map,$(notdir $*.map)
 
-LIBS	:= -lctru -lm
+LIBS	:= -lctru -lm -lz
 
 #---------------------------------------------------------------------------------
 # list of directories containing libraries, this must be the top level containing
@@ -117,9 +117,9 @@ export OFILES	:=	$(addsuffix .o,$(BINFILES)) \
 
 export INCLUDE	:=	$(foreach dir,$(INCLUDES),-I$(CURDIR)/$(dir)) \
 			$(foreach dir,$(LIBDIRS),-I$(dir)/include) \
-			-I$(CURDIR)/$(BUILD)
+			-I$(CURDIR)/$(BUILD) -I${DEVKITPRO}/portlibs/armv6k/include
 
-export LIBPATHS	:=	$(foreach dir,$(LIBDIRS),-L$(dir)/lib)
+export LIBPATHS	:=	$(foreach dir,$(LIBDIRS),-L$(dir)/lib) -L${DEVKITPRO}/portlibs/armv6k/lib
 
 ifeq ($(strip $(ICON)),)
 	icons := $(wildcard *.png)
