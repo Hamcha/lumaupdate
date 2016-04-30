@@ -103,6 +103,12 @@ ReleaseInfo releaseGetLatestHourly() {
 	static const char* LastCommitURL = "https://raw.githubusercontent.com/astronautlevel2/Luma3DS/gh-pages/lastCommit";
 	ReleaseInfo hourly;
 
+#ifdef FAKEDL
+	// Citra doesn't support HTTPc right now, so just fake a successful request
+	hourly.name = "aaaaaaa";
+	hourly.versions.push_back(ReleaseVer{ "CITRA", "latest hourly (aaaaaaa)", "https://github.com/AuroraWright/Luma3DS/releases/download/v5.2/Luma3DSv5.2.7z" });
+#else
+
 	u8* apiReqData = nullptr;
 	u32 apiReqSize = 0;
 
@@ -120,6 +126,9 @@ ReleaseInfo releaseGetLatestHourly() {
 	hourly.versions.push_back(ReleaseVer{ hourly.name, "latest hourly (" + hourly.name + ")", std::string(url) });
 
 	std::free(apiReqData);
+
+#endif
+
 	return hourly;
 }
 
@@ -243,25 +252,7 @@ bool extractZip(u8* fileData, size_t fileSize, u8** payloadData, size_t* payload
 		printf("ERR Could not find %s in zip file\n", PAYLOADPATH);
 		goto cleanup;
 	}
-	/*
-	res = unzGoToFirstFile(zipfile);
-	if (res != UNZ_OK) {
-		printf("ERR Could not get first file\n");
-		return false;
-	}
-	
-	do {
-		unz_file_info payloadInfo = {};
-		char name[512];
-		res = unzGetCurrentFileInfo(zipfile, &payloadInfo, name, 512, nullptr, 0, nullptr, 0);
-		if (res != UNZ_OK) {
-			printf("ERR Could not read metadata for %s\n", PAYLOADPATH);
-			return false;
-		}
-		printf(" - %s (%d bytes)\n", name, payloadInfo.uncompressed_size);
-	} while (unzGoToNextFile(zipfile) == UNZ_OK);
-	return false;
-	*/
+
 	res = unzGetCurrentFileInfo(zipfile, &payloadInfo, nullptr, 0, nullptr, 0, nullptr, 0);
 	if (res != UNZ_OK) {
 		printf("ERR Could not read metadata for %s\n", PAYLOADPATH);
@@ -282,7 +273,7 @@ bool extractZip(u8* fileData, size_t fileSize, u8** payloadData, size_t* payload
 		goto cleanup;
 	}
 	if (res != *payloadSize) {
-		printf("ERR Extracted size does not match expected! (got %d expected %d)", res, *payloadSize);
+		printf("ERR Extracted size does not match expected! (got %d expected %zu)", res, *payloadSize);
 		goto cleanup;
 	}
 
