@@ -189,11 +189,6 @@ UpdateChoice drawConfirmationScreen(const UpdateArgs args, const bool usingConfi
 	return UpdateChoice{ NoChoice };
 }
 
-bool fileExists(const std::string path) {
-	std::ifstream file(path);
-	return file.is_open();
-}
-
 bool backupA9LH(const std::string payloadName) {
 	std::ifstream original(payloadName, std::ifstream::binary);
 	if (!original.good()) {
@@ -261,6 +256,10 @@ bool update(const UpdateArgs args) {
 			std::printf("FATAL\nCould not migrate AuReiNand install (?)\n");
 			return false;
 		}
+	}
+
+	if (!lumaMigratePayloads()) {
+		std::printf("WARN\nCould not migrate payloads\n\n");
 	}
 
 	std::printf("Saving %s to SD (as %s)...\n", PAYLOADPATH, args.payloadPath.c_str());
