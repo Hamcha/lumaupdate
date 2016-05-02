@@ -11,7 +11,7 @@ include $(DEVKITARM)/3ds_rules
 
 include $(TOPDIR)/Makefile.config
 
-TARGET := $(BINDIR)/$(notdir $(CURDIR))
+TARGET := $(BINDIR)/$(BINNAME)
 
 # FLAGS
 

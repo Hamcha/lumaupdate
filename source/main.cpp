@@ -23,7 +23,6 @@ enum UpdateState {
 	Updating,
 	UpdateComplete,
 	UpdateFailed,
-	UpdateAborted,
 	Restoring,
 	RestoreComplete,
 	RestoreFailed
@@ -97,7 +96,7 @@ UpdateChoice drawConfirmationScreen(const UpdateArgs& args, const bool usingConf
 			return UpdateChoice{ RestoreBackup };
 		default:
 			// Panic!
-			printf("Unknown option selected (??)\n");
+			printf("Unknown option selected (?)\n");
 			WAIT_START;
 			redraw = true;
 			selected = 0;
@@ -407,19 +406,15 @@ int main(int argc, char* argv[]) {
 	// Main loop
 	while (aptMainLoop())
 	{
-		gspWaitForVBlank();
 		hidScanInput();
 		u32 kDown = hidKeysDown();
+		if (kDown & KEY_START) {
+			// Exit
+			goto cleanup;
+		}
 
 		switch (state) {
 		case UpdateConfirmationScreen:
-			// Handle aborting updates
-			if (kDown & KEY_START) {
-				state = UpdateAborted;
-				redraw = true;
-				break;
-			}
-
 			updateArgs.choice = drawConfirmationScreen(updateArgs, usingConfig);
 			switch (updateArgs.choice.type) {
 			case UpdatePayload:
@@ -496,22 +491,12 @@ int main(int argc, char* argv[]) {
 				redraw = false;
 			}
 			break;
-		case UpdateAborted:
-			if (redraw) {
-				std::printf("\n\n  Update aborted. Press START to exit.");
-				redraw = false;
-			}
-			break;
-		}
-
-
-		if (kDown & KEY_START) {
-			break; // Exit to HBMenu
 		}
 
 		// Flush and swap framebuffers
 		gfxFlushBuffers();
 		gfxSwapBuffers();
+		gspWaitForVBlank();
 	}
 
 cleanup:
