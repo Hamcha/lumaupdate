@@ -35,9 +35,18 @@ enum ChoiceType {
 };
 
 struct UpdateChoice {
-	ChoiceType type;
-	ReleaseVer chosenVersion;
-	bool       isHourly;
+	ChoiceType type          = NoChoice;
+	ReleaseVer chosenVersion = ReleaseVer{};
+	bool       isHourly      = false;
+
+	UpdateChoice(ChoiceType _type) {
+		this->type = _type;
+	}
+	UpdateChoice(ChoiceType _type, ReleaseVer _ver, bool _hourly) {
+		this->type = _type;
+		this->chosenVersion = _ver;
+		this->isHourly = _hourly;
+	}
 };
 
 struct UpdateArgs {
@@ -55,7 +64,7 @@ struct UpdateArgs {
 	ReleaseInfo* hourly = nullptr;
 
 	// Chosen settings
-	UpdateChoice choice;
+	UpdateChoice choice = UpdateChoice(NoChoice);
 };
 
 UpdateChoice drawConfirmationScreen(const UpdateArgs& args, const bool usingConfig) {
@@ -78,10 +87,10 @@ UpdateChoice drawConfirmationScreen(const UpdateArgs& args, const bool usingConf
 	}
 	if (keydown & KEY_A) {
 		if (selected < hourlyOptionStart) {
-			return UpdateChoice{ UpdatePayload, args.stable->versions[selected], false };
+			return UpdateChoice(UpdatePayload, args.stable->versions[selected], false);
 		}
 		if (selected < extraOptionStart) {
-			return UpdateChoice{ UpdatePayload, args.hourly->versions[selected - hourlyOptionStart], true };
+			return UpdateChoice(UpdatePayload, args.hourly->versions[selected - hourlyOptionStart], true);
 		}
 		int extraOptionID = selected - extraOptionStart;
 
@@ -100,12 +109,12 @@ UpdateChoice drawConfirmationScreen(const UpdateArgs& args, const bool usingConf
 			WAIT_START;
 			redraw = true;
 			selected = 0;
-			return UpdateChoice{ NoChoice };
+			return UpdateChoice(NoChoice);
 		}
 	}
 
 	if (!redraw && !partialredraw) {
-		return UpdateChoice{ NoChoice };
+		return UpdateChoice(NoChoice);
 	}
 
 	if (redraw) {
@@ -185,7 +194,7 @@ UpdateChoice drawConfirmationScreen(const UpdateArgs& args, const bool usingConf
 
 	redraw = false;
 	partialredraw = false;
-	return UpdateChoice{ NoChoice };
+	return UpdateChoice(NoChoice);
 }
 
 bool backupA9LH(const std::string& payloadName) {
@@ -306,7 +315,6 @@ int main(int argc, char* argv[]) {
 	httpcInit(0);
 
 	consoleInit(GFX_TOP, &con);
-	consoleDebugInit(debugDevice_CONSOLE);
 
 	// Read config file
 	bool usingConfig = false;
@@ -400,7 +408,6 @@ int main(int argc, char* argv[]) {
 	if (!nohourly) {
 		updateArgs.hourly = &hourly;
 	}
-
 	redraw = true;
 
 	// Main loop
@@ -408,10 +415,6 @@ int main(int argc, char* argv[]) {
 	{
 		hidScanInput();
 		u32 kDown = hidKeysDown();
-		if (kDown & KEY_START) {
-			// Exit
-			goto cleanup;
-		}
 
 		switch (state) {
 		case UpdateConfirmationScreen:
@@ -490,6 +493,11 @@ int main(int argc, char* argv[]) {
 				std::printf("\n  %sRestore failed%s. Press START to exit.\n", CONSOLE_RED, CONSOLE_RESET);
 				redraw = false;
 			}
+			break;
+		}
+
+		if ((kDown & KEY_START) != 0) {
+			// Exit
 			break;
 		}
 
