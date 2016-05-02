@@ -126,7 +126,7 @@ ReleaseInfo releaseGetLatestHourly() {
 	std::printf("Downloaded %lu bytes\n", apiReqSize);
 	gfxFlushBuffers();
 
-	hourly.name = std::string((const char*)apiReqData);
+	hourly.name = std::string((const char*)apiReqData, apiReqSize);
 	trim(hourly.name);
 	std::string url = std::string("https://astronautlevel2.github.io/Luma3DS/builds/Luma-") + hourly.name + ".zip";
 

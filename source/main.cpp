@@ -102,7 +102,7 @@ UpdateChoice drawConfirmationScreen(const UpdateArgs& args, const bool usingConf
 		switch (extraOptionID) {
 		case 0:
 			// Restore backup
-			return UpdateChoice{ RestoreBackup };
+			return UpdateChoice(RestoreBackup);
 		default:
 			// Panic!
 			printf("Unknown option selected (?)\n");
@@ -408,6 +408,7 @@ int main(int argc, char* argv[]) {
 	if (!nohourly) {
 		updateArgs.hourly = &hourly;
 	}
+
 	redraw = true;
 
 	// Main loop
@@ -415,6 +416,11 @@ int main(int argc, char* argv[]) {
 	{
 		hidScanInput();
 		u32 kDown = hidKeysDown();
+
+		if ((kDown & KEY_START) != 0) {
+			// Exit
+			break;
+		}
 
 		switch (state) {
 		case UpdateConfirmationScreen:
@@ -428,7 +434,6 @@ int main(int argc, char* argv[]) {
 				state = Restoring;
 				redraw = true;
 				break;
-			case NoChoice:
 			default:
 				break;
 			}
@@ -493,11 +498,6 @@ int main(int argc, char* argv[]) {
 				std::printf("\n  %sRestore failed%s. Press START to exit.\n", CONSOLE_RED, CONSOLE_RESET);
 				redraw = false;
 			}
-			break;
-		}
-
-		if ((kDown & KEY_START) != 0) {
-			// Exit
 			break;
 		}
 
