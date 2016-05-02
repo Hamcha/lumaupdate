@@ -22,7 +22,7 @@ std::vector<std::string> listPayloads() {
 	}
 
 	// Open source directory
-	Handle directory = NULL;
+	Handle directory = 0;
 	if (FSUSER_OpenDirectory(&directory, sdmcArchive, fsMakePath(PATH_ASCII, "/luma/payloads")) != 0) {
 		std::printf("\nCould not open /luma/payloads\n\n");
 		FSUSER_CloseArchive(&sdmcArchive);
@@ -40,7 +40,7 @@ std::vector<std::string> listPayloads() {
 		// Convert name to ASCII (just cut the other bytes) and compare with prefix
 		char name8[262] = { 0 };
 		for (size_t i = 0; i < 262; i++) {
-			 name8[i] = entry.name[i] % 0xff;
+			name8[i] = entry.name[i] % 0xff;
 		}
 
 		files.push_back(std::string(name8));
@@ -98,6 +98,17 @@ bool lumaMigratePayloads() {
 	// Default is now Start (5.4)
 	if (!findAndRenamePrefix(files, "def", "start")) {
 		std::perror("\nCould not rename def_ to start_");
+		return false;
+	}
+
+	// Sel is now Select (5.4)
+	// Hacky thing: Match sel/sel_, but not select!
+	if (!findAndRename("sel.bin", "select.bin")) {
+		std::perror("\nCould not rename sel.bin");
+		return false;
+	}
+	if (!findAndRenamePrefix(files, "sel_", "select_")) {
+		std::perror("\nCould not rename sel_ to select_");
 		return false;
 	}
 
