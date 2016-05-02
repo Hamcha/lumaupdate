@@ -274,11 +274,21 @@ bool update(const UpdateArgs args) {
 }
 
 bool restore(const UpdateArgs args) {
-	if (std::rename((args.payloadPath + ".bak").c_str(), args.payloadPath.c_str()) == 0) {
-		return true;
+	// Rename current payload to .broken
+	if (std::rename(args.payloadPath.c_str(), (args.payloadPath + ".broken").c_str()) != 0) {
+		std::perror("Can't rename current version");
+		return false;
 	}
-	std::perror("Can't rename backup to payload");
-	return false;
+	// Rename .bak to current
+	if (std::rename((args.payloadPath + ".bak").c_str(), args.payloadPath.c_str()) != 0) {
+		std::perror("Can't rename backup to current payload name");
+		return false;
+	}
+	// Remove .broken
+	if (std::remove((args.payloadPath + ".broken").c_str()) != 0) {
+		std::perror("WARN: Could not remove current payload, please remove it manually");
+	}
+	return true;
 }
 
 int main() {
@@ -511,4 +521,3 @@ cleanup:
 	gfxExit();
 	return 0;
 }
-
