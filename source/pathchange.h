@@ -14,4 +14,4 @@
  *
  *  \return true if the buffer is successfully changed without errors, false otherwise
  */
-bool pathchange(u8* buf, const size_t bufSize, const std::string path);
+bool pathchange(u8* buf, const size_t bufSize, const std::string& path);

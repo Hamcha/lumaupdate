@@ -51,7 +51,7 @@ std::vector<std::string> listPayloads() {
 	return files;
 }
 
-bool hasPrefix(const std::string name, const std::string prefix)
+bool hasPrefix(const std::string& name, const std::string& prefix)
 {
 	if (name.length() < prefix.length()) {
 		return false;
@@ -61,8 +61,8 @@ bool hasPrefix(const std::string name, const std::string prefix)
 }
 
 bool findAndRename(const char* oldName, const char* newName) {
-	std::string oldPath = PayloadPath + oldName;
-	std::string newPath = PayloadPath + newName;
+	const std::string oldPath = PayloadPath + oldName;
+	const std::string newPath = PayloadPath + newName;
 
 	if (fileExists(oldPath)) {
 		return std::rename(oldPath.c_str(), newPath.c_str()) == 0;
@@ -70,8 +70,8 @@ bool findAndRename(const char* oldName, const char* newName) {
 	return true;
 }
 
-bool findAndRenamePrefix(const std::vector<std::string> files, const std::string oldPrefix, const std::string newPrefix) {
-	size_t oldPrefixLen = oldPrefix.length();
+bool findAndRenamePrefix(const std::vector<std::string>& files, const std::string& oldPrefix, const std::string& newPrefix) {
+	const size_t oldPrefixLen = oldPrefix.length();
 	for (std::string file : files) {
 		std::printf("Considering %s\n", file.c_str());
 		if (hasPrefix(file, oldPrefix)) {
@@ -93,7 +93,7 @@ bool lumaMigratePayloads() {
 		return false;
 	}
 
-	std::vector<std::string> files = listPayloads();
+	const std::vector<std::string> files = listPayloads();
 
 	// Default is now Start (5.4)
 	if (!findAndRenamePrefix(files, "def", "start")) {

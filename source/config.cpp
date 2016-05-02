@@ -4,7 +4,7 @@
 
 #include "utils.h"
 
-LoadConfigError Config::LoadFile(const std::string path) {
+LoadConfigError Config::LoadFile(const std::string& path) {
 	std::ifstream cfgfile(path);
 
 	if (!cfgfile.is_open()) {
@@ -33,12 +33,12 @@ LoadConfigError Config::LoadFile(const std::string path) {
 	return CFGE_NONE;
 }
 
-bool Config::Has(const std::string key) {
+bool Config::Has(const std::string& key) {
 	auto it = values.find(key);
 	return it != values.end();
 }
 
-std::string Config::Get(const std::string key, const std::string fallback) {
+std::string Config::Get(const std::string& key, const std::string& fallback) {
 	if (!this->Has(key)) {
 		return fallback;
 	}

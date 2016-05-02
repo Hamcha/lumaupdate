@@ -3,7 +3,7 @@
 #include <fstream>
 #include <cstdlib>
 
-std::string versionMemsearch(const std::string path) {
+std::string versionMemsearch(const std::string& path) {
 	const static char searchString[] = " configuration";
 	const static size_t searchStringLen = sizeof(searchString)/sizeof(char) - 1;
 

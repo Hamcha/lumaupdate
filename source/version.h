@@ -8,4 +8,4 @@
  *
  *  \return Empty string if the version could not be determined, the version string otherwise
  */
-std::string versionMemsearch(const std::string path);
+std::string versionMemsearch(const std::string& path);

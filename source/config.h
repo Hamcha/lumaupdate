@@ -25,7 +25,7 @@ public:
 	 *
 	 *  \return true if file exists and was parsed successfully, false otherwise
 	 */
-	LoadConfigError LoadFile(const std::string path);
+	LoadConfigError LoadFile(const std::string& path);
 
 	/*! \brief Checks wether a property exists in the configuration file
 	 *
@@ -33,7 +33,7 @@ public:
 	 *
 	 *  \return true if the property is found, false otherwise
 	 */
-	bool Has(const std::string key);
+	bool Has(const std::string& key);
 
 	/*! \brief Gets the value of a property by key
 	 *
@@ -42,5 +42,5 @@ public:
 	 *
 	 *  \return Either the value of the property or the fallback value
 	 */
-	std::string Get(const std::string key, const std::string fallback);
+	std::string Get(const std::string& key, const std::string& fallback);
 };

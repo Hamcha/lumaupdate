@@ -59,7 +59,7 @@ struct UpdateArgs {
 	UpdateChoice choice;
 };
 
-UpdateChoice drawConfirmationScreen(const UpdateArgs args, const bool usingConfig) {
+UpdateChoice drawConfirmationScreen(const UpdateArgs& args, const bool usingConfig) {
 	static bool partialredraw = false;
 	static int  selected = 0;
 	static int  hourlyOptionStart = INT_MAX, extraOptionStart = INT_MAX;
@@ -189,7 +189,7 @@ UpdateChoice drawConfirmationScreen(const UpdateArgs args, const bool usingConfi
 	return UpdateChoice{ NoChoice };
 }
 
-bool backupA9LH(const std::string payloadName) {
+bool backupA9LH(const std::string& payloadName) {
 	std::ifstream original(payloadName, std::ifstream::binary);
 	if (!original.good()) {
 		std::printf("Could not open %s\n", payloadName.c_str());
@@ -211,7 +211,7 @@ bool backupA9LH(const std::string payloadName) {
 	return true;
 }
 
-bool update(const UpdateArgs args) {
+bool update(const UpdateArgs& args) {
 	consoleClear();
 
 	// Back up local file if it exists
@@ -272,7 +272,7 @@ bool update(const UpdateArgs args) {
 	return true;
 }
 
-bool restore(const UpdateArgs args) {
+bool restore(const UpdateArgs& args) {
 	// Rename current payload to .broken
 	if (std::rename(args.payloadPath.c_str(), (args.payloadPath + ".broken").c_str()) != 0) {
 		std::perror("Can't rename current version");
@@ -290,7 +290,7 @@ bool restore(const UpdateArgs args) {
 	return true;
 }
 
-int main() {
+int main(int argc, char* argv[]) {
 	const static char* cfgPaths[] = {
 		"/lumaupdater.cfg",
 		"/3DS/lumaupdater.cfg",

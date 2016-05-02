@@ -5,9 +5,9 @@
 #include <cstdio>
 #include <cstdlib>
 
-bool renameRecursive(const FS_Archive archive, const std::string source, const std::string target);
+bool renameRecursive(const FS_Archive& archive, const std::string& source, const std::string& target);
 
-bool arnVersionCheck(std::string versionString) {
+bool arnVersionCheck(const std::string& versionString) {
 	// Bound checking before trying to do naughty things
 	const size_t verLength = versionString.length();
 	if (verLength < 1) {
@@ -79,7 +79,7 @@ bool arnMigrate() {
 	return true;
 }
 
-bool renameRecursive(const FS_Archive archive, const std::string source, const std::string target) {
+bool renameRecursive(const FS_Archive& archive, const std::string& source, const std::string& target) {
 	const FS_Path sourcePath = fsMakePath(PATH_ASCII, source.c_str());
 	const FS_Path targetPath = fsMakePath(PATH_ASCII, target.c_str());
 

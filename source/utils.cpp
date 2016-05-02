@@ -6,13 +6,13 @@
 #include <functional>
 #include <sstream>
 
-std::string formatErrMessage(const char* msg, const Result val) {
+std::string formatErrMessage(const char* msg, const Result& val) {
 	std::ostringstream os;
 	os << msg << "\nRet code: " << val;
 	return os.str();
 }
 
-bool fileExists(const std::string path) {
+bool fileExists(const std::string& path) {
 	std::ifstream file(path);
 	bool isok = file.is_open();
 	file.close();

@@ -2,7 +2,7 @@
 
 #include <cstdio>
 
-bool pathchange(u8* buf, const size_t bufSize, const std::string path) {
+bool pathchange(u8* buf, const size_t bufSize, const std::string& path) {
 	const static char original[] = "sdmc:/arm9loaderhax.bin";
 	const static size_t prefixSize = 12; // S \0 D \0 M \0 C \0 : \0 / \0
 	const static size_t originalSize = sizeof(original)/sizeof(char);
