@@ -414,13 +414,9 @@ int main(int argc, char* argv[]) {
 	// Main loop
 	while (aptMainLoop())
 	{
+
 		hidScanInput();
 		u32 kDown = hidKeysDown();
-
-		if ((kDown & KEY_START) != 0) {
-			// Exit
-			break;
-		}
 
 		switch (state) {
 		case UpdateConfirmationScreen:
@@ -498,6 +494,11 @@ int main(int argc, char* argv[]) {
 				std::printf("\n  %sRestore failed%s. Press START to exit.\n", CONSOLE_RED, CONSOLE_RESET);
 				redraw = false;
 			}
+			break;
+		}
+
+		if ((kDown & KEY_START) != 0) {
+			// Exit
 			break;
 		}
 
