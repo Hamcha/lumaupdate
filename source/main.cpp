@@ -39,14 +39,10 @@ struct UpdateChoice {
 	ReleaseVer chosenVersion = ReleaseVer{};
 	bool       isHourly      = false;
 
-	UpdateChoice(ChoiceType _type) {
-		this->type = _type;
-	}
-	UpdateChoice(ChoiceType _type, ReleaseVer _ver, bool _hourly) {
-		this->type = _type;
-		this->chosenVersion = _ver;
-		this->isHourly = _hourly;
-	}
+	explicit UpdateChoice(const ChoiceType type)
+		:type(type) {}
+	UpdateChoice(const ChoiceType type, const ReleaseVer& ver, const bool hourly)
+		:type(type), chosenVersion(ver), isHourly(hourly) {}
 };
 
 struct UpdateArgs {

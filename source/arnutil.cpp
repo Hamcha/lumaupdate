@@ -79,7 +79,7 @@ bool renameRecursive(const FS_Archive& archive, const std::string& source, const
 	const FS_Path targetPath = fsMakePath(PATH_ASCII, target.c_str());
 
 	// Open source directory
-	Handle directory = NULL;
+	Handle directory = 0;
 	if (FSUSER_OpenDirectory(&directory, archive, sourcePath) != 0) {
 		std::printf("\nCould not open %s\n\n", source.c_str());
 		return false;

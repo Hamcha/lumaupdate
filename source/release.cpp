@@ -1,5 +1,19 @@
 #include "release.h"
 
+// 7z includes
+#include "7z/7z.h"
+#include "7z/7zAlloc.h"
+#include "7z/7zCrc.h"
+#include "7z/7zMemInStream.h"
+
+// minizip includes
+#include "minizip/ioapi_mem.h"
+#include "minizip/unzip.h"
+
+// jsmn includes
+#include "jsmn.h"
+
+// Internal includes
 #include "http.h"
 #include "utils.h"
 
@@ -266,7 +280,7 @@ bool extractZip(u8* fileData, size_t fileSize, u8** payloadData, size_t* payload
 		printf("ERR Could not read %s (%d)\n", PAYLOADPATH, res);
 		goto cleanup;
 	}
-	if (res != *payloadSize) {
+	if (res != (int)*payloadSize) {
 		printf("ERR Extracted size does not match expected! (got %d expected %zu)", res, *payloadSize);
 		goto cleanup;
 	}
