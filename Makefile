@@ -17,8 +17,8 @@ TARGET := $(BINDIR)/$(BINNAME)
 
 ARCH	:=	-march=armv6k -mtune=mpcore -mfloat-abi=hard -mtp=soft
 
-CFLAGS	:=	-g -Wall -Wextra -pedantic -O2 -mword-relocations \
-			-fomit-frame-pointer -ffunction-sections \
+CFLAGS	:=	-g -Wall -Wextra -pedantic -mword-relocations \
+			-fomit-frame-pointer -flto -ffunction-sections \
 			$(ARCH)
 
 CFLAGS	+=	$(INCLUDE) -DARM11 -D_3DS
@@ -26,6 +26,11 @@ CFLAGS	+=	$(INCLUDE) -DARM11 -D_3DS
 # Use fallbacks and mocks to compile a version that works on Citra if wanted
 ifdef CITRA
 	CFLAGS += -DFAKEDL
+endif
+
+# Enable optimization outside debug builds
+ifndef DEBUG
+	CFLAGS += -Ofast
 endif
 
 # Get a version number based on Git tags and stuff
