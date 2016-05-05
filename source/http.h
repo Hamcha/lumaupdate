@@ -1,6 +1,6 @@
 #pragma once
 
-#include <3ds.h>
+#include "libs.h"
 
 /*! \brief Makes a GET HTTP request
  *  This function will throw an exception if it encounters any error

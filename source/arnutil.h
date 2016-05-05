@@ -1,6 +1,6 @@
 #pragma once
 
-#include <string>
+#include "libs.h"
 
 /*! \brief Check if the specified version is before the name change
  *  arnVersionCheck checks wether the version is lower than 5.2

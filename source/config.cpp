@@ -1,7 +1,5 @@
 #include "config.h"
 
-#include <fstream>
-
 #include "utils.h"
 
 LoadConfigError Config::LoadFile(const std::string& path) {

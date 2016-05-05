@@ -1,20 +1,7 @@
 #include "release.h"
 
-#include <cstdio>
-#include <cstdlib>
-#include <cstring>
-
-#if FAKEDL
-#include <fstream>
-#endif
-
 #include "http.h"
 #include "utils.h"
-
-#include "7z.h"
-#include "minizip\ioapi_mem.h"
-#include "minizip\unzip.h"
-#include "jsmn.h"
 
 static int jsoneq(const char *json, jsmntok_t *tok, const char *s) {
 	if (tok->type == JSMN_STRING && (int)strlen(s) == tok->end - tok->start &&

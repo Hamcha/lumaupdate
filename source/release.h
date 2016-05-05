@@ -1,9 +1,6 @@
 #pragma once
 
-#include <3ds.h>
-
-#include <string>
-#include <vector>
+#include "libs.h"
 
 #define PAYLOADPATH "arm9loaderhax.bin"
 

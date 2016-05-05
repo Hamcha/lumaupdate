@@ -1,10 +1,5 @@
 #include "arnutil.h"
 
-#include <3ds.h>
-
-#include <cstdio>
-#include <cstdlib>
-
 bool renameRecursive(const FS_Archive& archive, const std::string& source, const std::string& target);
 
 bool arnVersionCheck(const std::string& versionString) {

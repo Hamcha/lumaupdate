@@ -1,8 +1,6 @@
 #pragma once
 
-#include <3ds/types.h>
-
-#include <string>
+#include "libs.h"
 
 #define MAXPATHLEN 37
 

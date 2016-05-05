@@ -1,8 +1,5 @@
 #include "http.h"
 
-#include <cstdlib>
-#include <cstring>
-
 #include "utils.h"
 
 #include "certs/cybertrust.h"

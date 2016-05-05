@@ -1,7 +1,6 @@
 #pragma once
 
-#include <string>
-#include <map>
+#include "libs.h"
 
 /*! \brief Configuration error reasons
  */

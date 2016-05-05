@@ -1,6 +1,6 @@
 #pragma once
 
-#include <3ds.h>
+#include "libs.h"
 
 /*! \brief Prints the menu header
  *  \param con PrintConsole instance

@@ -1,11 +1,5 @@
 #include "utils.h"
 
-#include <algorithm>
-#include <cctype>
-#include <fstream>
-#include <functional>
-#include <sstream>
-
 std::string formatErrMessage(const char* msg, const Result& val) {
 	std::ostringstream os;
 	os << msg << "\nRet code: " << val;

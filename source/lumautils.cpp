@@ -1,12 +1,5 @@
 #include "lumautils.h"
 
-#include <3ds.h>
-
-#include <cstdio>
-
-#include <string>
-#include <vector>
-
 #include "utils.h"
 
 static const std::string PayloadPath = "/luma/payloads/";

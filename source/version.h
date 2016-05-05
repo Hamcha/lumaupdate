@@ -1,6 +1,6 @@
 #pragma once
 
-#include <string>
+#include "libs.h"
 
 /*! \brief Tries to detect currently installed Luma3DS/AuReiNand version
  *

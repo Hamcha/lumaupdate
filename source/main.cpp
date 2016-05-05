@@ -1,14 +1,14 @@
-#include <string>
-#include <fstream>
-
-#include <cstdlib>
-#include <cstdio>
-#include <cstring>
-#include <climits>
-
-#include <3ds.h>
-
 #include "libs.h"
+
+#include "arnutil.h"
+#include "config.h"
+#include "http.h"
+#include "lumautils.h"
+#include "menu.h"
+#include "pathchange.h"
+#include "release.h"
+#include "utils.h"
+#include "version.h"
 
 #define WAIT_START while (aptMainLoop() && !(hidKeysDown() & KEY_START)) { gspWaitForVBlank(); hidScanInput(); }
 
