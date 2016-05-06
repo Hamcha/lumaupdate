@@ -4,7 +4,7 @@
 #include "config.h"
 #include "http.h"
 #include "lumautils.h"
-#include "menu.h"
+#include "console.h"
 #include "pathchange.h"
 #include "release.h"
 #include "utils.h"
@@ -13,7 +13,6 @@
 #define WAIT_START while (aptMainLoop() && !(hidKeysDown() & KEY_START)) { gspWaitForVBlank(); hidScanInput(); }
 
 bool redraw = false;
-PrintConsole con;
 Config config;
 
 /* States */
@@ -115,7 +114,7 @@ UpdateChoice drawConfirmationScreen(const UpdateArgs& args, const bool usingConf
 
 	if (redraw) {
 		consoleClear();
-		menuPrintHeader(&con);
+		consolePrintHeader();
 
 		if (!usingConfig) {
 			std::printf("  %sConfiguration not found, using default values%s\n\n", CONSOLE_MAGENTA, CONSOLE_RESET);
@@ -151,11 +150,22 @@ UpdateChoice drawConfirmationScreen(const UpdateArgs& args, const bool usingConf
 
 		std::printf("\n  Choose action:\n");
 
-		menuPrintFooter(&con);
+		consolePrintFooter();
 	}
 
-	con.cursorX = 0;
-	con.cursorY = 11 + (usingConfig ? 0 : 3) + (args.hourly != nullptr ? 1 : 0) + (backupVersionDetected ? 1 : 0);
+	int y = 11;
+
+	if (!usingConfig) {
+		y += 3;
+	}
+	if (args.hourly != nullptr) {
+		y += 1;
+	}
+	if (backupVersionDetected) {
+		y += 1;
+	}
+
+	consoleMoveTo(0, y);
 
 	int optionCount = args.stable->versions.size() + (args.hourly != nullptr ? args.hourly->versions.size() : 0) + (args.backupExists ? 1 : 0);
 
@@ -310,7 +320,8 @@ int main(int argc, char* argv[]) {
 	gfxInitDefault();
 	httpcInit(0);
 
-	consoleInit(GFX_TOP, &con);
+	consoleInitEx();
+	consoleScreen(GFX_TOP);
 
 	// Read config file
 	bool usingConfig = false;
@@ -447,7 +458,7 @@ int main(int argc, char* argv[]) {
 		case UpdateComplete:
 			if (redraw) {
 				consoleClear();
-				menuPrintHeader(&con);
+				consolePrintHeader();
 				std::printf("\n  %sUpdate complete.%s\n", CONSOLE_GREEN, CONSOLE_RESET);
 				if (updateArgs.backupExisting) {
 					std::printf("\n  In case something goes wrong you can restore\n  the old payload from %s.bak\n", updateArgs.payloadPath.c_str());
@@ -473,7 +484,7 @@ int main(int argc, char* argv[]) {
 		case RestoreComplete:
 			if (redraw) {
 				consoleClear();
-				menuPrintHeader(&con);
+				consolePrintHeader();
 				std::printf("\n  %sRestore complete.%s\n", CONSOLE_GREEN, CONSOLE_RESET);
 				std::printf("\n  Press START to reboot.");
 				redraw = false;
