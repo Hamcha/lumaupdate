@@ -46,13 +46,14 @@ struct UpdateChoice {
 
 struct UpdateArgs {
 	// Detected options
-	std::string  currentVersion, backupVersion;
-	bool         migrateARN;
-	bool         backupExists;
+	std::string  currentVersion = "";
+	std::string  backupVersion  = "";
+	bool         migrateARN     = false;
+	bool         backupExists   = false;
 
 	// Configuration options
-	std::string  payloadPath;
-	bool         backupExisting;
+	std::string  payloadPath    = "/arm9loaderhax.bin";
+	bool         backupExisting = false;
 
 	// Available data
 	ReleaseInfo* stable = nullptr;
@@ -65,7 +66,8 @@ struct UpdateArgs {
 UpdateChoice drawConfirmationScreen(const UpdateArgs& args, const bool usingConfig) {
 	static bool partialredraw = false;
 	static int  selected = 0;
-	static int  hourlyOptionStart = INT_MAX, extraOptionStart = INT_MAX;
+	static int  hourlyOptionStart = INT_MAX;
+	static int  extraOptionStart  = INT_MAX;
 
 	bool haveLatest = args.currentVersion == args.stable->name;
 	bool backupVersionDetected = args.backupExists && args.backupVersion != "";
@@ -313,8 +315,8 @@ int main(int argc, char* argv[]) {
 	const static size_t cfgPathsLen = sizeof(cfgPaths) / sizeof(cfgPaths[0]);
 
 	UpdateState state = UpdateConfirmationScreen;
-	ReleaseInfo release, hourly;
-	UpdateArgs updateArgs;
+	ReleaseInfo release = {}, hourly = {};
+	UpdateArgs updateArgs = {};
 	bool nohourly = false; // Used if fetching hourlies fails
 
 	gfxInitDefault();
