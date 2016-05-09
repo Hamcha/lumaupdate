@@ -51,7 +51,7 @@ void consoleInitProgress(const char* header = "Loading", const char* text = "", 
 	consoleClear();
 
 	// Print progress bar borders
-	int progressBarY = consoleCurrent->consoleHeight / 2;
+	int progressBarY = consoleCurrent->consoleHeight / 2 - 1;
 	consoleCurrent->cursorY = progressBarY;
 
 	int startX = ProgressBarPadding;
@@ -90,7 +90,7 @@ void consoleSetProgressData(const char* text, const float progress) {
 
 void consoleSetProgressText(const char* text) {
 	// Move to approriate row
-	int progressBarY = consoleCurrent->consoleHeight / 2;
+	int progressBarY = consoleCurrent->consoleHeight / 2 - 1;
 	consoleCurrent->cursorY = progressBarY + 2;
 
 	// Clear line
@@ -104,7 +104,7 @@ void consoleSetProgressText(const char* text) {
 
 void consoleSetProgressValue(const float progress) {
 	// Move to approriate row
-	consoleCurrent->cursorY = consoleCurrent->consoleHeight / 2;
+	consoleCurrent->cursorY = consoleCurrent->consoleHeight / 2 - 1;
 
 	// Move to beginning of progress bar
 	int progressBarLength = consoleCurrent->consoleWidth - ProgressBarPadding*2;

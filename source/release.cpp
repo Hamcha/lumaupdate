@@ -72,7 +72,7 @@ ReleaseInfo releaseGetLatestStable() {
 		}
 		if (!bodyfound && jsoneq((const char*)apiReqData, &t[i], "body") == 0) {
 			jsmntok_t val = t[i+1];
-			release.description = std::string((const char*)apiReqData + val.start, val.end - val.start);
+			release.description = unescape(std::string((const char*)apiReqData + val.start, val.end - val.start));
 			std::printf("Release description found.\n");
 			bodyfound = true;
 		}

@@ -18,6 +18,29 @@ void trim(std::string &s) {
 	s.erase(std::find_if(s.rbegin(), s.rend(), std::not1(std::ptr_fun<int, int>(std::isspace))).base(), s.end());
 }
 
+std::string unescape(const std::string& s)
+{
+	std::string res;
+	auto it = s.begin();
+	while (it != s.end())
+	{
+		char c = *it++;
+		if (c == '\\' && it != s.end())
+		{
+			switch (*it++) {
+			case '\\': c = '\\'; break;
+			case 'n':  c = '\n'; break;
+			case 'r':  c = '\r'; break;
+			case 't':  c = '\t'; break;
+			case '"':  c = '"' ; break;
+			default:   continue;
+			}
+		}
+		res += c;
+	}
+	return res;
+}
+
 std::string stripMarkdown(const std::string& text) {
 	//TODO
 	return text;

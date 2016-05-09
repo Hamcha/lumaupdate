@@ -27,6 +27,14 @@ bool fileExists(const std::string& path);
  */
 void trim(std::string& s);
 
+/*! \brief Unescape string sequences
+ *
+ *  \param s String to unescape sequences from
+ *
+ *  \return Unescaped string
+ */
+std::string unescape(const std::string& s);
+
 /*! \brief Strip Markdown formatting
  *
  *  \param text Text to strip markdown from

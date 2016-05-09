@@ -253,7 +253,7 @@ bool update(const UpdateArgs& args) {
 		std::printf("Original payload not found, skipping backup...\n");
 	} else {
 		consoleScreen(GFX_TOP);
-		consoleSetProgressData("Backing up old payload", 0.2);
+		consoleSetProgressData("Backing up old payload", 0.1);
 		consoleScreen(GFX_BOTTOM);
 
 		std::printf("Copying %s to %s.bak...\n", args.payloadPath.c_str(), args.payloadPath.c_str());
@@ -265,7 +265,7 @@ bool update(const UpdateArgs& args) {
 	}
 
 	consoleScreen(GFX_TOP);
-	consoleSetProgressData("Downloading payload", 0.4);
+	consoleSetProgressData("Downloading payload", 0.3);
 	consoleScreen(GFX_BOTTOM);
 
 	std::printf("Downloading %s\n", args.choice.chosenVersion.url.c_str());
