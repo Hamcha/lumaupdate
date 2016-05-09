@@ -66,7 +66,21 @@ std::string indent(std::string text, const std::string& indent, const size_t col
 
 		size_t extraOffset = 0;
 		while (index - offset > cols) {
-			text.insert(offset + cols - indent.length(), nlindent);
+			// Find nearest whitespace before cutting point
+			size_t cuttingPoint = offset + cols - indent.length();
+			size_t distance = 0;
+			while (text[cuttingPoint - distance] != ' ') {
+				distance++;
+				// Give up if the word is too long
+				if (distance > 10) {
+					distance = 1;
+					text.insert(offset + cols - indent.length() - distance, "-");
+					distance--;
+					break;
+				}
+			}
+
+			text.insert(offset + cols - indent.length() - distance, nlindent);
 			offset += cols + 1;
 			extraOffset += nlindent.length();
 		}
