@@ -32,7 +32,8 @@ ReleaseInfo releaseGetLatestStable() {
 #ifdef FAKEDL
 	// Citra doesn't support HTTPc right now, so just fake a successful request
 	release.name = "5.2";
-	release.versions.push_back(ReleaseVer{ "CITRA", "CITRA", "https://github.com/AuroraWright/Luma3DS/releases/download/v5.2/Luma3DSv5.2.7z" });
+	release.description = "- Remade the chainloader to only try to load the right payload for the pressed button. Now the only buttons which have a matching payload will actually do something during boot\r\n- Got rid of the default payload (start now boots \"start_NAME.bin\")\r\n- sel_NAME.bin is now select_NAME.bin as there are no more SFN/8.3 limitations anymore\r\n\r\nRefer to [the wiki](https://github.com/AuroraWright/Luma3DS/wiki/Installation-and-Upgrade#upgrading-from-v531) for upgrade instructions.";
+	release.versions.push_back(ReleaseVer{ "CITRA", "CITRA", "https://github.com/AuroraWright/Luma3DS/releases/download/v5.2/Luma3DSv5.2.7z"});
 #else
 
 	jsmn_parser p = {};
@@ -56,11 +57,11 @@ ReleaseInfo releaseGetLatestStable() {
 	std::printf("JSON parsed successfully!\n");
 	gfxFlushBuffers();
 
-	bool namefound = false, inassets = false, verHasName = false, verHasURL = false, isDev = false;
+	bool namefound = false, bodyfound = false, inassets = false, verHasName = false, verHasURL = false, isDev = false;
 	ReleaseVer current;
 	for (int i = 0; i < r; i++) {
 		if (!namefound && jsoneq((const char*)apiReqData, &t[i], "name") == 0) {
-			jsmntok_t val = t[i + 1];
+			jsmntok_t val = t[i+1];
 			// Strip the "v" in front of the version name
 			if (apiReqData[val.start] == 'v') {
 				val.start += 1;
@@ -69,19 +70,25 @@ ReleaseInfo releaseGetLatestStable() {
 			std::printf("Release found: %s\n", release.name.c_str());
 			namefound = true;
 		}
+		if (!bodyfound && jsoneq((const char*)apiReqData, &t[i], "body") == 0) {
+			jsmntok_t val = t[i+1];
+			release.description = std::string((const char*)apiReqData + val.start, val.end - val.start);
+			std::printf("Release description found.\n");
+			bodyfound = true;
+		}
 		if (!inassets && jsoneq((const char*)apiReqData, &t[i], "assets") == 0) {
 			inassets = true;
 		}
 		if (inassets) {
 			if (jsoneq((const char*)apiReqData, &t[i], "name") == 0) {
-				jsmntok_t val = t[i + 1];
+				jsmntok_t val = t[i+1];
 				current.filename = std::string((const char*)apiReqData + val.start, val.end - val.start);
 				isDev = current.filename.find("-dev.") < std::string::npos;
 				current.friendlyName = isDev ? "developer version" : "normal version";
 				verHasName = true;
 			}
 			if (jsoneq((const char*)apiReqData, &t[i], "browser_download_url") == 0) {
-				jsmntok_t val = t[i + 1];
+				jsmntok_t val = t[i+1];
 				current.url = std::string((const char*)apiReqData + val.start, val.end - val.start);
 				verHasURL = true;
 			}

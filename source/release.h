@@ -12,6 +12,7 @@ struct ReleaseVer {
 
 struct ReleaseInfo {
 	std::string name = "";
+	std::string description = "";
 	std::vector<ReleaseVer> versions = {};
 };
 

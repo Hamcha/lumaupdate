@@ -114,6 +114,8 @@ UpdateChoice drawConfirmationScreen(const UpdateArgs& args, const bool usingConf
 		return UpdateChoice(NoChoice);
 	}
 
+	consoleScreen(GFX_TOP);
+
 	if (redraw) {
 		consoleClear();
 		consolePrintHeader();
@@ -153,6 +155,16 @@ UpdateChoice drawConfirmationScreen(const UpdateArgs& args, const bool usingConf
 		std::printf("\n  Choose action:\n");
 
 		consolePrintFooter();
+
+		consoleScreen(GFX_BOTTOM);
+		consoleClear();
+		consoleMoveTo(1, 1);
+
+		if (args.stable->description != "") {
+			printf("%sRelease notes for %sv%s%s\n\n%s", CONSOLE_YELLOW, CONSOLE_GREEN, args.stable->name.c_str(), CONSOLE_RESET, indent(stripMarkdown(args.stable->description), " ", 39).c_str());
+		}
+
+		consoleScreen(GFX_TOP);
 	}
 
 	int y = 11;
@@ -177,7 +189,7 @@ UpdateChoice drawConfirmationScreen(const UpdateArgs& args, const bool usingConf
 
 	int curOption = 0;
 	for (ReleaseVer r : args.stable->versions) {
-		printf(curOption == selected ? "   * " : "     ");
+		printf(curOption == selected ? "   \x10 " : "     ");
 		printf("Install %s\n", r.friendlyName.c_str());
 		++curOption;
 	}
@@ -185,7 +197,7 @@ UpdateChoice drawConfirmationScreen(const UpdateArgs& args, const bool usingConf
 	hourlyOptionStart = curOption;
 	if (args.hourly != nullptr) {
 		for (ReleaseVer h : args.hourly->versions) {
-			printf(curOption == selected ? "   * " : "     ");
+			printf(curOption == selected ? "   \x10 " : "     ");
 			printf("Install %s\n", h.friendlyName.c_str());
 			++curOption;
 		}
@@ -195,7 +207,7 @@ UpdateChoice drawConfirmationScreen(const UpdateArgs& args, const bool usingConf
 
 	// Extra #0: Restore backup
 	if (args.backupExists) {
-		printf(curOption == selected ? "   * " : "     ");
+		printf(curOption == selected ? "   \x10 " : "     ");
 		printf("Restore backup\n");
 		++curOption;
 	}
