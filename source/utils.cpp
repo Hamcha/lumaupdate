@@ -41,8 +41,44 @@ std::string unescape(const std::string& s)
 	return res;
 }
 
-std::string stripMarkdown(const std::string& text) {
-	//TODO
+std::string stripMarkdown(std::string text) {
+	// Strip links
+	size_t offset = 0;
+	while (true) {
+		size_t index = text.find('[', offset);
+		if (index == std::string::npos) {
+			// No more open square brackets, exit
+			break;
+		}
+
+		if (index != 0 && text[index - 1] == '\\') {
+			// Bracket is escaped, skip
+			offset = index + 1;
+			continue;
+		}
+
+		// Get link name
+		size_t closing = text.find(']', index + 1);
+		if (closing == std::string::npos) {
+			// None? Not a link then. Skip to next one
+			offset = index + 1;
+			continue;
+		}
+
+		std::string linkName = text.substr(index + 1, closing - index - 1);
+
+		// Get link end
+		size_t linkEnd = text.find(')', closing + 1);
+		if (linkEnd == std::string::npos) {
+			// None? Not a link then. Skip to next one
+			offset = closing + 1;
+			continue;
+		}
+
+		// Replace everything with the link name
+		text.replace(index, linkEnd - index + 1, linkName);
+	}
+
 	return text;
 }
 

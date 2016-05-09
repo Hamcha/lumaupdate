@@ -41,7 +41,7 @@ std::string unescape(const std::string& s);
  *
  *  \return Text without markdown links and formatting
  */
-std::string stripMarkdown(const std::string& text);
+std::string stripMarkdown(std::string text);
 
 /*! \brief Indent multiline text
  *
