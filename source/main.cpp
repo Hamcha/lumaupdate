@@ -14,6 +14,7 @@
 
 bool redraw = false;
 Config config;
+std::string errcode = "NO REASON";
 
 /* States */
 
@@ -260,6 +261,7 @@ bool update(const UpdateArgs& args) {
 		gfxFlushBuffers();
 		if (!backupA9LH(args.payloadPath)) {
 			std::printf("\nCould not backup %s (!!), aborting...\n", args.payloadPath.c_str());
+			errcode = "BACKUP FAILED";
 			return false;
 		}
 	}
@@ -278,6 +280,7 @@ bool update(const UpdateArgs& args) {
 	if (!ret) {
 		std::printf("FATAL\nCould not get A9LH payload...\n");
 		std::free(payloadData);
+		errcode = "DOWNLOAD FAILED";
 		return false;
 	}
 
@@ -290,6 +293,7 @@ bool update(const UpdateArgs& args) {
 		bool res = pathchange(payloadData + offset, payloadSize, args.payloadPath);
 		if (!res) {
 			std::free(payloadData);
+			errcode = "PATHCHANGE FAILED";
 			return false;
 		}
 	}
@@ -302,6 +306,7 @@ bool update(const UpdateArgs& args) {
 		std::printf("Migrating AuReiNand install to Luma3DS...\n");
 		if (!arnMigrate()) {
 			std::printf("FATAL\nCould not migrate AuReiNand install (?)\n");
+			errcode = "MIGRATION FAILED";
 			return false;
 		}
 	}
@@ -332,11 +337,13 @@ bool restore(const UpdateArgs& args) {
 	// Rename current payload to .broken
 	if (std::rename(args.payloadPath.c_str(), (args.payloadPath + ".broken").c_str()) != 0) {
 		std::perror("Can't rename current version");
+		errcode = "RENAME 1 FAILED";
 		return false;
 	}
 	// Rename .bak to current
 	if (std::rename((args.payloadPath + ".bak").c_str(), args.payloadPath.c_str()) != 0) {
 		std::perror("Can't rename backup to current payload name");
+		errcode = "RENAME 2 FAILED";
 		return false;
 	}
 	// Remove .broken
@@ -510,7 +517,16 @@ int main(int argc, char* argv[]) {
 			break;
 		case UpdateFailed:
 			if (redraw) {
-				std::printf("\n  %sUpdate failed%s. Press START to exit.\n", CONSOLE_RED, CONSOLE_RESET);
+				consoleScreen(GFX_TOP);
+				consoleClear();
+				consolePrintHeader();
+				std::printf("\n  %sUpdate failed%s.\n\n  " \
+					"Something went wrong while trying to update," \
+					"\n  see screen below for details.\n\n  " \
+					"Reason for failure: %s\n\n  "
+					"If you think this is a bug, please open an\n  " \
+					"issue on the following URL:\n  https://github.com/Hamcha/lumaupdate/issues\n\n  " \
+					"Press START to exit.\n", CONSOLE_RED, CONSOLE_RESET, errcode.c_str());
 				redraw = false;
 			}
 			break;
@@ -557,7 +573,16 @@ int main(int argc, char* argv[]) {
 			break;
 		case RestoreFailed:
 			if (redraw) {
-				std::printf("\n  %sRestore failed%s. Press START to exit.\n", CONSOLE_RED, CONSOLE_RESET);
+				consoleScreen(GFX_TOP);
+				consoleClear();
+				consolePrintHeader();
+				std::printf("\n  %sRestore failed%s.\n\n  " \
+					"Something went wrong while trying to restore," \
+					"\n  see screen below for details.\n\n  " \
+					"Reason for failure: %s\n\n  "
+					"If you think this is a bug, please open an\n  " \
+					"issue on the following URL:\n  https://github.com/Hamcha/lumaupdate/issues\n\n  " \
+					"Press START to exit.\n", CONSOLE_RED, CONSOLE_RESET, errcode.c_str());
 				redraw = false;
 			}
 			break;
