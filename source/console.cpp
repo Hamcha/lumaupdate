@@ -12,7 +12,7 @@ void consoleInitEx() {
 	consoleInit(GFX_BOTTOM, &consoleBottom);
 }
 
-void consoleScreen(gfxScreen_t screen) {
+void consoleScreen(const gfxScreen_t screen) {
 	switch (screen) {
 	case GFX_TOP:
 		consoleCurrent = &consoleTop;
@@ -39,7 +39,81 @@ void consolePrintFooter() {
 	std::printf("< > select options   A choose   START quit");
 }
 
-void consoleMoveTo(int x, int y) {
+void consoleMoveTo(const int x, const int y) {
 	consoleCurrent->cursorX = x;
 	consoleCurrent->cursorY = y;
+}
+
+/* Progress bar functions */
+#define ProgressBarPadding 4
+
+void consoleInitProgress(const char* header = "Loading", const char* text = "", const float progress = 0) {
+	consoleClear();
+
+	// Print progress bar borders
+	int progressBarY = consoleCurrent->consoleHeight / 2;
+	consoleCurrent->cursorY = progressBarY;
+
+	int startX = ProgressBarPadding;
+	int endX = consoleCurrent->consoleWidth - ProgressBarPadding + 1;
+
+	int startY = progressBarY;
+
+	for (int i = startX; i < endX; i++) {
+		// Draw left and right border
+		for (int j = 0; j < 12; j++) {
+			consoleCurrent->frameBuffer[((startX*8-3)*240)+(230-(startY*8))+j] = 0xffff;
+			consoleCurrent->frameBuffer[((endX*8-6)*240)+(230-(startY*8))+j] = 0xffff;
+		}
+		// Draw top and bottom borders
+		for (int j = 0; j < (i < endX-1 ? 8 : 6); j++) {
+			consoleCurrent->frameBuffer[((i*8+j-3)*240)+(239-(startY*8-3))] = 0xffff;
+			consoleCurrent->frameBuffer[((i*8+j-3)*240)+(239-((startY+1)*8+2))] = 0xffff;
+		}
+	}
+
+	// Print header
+	consoleCurrent->cursorY = progressBarY - 2;
+	consoleCurrent->cursorX = ProgressBarPadding;
+	printf("%s%s%s", CONSOLE_YELLOW, header, CONSOLE_RESET);
+
+	// Set data
+	consoleSetProgressData(text, progress);
+}
+
+void consoleSetProgressData(const char* text, const float progress) {
+	consoleSetProgressText(text);
+	consoleSetProgressValue(progress);
+}
+
+#define LINE_BLANK "                                                  "
+
+void consoleSetProgressText(const char* text) {
+	// Move to approriate row
+	int progressBarY = consoleCurrent->consoleHeight / 2;
+	consoleCurrent->cursorY = progressBarY + 2;
+
+	// Clear line
+	consoleCurrent->cursorX = 0;
+	printf("%.*s", consoleCurrent->consoleWidth, LINE_BLANK);
+
+	// Write text
+	consoleCurrent->cursorX = ProgressBarPadding;
+	printf("%s...", text);
+}
+
+void consoleSetProgressValue(const float progress) {
+	// Move to approriate row
+	consoleCurrent->cursorY = consoleCurrent->consoleHeight / 2;
+
+	// Move to beginning of progress bar
+	int progressBarLength = consoleCurrent->consoleWidth - ProgressBarPadding*2;
+	consoleCurrent->cursorX = ProgressBarPadding;
+
+	// Fill progress
+	int progressBarFill = (int)(progressBarLength * progress);
+	consoleCurrent->flags |= CONSOLE_COLOR_REVERSE;
+	printf("%.*s", progressBarFill, LINE_BLANK);
+	consoleCurrent->flags &= ~CONSOLE_COLOR_REVERSE;
+	printf("%.*s", progressBarLength - progressBarFill, LINE_BLANK);
 }

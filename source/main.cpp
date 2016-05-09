@@ -228,6 +228,10 @@ bool backupA9LH(const std::string& payloadName) {
 }
 
 bool update(const UpdateArgs& args) {
+	consoleScreen(GFX_TOP);
+	consoleInitProgress("Updating Luma3DS", "Performing preliminary operations", 0);
+
+	consoleScreen(GFX_BOTTOM);
 	consoleClear();
 
 	// Back up local file if it exists
@@ -236,6 +240,10 @@ bool update(const UpdateArgs& args) {
 	} else if (!fileExists(args.payloadPath)) {
 		std::printf("Original payload not found, skipping backup...\n");
 	} else {
+		consoleScreen(GFX_TOP);
+		consoleSetProgressData("Backing up old payload", 0.2);
+		consoleScreen(GFX_BOTTOM);
+
 		std::printf("Copying %s to %s.bak...\n", args.payloadPath.c_str(), args.payloadPath.c_str());
 		gfxFlushBuffers();
 		if (!backupA9LH(args.payloadPath)) {
@@ -243,6 +251,10 @@ bool update(const UpdateArgs& args) {
 			return false;
 		}
 	}
+
+	consoleScreen(GFX_TOP);
+	consoleSetProgressData("Downloading payload", 0.4);
+	consoleScreen(GFX_BOTTOM);
 
 	std::printf("Downloading %s\n", args.choice.chosenVersion.url.c_str());
 	gfxFlushBuffers();
@@ -258,6 +270,10 @@ bool update(const UpdateArgs& args) {
 	}
 
 	if (args.payloadPath != std::string("/") + PAYLOADPATH) {
+		consoleScreen(GFX_TOP);
+		consoleSetProgressData("Applying path changing", 0.6);
+		consoleScreen(GFX_BOTTOM);
+
 		std::printf("Requested payload path is not %s, applying path patch...\n", PAYLOADPATH);
 		bool res = pathchange(payloadData + offset, payloadSize, args.payloadPath);
 		if (!res) {
@@ -267,6 +283,10 @@ bool update(const UpdateArgs& args) {
 	}
 
 	if (args.migrateARN) {
+		consoleScreen(GFX_TOP);
+		consoleSetProgressData("Migrating AuReiNand -> Luma3DS", 0.8);
+		consoleScreen(GFX_BOTTOM);
+
 		std::printf("Migrating AuReiNand install to Luma3DS...\n");
 		if (!arnMigrate()) {
 			std::printf("FATAL\nCould not migrate AuReiNand install (?)\n");
@@ -278,6 +298,10 @@ bool update(const UpdateArgs& args) {
 		std::printf("WARN\nCould not migrate payloads\n\n");
 	}
 
+	consoleScreen(GFX_TOP);
+	consoleSetProgressData("Saving payload to SD", 0.9);
+	consoleScreen(GFX_BOTTOM);
+
 	std::printf("Saving %s to SD (as %s)...\n", PAYLOADPATH, args.payloadPath.c_str());
 	std::ofstream a9lhfile("/" + args.payloadPath, std::ofstream::binary);
 	a9lhfile.write((const char*)(payloadData + offset), payloadSize);
@@ -285,6 +309,10 @@ bool update(const UpdateArgs& args) {
 
 	std::printf("All done, freeing resources and exiting...\n");
 	std::free(payloadData);
+
+	consoleClear();
+	consoleScreen(GFX_TOP);
+
 	return true;
 }
 
@@ -323,7 +351,10 @@ int main(int argc, char* argv[]) {
 	httpcInit(0);
 
 	consoleInitEx();
+
 	consoleScreen(GFX_TOP);
+	consoleInitProgress("Loading Luma3DS Updater", "Reading configuration file", 0);
+	consoleScreen(GFX_BOTTOM);
 
 	// Read config file
 	bool usingConfig = false;
@@ -379,6 +410,10 @@ int main(int argc, char* argv[]) {
 		goto cleanup;
 	}
 
+	consoleScreen(GFX_TOP);
+	consoleSetProgressData("Detecting installed version", 0.3);
+	consoleScreen(GFX_BOTTOM);
+
 	// Try to detect current version
 	std::printf("Trying detection of current payload version...\n");
 	updateArgs.currentVersion = versionMemsearch(updateArgs.payloadPath);
@@ -391,6 +426,10 @@ int main(int argc, char* argv[]) {
 
 	// Check for eventual migration from ARN to Luma
 	updateArgs.migrateARN = arnVersionCheck(updateArgs.currentVersion);
+
+	consoleScreen(GFX_TOP);
+	consoleSetProgressData("Fetching latest release data", 0.6);
+	consoleScreen(GFX_BOTTOM);
 
 	try {
 		release = releaseGetLatestStable();
@@ -405,6 +444,10 @@ int main(int argc, char* argv[]) {
 
 	updateArgs.stable = &release;
 
+	consoleScreen(GFX_TOP);
+	consoleSetProgressData("Fetching latest hourly", 0.8);
+	consoleScreen(GFX_BOTTOM);
+
 	try {
 		hourly = releaseGetLatestHourly();
 	} catch (std::string& e) {
@@ -418,6 +461,8 @@ int main(int argc, char* argv[]) {
 		updateArgs.hourly = &hourly;
 	}
 
+	consoleClear();
+	consoleScreen(GFX_TOP);
 	redraw = true;
 
 	// Main loop
