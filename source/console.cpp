@@ -7,6 +7,8 @@
 PrintConsole* consoleCurrent = nullptr;
 PrintConsole consoleTop, consoleBottom;
 
+#define LINE_BLANK "                                                  "
+
 void consoleInitEx() {
 	consoleInit(GFX_TOP, &consoleTop);
 	consoleInit(GFX_BOTTOM, &consoleBottom);
@@ -44,10 +46,16 @@ void consoleMoveTo(const int x, const int y) {
 	consoleCurrent->cursorY = y;
 }
 
+void consoleClearLine() {
+	consoleCurrent->cursorX = 0;
+	printf("%.*s", consoleCurrent->consoleWidth, LINE_BLANK);
+	consoleCurrent->cursorX = 0;
+}
+
 /* Progress bar functions */
 #define ProgressBarPadding 4
 
-void consoleInitProgress(const char* header = "Loading", const char* text = "", const float progress = 0) {
+void consoleInitProgress(const char* header, const char* text, const float progress) {
 	consoleClear();
 
 	// Print progress bar borders
@@ -85,8 +93,6 @@ void consoleSetProgressData(const char* text, const float progress) {
 	consoleSetProgressText(text);
 	consoleSetProgressValue(progress);
 }
-
-#define LINE_BLANK "                                                  "
 
 void consoleSetProgressText(const char* text) {
 	// Move to approriate row

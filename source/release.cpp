@@ -44,7 +44,7 @@ ReleaseInfo releaseGetLatestStable() {
 
 	std::printf("Downloading %s...\n", ReleaseURL);
 
-	httpGet(ReleaseURL, &apiReqData, &apiReqSize);
+	httpGet(ReleaseURL, &apiReqData, &apiReqSize, true);
 
 	std::printf("Downloaded %lu bytes\n", apiReqSize);
 	gfxFlushBuffers();
@@ -129,7 +129,7 @@ ReleaseInfo releaseGetLatestHourly() {
 
 	std::printf("Downloading %s...\n", LastCommitURL);
 
-	httpGet(LastCommitURL, &apiReqData, &apiReqSize);
+	httpGet(LastCommitURL, &apiReqData, &apiReqSize, true);
 
 	std::printf("Downloaded %lu bytes\n", apiReqSize);
 	gfxFlushBuffers();
@@ -313,7 +313,7 @@ bool releaseGetPayload(ReleaseVer release, bool isHourly, u8** payloadData, size
 		fileData = (u8*)malloc(fileSize);
 		predownloaded.read((char*)fileData, fileSize);
 #else
-		httpGet(release.url.c_str(), &fileData, &fileSize);
+		httpGet(release.url.c_str(), &fileData, &fileSize, true);
 #endif
 	} catch (std::string& e) {
 		std::printf("%s\n", e.c_str());

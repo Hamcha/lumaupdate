@@ -21,13 +21,16 @@ void consolePrintFooter();
 */
 void consoleMoveTo(const int x, const int y);
 
+/*! \brief Clears current console line */
+void consoleClearLine();
+
 /*! \brief Makes progress bar (aka loading) screen (with optional text and progress)
  *
  *  \param header   Progress bar header
  *  \param text     Text to put below the progress bar (optional)
  *  \param progress Progress to set (optional)
  */
-void consoleInitProgress(const char* header, const char* text, const float progress);
+void consoleInitProgress(const char* header = "Loading", const char* text = "", const float progress = 0);
 
 /*! \brief Sets both text and value of a progress bar screen 
  *  \param text     Text to put below the progress bar
