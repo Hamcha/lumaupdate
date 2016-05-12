@@ -54,7 +54,8 @@ struct UpdateArgs {
 
 	// Configuration options
 	std::string  payloadPath    = "/arm9loaderhax.bin";
-	bool         backupExisting = false;
+	bool         backupExisting = true;
+	bool         selfUpdate     = true;
 
 	// Available data
 	ReleaseInfo* stable = nullptr;
@@ -407,14 +408,14 @@ int main(int argc, char* argv[]) {
 		goto cleanup;
 	}
 	
-	if (!usingConfig)
-	{
+	if (!usingConfig) {
 		std::printf("The configuration file could not be found, skipping...\n");
 	}
 
 	// Load config values
 	updateArgs.payloadPath = config.Get("payload path", PAYLOADPATH);
 	updateArgs.backupExisting = tolower(config.Get("backup", "y")[0]) == 'y';
+	updateArgs.selfUpdate = tolower(config.Get("selfupdate", "y")[0]) == 'y';
 
 	// Add initial slash to payload path, if missing
 	if (updateArgs.payloadPath[0] != '/') {
@@ -427,6 +428,14 @@ int main(int argc, char* argv[]) {
 		gfxFlushBuffers();
 		WAIT_START
 		goto cleanup;
+	}
+
+	// Check for selfupdate
+	if (updateArgs.selfUpdate) {
+		// Check if we can self update
+		if (argc > 0) {
+			
+		}
 	}
 
 	consoleScreen(GFX_TOP);
@@ -485,9 +494,7 @@ int main(int argc, char* argv[]) {
 	redraw = true;
 
 	// Main loop
-	while (aptMainLoop())
-	{
-
+	while (aptMainLoop()) {
 		hidScanInput();
 		u32 kDown = hidKeysDown();
 
