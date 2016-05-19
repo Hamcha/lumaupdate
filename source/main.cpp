@@ -1,5 +1,6 @@
 #include "libs.h"
 
+#include "autoupdate.h"
 #include "arnutil.h"
 #include "config.h"
 #include "http.h"
@@ -430,12 +431,41 @@ int main(int argc, char* argv[]) {
 		goto cleanup;
 	}
 
-	// Check for selfupdate
 	if (updateArgs.selfUpdate) {
-		// Check if we can self update
-		if (argc > 0) {
-			
+		consoleScreen(GFX_TOP);
+		consoleSetProgressData("Checking for an updated updater", 0.1);
+		consoleScreen(GFX_BOTTOM);
+
+		std::printf("Checking for new Luma3DS Updater releases...\n");
+		LatestUpdaterInfo newUpdater;
+		bool selfupdateContinue = true;
+		try {
+			newUpdater = updaterGetLatest();
+		} catch (const std::string& err) {
+			std::printf("Got error: %s\nSkipping self-update...\n", err.c_str());
+			selfupdateContinue = false;
 		}
+
+		if (selfupdateContinue) {
+			consoleScreen(GFX_TOP);
+			consoleSetProgressData("Detecting updater install", 0.2);
+			consoleScreen(GFX_BOTTOM);
+
+			// Check for selfupdate
+			std::printf("Trying detection of current updater install...\n");
+			UpdaterInfo info = { HbTypeUnknown, HbLocUnknown };
+			if (argc > 0) {
+				info = updaterGetInfo(argv[0]);
+			}
+			if (info.type == HbTypeUnknown) {
+				std::printf("Could not detect install type, skipping self-update...\n");
+			}
+			if (info.location == HbLoc3DSLink) {
+				std::printf("Updater launched over 3DSLink, skipping self-update...\n");
+			}
+		}
+	} else {
+		std::printf("Skipping self-update checks as it's disabled\n");
 	}
 
 	consoleScreen(GFX_TOP);
@@ -461,8 +491,7 @@ int main(int argc, char* argv[]) {
 
 	try {
 		release = releaseGetLatestStable();
-	}
-	catch (std::string& e) {
+	} catch (const std::string& e) {
 		std::printf("%s\n", e.c_str());
 		std::printf("\nFATAL ERROR\nFailed to obtain required data.\n\nPress START to exit.\n");
 		gfxFlushBuffers();
@@ -478,7 +507,7 @@ int main(int argc, char* argv[]) {
 
 	try {
 		hourly = releaseGetLatestHourly();
-	} catch (std::string& e) {
+	} catch (const std::string& e) {
 		std::printf("%s\n", e.c_str());
 		std::printf("\nWARN\nCould not obtain latest hourly, skipping...\n");
 		nohourly = true;
