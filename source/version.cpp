@@ -60,3 +60,19 @@ std::string versionMemsearch(const std::string& path) {
 	std::free(payloadData);
 	return versionString;
 }
+
+std::string versionGetStable(const std::string& version) {
+	const size_t separator = version.find("-");
+	if (separator == std::string::npos) {
+		return version;
+	}
+	return version.substr(0, separator);
+}
+
+std::string versionGetCommit(const std::string& version) {
+	const size_t separator = version.find("-");
+	if (separator == std::string::npos) {
+		return "";
+	}
+	return version.substr(separator);
+}

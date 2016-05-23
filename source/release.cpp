@@ -17,6 +17,7 @@
 #include "http.h"
 #include "utils.h"
 
+#ifndef FAKEDL
 static int jsoneq(const char *json, jsmntok_t *tok, const char *s) {
 	if (tok->type == JSMN_STRING && (int)strlen(s) == tok->end - tok->start &&
 		std::strncmp(json + tok->start, s, tok->end - tok->start) == 0) {
@@ -24,9 +25,9 @@ static int jsoneq(const char *json, jsmntok_t *tok, const char *s) {
 	}
 	return -1;
 }
+#endif
 
 ReleaseInfo releaseGetLatestStable() {
-	static const char* ReleaseURL = "https://api.github.com/repos/AuroraWright/Luma3DS/releases/latest";
 	ReleaseInfo release;
 
 #ifdef FAKEDL
@@ -35,6 +36,8 @@ ReleaseInfo releaseGetLatestStable() {
 	release.description = "- Remade the chainloader to only try to load the right payload for the pressed button. Now the only buttons which have a matching payload will actually do something during boot\r\n- Got rid of the default payload (start now boots \"start_NAME.bin\")\r\n- sel_NAME.bin is now select_NAME.bin as there are no more SFN/8.3 limitations anymore\r\n\r\nRefer to [the wiki](https://github.com/AuroraWright/Luma3DS/wiki/Installation-and-Upgrade#upgrading-from-v531) for upgrade instructions.";
 	release.versions.push_back(ReleaseVer{ "CITRA", "CITRA", "https://github.com/AuroraWright/Luma3DS/releases/download/v5.2/Luma3DSv5.2.7z"});
 #else
+
+	static const char* ReleaseURL = "https://api.github.com/repos/AuroraWright/Luma3DS/releases/latest";
 
 	jsmn_parser p = {};
 	jsmn_init(&p);
@@ -115,7 +118,6 @@ ReleaseInfo releaseGetLatestStable() {
 }
 
 ReleaseInfo releaseGetLatestHourly() {
-	static const char* LastCommitURL = "https://raw.githubusercontent.com/astronautlevel2/Luma3DS/gh-pages/lastCommit";
 	ReleaseInfo hourly;
 
 #ifdef FAKEDL
@@ -124,23 +126,35 @@ ReleaseInfo releaseGetLatestHourly() {
 	hourly.versions.push_back(ReleaseVer{ "CITRA", "latest hourly (aaaaaaa)", "https://github.com/AuroraWright/Luma3DS/releases/download/v5.2/Luma3DSv5.2.7z" });
 #else
 
-	u8* apiReqData = nullptr;
-	u32 apiReqSize = 0;
+	static const char* LastCommitURL = "https://raw.githubusercontent.com/astronautlevel2/Luma3DS/gh-pages/lastCommit";
+	static const char* LastDevCommitURL = "https://raw.githubusercontent.com/astronautlevel2/Luma3DSDev/gh-pages/lastCommit";
 
-	std::printf("Downloading %s...\n", LastCommitURL);
+	const char* versions[] = { LastCommitURL, LastDevCommitURL };
 
-	httpGet(LastCommitURL, &apiReqData, &apiReqSize, true);
+	for (auto& version : versions) {
+		u8* apiReqData = nullptr;
+		u32 apiReqSize = 0;
 
-	std::printf("Downloaded %lu bytes\n", apiReqSize);
-	gfxFlushBuffers();
+		std::printf("Downloading %s...\n", version);
 
-	hourly.name = std::string((const char*)apiReqData, apiReqSize);
-	trim(hourly.name);
-	std::string url = std::string("https://astronautlevel2.github.io/Luma3DS/builds/Luma-") + hourly.name + ".zip";
+		try {
+			httpGet(version, &apiReqData, &apiReqSize, true);
+		} catch (std::string& e) {
+			std::printf("Could not download, skipping...");
+			continue;
+		}
 
-	hourly.versions.push_back(ReleaseVer{ hourly.name, "latest hourly (" + hourly.name + ")", std::string(url) });
+		std::printf("Downloaded %lu bytes\n", apiReqSize);
+		gfxFlushBuffers();
 
-	std::free(apiReqData);
+		hourly.name = std::string((const char*)apiReqData, apiReqSize);
+		trim(hourly.name);
+		std::string url = std::string("https://astronautlevel2.github.io/Luma3DS/builds/Luma-") + hourly.name + ".zip";
+
+		hourly.versions.push_back(ReleaseVer { hourly.name, "latest hourly (" + hourly.name + ")", std::string(url) });
+
+		std::free(apiReqData);
+	}
 
 #endif
 

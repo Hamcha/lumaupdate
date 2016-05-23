@@ -28,6 +28,7 @@ UpdaterInfo updaterGetInfo(const std::string& source) {
 	return { type, location };
 }
 
+#ifndef FAKEDL
 static int jsoneq(const char *json, jsmntok_t *tok, const char *s) {
 	if (tok->type == JSMN_STRING && (int)strlen(s) == tok->end - tok->start &&
 		std::strncmp(json + tok->start, s, tok->end - tok->start) == 0) {
@@ -35,8 +36,12 @@ static int jsoneq(const char *json, jsmntok_t *tok, const char *s) {
 	}
 	return -1;
 }
+#endif
 
 LatestUpdaterInfo updaterGetLatest() {
+#ifdef FAKEDL
+	return {};
+#else
 	static const char* ReleaseURL = "https://api.github.com/repos/Hamcha/lumaupdate/releases/latest";
 
 	jsmn_parser p = {};
@@ -93,4 +98,5 @@ LatestUpdaterInfo updaterGetLatest() {
 	std::free(apiReqData);
 
 	return latest;
+#endif
 }

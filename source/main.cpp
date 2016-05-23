@@ -72,7 +72,11 @@ UpdateChoice drawConfirmationScreen(const UpdateArgs& args, const bool usingConf
 	static int  hourlyOptionStart = INT_MAX;
 	static int  extraOptionStart  = INT_MAX;
 
-	bool haveLatest = args.currentVersion == args.stable->name;
+	std::string latestStable = versionGetStable(args.currentVersion);
+	std::string latestCommit = versionGetCommit(args.currentVersion);
+
+	bool haveLatestStable = latestStable == args.stable->name;
+	bool haveLatestCommit = latestCommit == args.hourly->name;
 	bool backupVersionDetected = args.backupExists && args.backupVersion != "";
 
 	u32 keydown = hidKeysDown();
@@ -135,7 +139,7 @@ UpdateChoice drawConfirmationScreen(const UpdateArgs& args, const bool usingConf
 		);
 
 		if (args.currentVersion != "") {
-			std::printf("  Current installed version:    %s%s%s\n", (haveLatest ? CONSOLE_GREEN : CONSOLE_RED), args.currentVersion.c_str(), CONSOLE_RESET);
+			std::printf("  Current installed version:    %s%s%s\n", (haveLatestStable ? CONSOLE_GREEN : CONSOLE_RED), args.currentVersion.c_str(), CONSOLE_RESET);
 		} else {
 			std::printf("  %sCould not detect current version%s\n\n", CONSOLE_MAGENTA, CONSOLE_RESET);
 		}
@@ -149,11 +153,16 @@ UpdateChoice drawConfirmationScreen(const UpdateArgs& args, const bool usingConf
 			std::printf("  Latest hourly build:          %s%s%s\n", CONSOLE_GREEN, args.hourly->name.c_str(), CONSOLE_RESET);
 		}
 
-		if (haveLatest) {
-			std::printf("\n  You seem to have the latest version already.\n");
+		if (haveLatestStable) {
+			if (haveLatestCommit || latestCommit == "") {
+				std::printf("\n  You seem to have the latest version already.\n");
+			} else {
+				std::printf("\n  A new hourly build of Luma3DS is available.\n");
+			}
 		} else {
-			std::printf("\n  A new version of Luma3DS is available.\n");
+			std::printf("\n  A new stable version of Luma3DS is available.\n");
 		}
+
 
 		std::printf("\n  Choose action:\n");
 
