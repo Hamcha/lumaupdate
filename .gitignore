@@ -2,6 +2,11 @@
 *.3dsx
 *.elf
 *.smdh
+*.cia
+*.zip
+out
+build
+archive
 
 # Visual studio stuff
 *.sln
