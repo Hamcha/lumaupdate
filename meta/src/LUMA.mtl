@@ -1,5 +1,5 @@
 # Exported from Wings 3D 2.0.3
-newmtl Cube2_auv
+newmtl COMMON
 Ns 100.0
 d 1.0
 illum 2
@@ -7,18 +7,9 @@ Kd 1.0 1.0 1.0
 Ka 1.0 1.0 1.0
 Ks 1.0 1.0 1.0
 Ke 0.0 0.0 0.0
-map_Kd Cube2_auv.bmp
+map_Kd COMMON.bmp
 
-newmtl default
-Ns 0.0
-d 1.0
-illum 2
-Kd 0.8333333333333334 0.7428571428571428 0.6444444444444445
-Ka 0.8333333333333334 0.7428571428571428 0.6444444444444445
-Ks 0.0 0.0 0.0
-Ke 0.0 0.0 0.0
-
-newmtl sphere4_auv
+newmtl GLARE
 Ns 100.0
 d 1.0
 illum 2
@@ -26,5 +17,4 @@ Kd 1.0 1.0 1.0
 Ka 1.0 1.0 1.0
 Ks 1.0 1.0 1.0
 Ke 0.0 0.0 0.0
-map_Kd box.png
-
+map_Kd GLARE.bmp

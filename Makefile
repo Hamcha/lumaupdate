@@ -81,7 +81,7 @@ prereq:
 
 clean:
 	@echo clean ...
-	@rm -fr $(BUILD) $(TOPDIR)/archive $(TARGET).3dsx $(OUTPUT).cia $(OUTPUT).smdh $(TARGET).elf=
+	@rm -fr $(BUILD) $(TOPDIR)/archive $(TARGET).3dsx $(OUTPUT).cia $(OUTPUT).smdh $(TARGET).elf
 
 # Archive
 
@@ -127,7 +127,7 @@ $(BUILD)/%.bnr: $(BANNER_IMAGE) $(BANNER_AUDIO)
 	$(BANNERTOOL) makebanner $(BANNER_IMAGE_ARG) $(BANNER_IMAGE) $(BANNER_AUDIO_ARG) $(BANNER_AUDIO) -o $@
 
 $(BUILD)/%.icn: $(ICON)
-	$(BANNERTOOL) makesmdh -s "$(APP_TITLE)" -l "$(APP_TITLE)" -p "$(APP_TITLE)" -i $(ICON) -o $@
+	$(BANNERTOOL) makesmdh -s "$(APP_TITLE)" -l "$(APP_TITLE)" -p "$(APP_TITLE)" -i $(ICON) -f visible,allow3d,extendedbanner,nosavebackups -o $@
 
 # Source
 
