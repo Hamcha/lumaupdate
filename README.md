@@ -18,3 +18,11 @@ A `arm9loaderhax.bin` updater for Luma3DS (formerly AuReiNand) as a 3DS homebrew
 #### Extra flags
 
 You can use `make CITRA=1` to disable features that aren't properly emulated on Citra (HTTPc) for easier testing
+
+
+#### Credits
+
+- Luma3DS builds (and development) by [Aurora Wright](https://github.com/AuroraWright)
+- Hourlies built and provided by [astronautlevel](https://github.com/astronautlevel2)
+- Makefiles are somewhat stripped down [Steveice10](https://github.com/Steveice10)'s buildtools
+- CIA jingle by [Cydon @ FreeSound](https://www.freesound.org/people/cydon/)
