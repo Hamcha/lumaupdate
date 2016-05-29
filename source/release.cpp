@@ -129,16 +129,19 @@ ReleaseInfo releaseGetLatestHourly() {
 	static const char* LastCommitURL = "https://raw.githubusercontent.com/astronautlevel2/Luma3DS/gh-pages/lastCommit";
 	static const char* LastDevCommitURL = "https://raw.githubusercontent.com/astronautlevel2/Luma3DSDev/gh-pages/lastCommit";
 
-	const char* versions[] = { LastCommitURL, LastDevCommitURL };
+	static const char* versions[] = { LastCommitURL, LastDevCommitURL };
+	static const char* vertypes[] = { "hourly", "dev hourly" };
 
-	for (auto& version : versions) {
+	static const int versionCount = sizeof(versions) / sizeof(versions[0]);
+
+	for (int i = 0; i < versionCount; i++) {
 		u8* apiReqData = nullptr;
 		u32 apiReqSize = 0;
 
-		std::printf("Downloading %s...\n", version);
+		std::printf("Downloading %s...\n", versions[i]);
 
 		try {
-			httpGet(version, &apiReqData, &apiReqSize, true);
+			httpGet(versions[i], &apiReqData, &apiReqSize, true);
 		} catch (std::string& e) {
 			std::printf("Could not download, skipping...");
 			continue;
@@ -147,11 +150,17 @@ ReleaseInfo releaseGetLatestHourly() {
 		std::printf("Downloaded %lu bytes\n", apiReqSize);
 		gfxFlushBuffers();
 
-		hourly.name = std::string((const char*)apiReqData, apiReqSize);
-		trim(hourly.name);
-		std::string url = std::string("https://astronautlevel2.github.io/Luma3DS/builds/Luma-") + hourly.name + ".zip";
+		std::string hourlyName = std::string((const char*)apiReqData, apiReqSize);
+		trim(hourlyName);
 
-		hourly.versions.push_back(ReleaseVer { hourly.name, "latest hourly (" + hourly.name + ")", std::string(url) });
+		// Use stable's hourly id as "latest" since it gets updated more often
+		if (i == 0) {
+			hourly.name = hourlyName;
+		}
+
+		std::string url = std::string("https://astronautlevel2.github.io/Luma3DS/builds/Luma-") + hourlyName + ".zip";
+
+		hourly.versions.push_back(ReleaseVer { hourlyName, "latest " + std::string(vertypes[i]) + " (" + hourlyName + ")", std::string(url) });
 
 		std::free(apiReqData);
 	}
