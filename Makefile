@@ -70,6 +70,7 @@ LDFLAGS   = -specs=3dsx.specs -g $(ARCH) -Wl,-Map,$(notdir $*.map)
 ZIPNAME   = lumaupdater-$(shell git describe --tags | tr -d 'v').zip
 
 # Shortcuts
+
 all : prereq $(OUTPUT).3dsx $(OUTPUT).cia
 3dsx: prereq $(OUTPUT).3dsx
 cia : prereq $(OUTPUT).cia
@@ -80,11 +81,9 @@ prereq:
 
 clean:
 	@echo clean ...
-	@rm -fr $(BUILD) $(TOPDIR)/archive $(TARGET).3dsx $(OUTPUT).cia $(OUTPUT).smdh $(TARGET).elf
+	@rm -fr $(BUILD) $(TOPDIR)/archive $(TARGET).3dsx $(OUTPUT).cia $(OUTPUT).smdh $(TARGET).elf=
 
-DEPENDS    := $(OFILES:.o=.d)
-MAKEROM    ?= makerom
-BANNERTOOL ?= bannertool
+# Archive
 
 $(ZIPNAME): $(OUTPUT).cia
 	mkdir -p $(TOPDIR)/archive/3DS/lumaupdate
@@ -96,13 +95,43 @@ $(ZIPNAME): $(OUTPUT).cia
 	@echo
 	@echo "built ... $(ZIPNAME)"
 
+# Output
+
+MAKEROM ?= makerom
+
 $(OUTPUT).elf: $(OFILES)
 
 $(OUTPUT).3dsx: $(OUTPUT).elf $(OUTPUT).smdh
 
-$(OUTPUT).cia: $(OUTPUT).elf $(OUTPUT).smdh
-	@$(MAKEROM) -f cia -o $@ -elf $< -rsf $(TOPDIR)/rominfo.rsf -target t -exefslogo -icon $(OUTPUT).smdh -DAPP_TITLE="$(APP_TITLE)" -DPRODUCT_CODE="$(PRODUCT_CODE)" -DUNIQUE_ID="$(UNIQUE_ID)"
+$(OUTPUT).cia: $(OUTPUT).elf $(BUILD)/banner.bnr $(BUILD)/icon.icn
+	$(MAKEROM) -f cia -o $@ -elf $< -rsf $(TOPDIR)/rominfo.rsf -target t -exefslogo -banner $(BUILD)/banner.bnr -icon $(BUILD)/icon.icn -DAPP_TITLE="$(APP_TITLE)" -DPRODUCT_CODE="$(PRODUCT_CODE)" -DUNIQUE_ID="$(UNIQUE_ID)"
 	@echo "built ... $(BINNAME).cia"
+
+# Banner
+
+BANNERTOOL ?= bannertool
+
+ifeq ($(suffix $(BANNER_IMAGE)),.cgfx)
+	BANNER_IMAGE_ARG := -ci
+else
+	BANNER_IMAGE_ARG := -i
+endif
+
+ifeq ($(suffix $(BANNER_AUDIO)),.cwav)
+	BANNER_AUDIO_ARG := -ca
+else
+	BANNER_AUDIO_ARG := -a
+endif
+
+$(BUILD)/%.bnr: $(BANNER_IMAGE) $(BANNER_AUDIO)
+	$(BANNERTOOL) makebanner $(BANNER_IMAGE_ARG) $(BANNER_IMAGE) $(BANNER_AUDIO_ARG) $(BANNER_AUDIO) -o $@
+
+$(BUILD)/%.icn: $(ICON)
+	$(BANNERTOOL) makesmdh -s "$(APP_TITLE)" -l "$(APP_TITLE)" -p "$(APP_TITLE)" -i $(ICON) -o $@
+
+# Source
+
+DEPENDS := $(OFILES:.o=.d)
 
 $(BUILD)/%.o: %.cpp
 	@echo $(notdir $<)
