@@ -11,18 +11,6 @@ include $(TOPDIR)/Makefile.config
 
 TARGET := $(BINDIR)/$(BINNAME)
 
-
-# Enable optimization outside debug builds
-ifndef DEBUG
-	CFLAGS += -Ofast
-endif
-
-# Get a version number based on Git tags and stuff
-GIT_VER := $(shell git describe --dirty --always --tags)
-ifeq ($(strip $(GIT_VER)),)
-	CFLAGS += -DGIT_VER=\"$(GIT_VER)\"
-endif
-
 LIBS     := $(foreach lib,$(LIBRARIES),-l$(lib))
 LIBDIRS  := $(CTRULIB)
 
@@ -62,6 +50,17 @@ CFLAGS   := -g -Wall -Wextra -pedantic -mword-relocations \
             $(ARCH)
 
 CFLAGS   += $(INCLUDE) -DARM11 -D_3DS
+
+# Enable optimization outside debug builds
+ifndef DEBUG
+	CFLAGS += -Ofast
+endif
+
+# Get a version number based on Git tags and stuff
+GIT_VER := $(shell git describe --dirty --always --tags)
+ifneq ($(strip $(GIT_VER)),)
+	CFLAGS += -DGIT_VER=\"$(GIT_VER)\"
+endif
 
 CXXFLAGS := $(CFLAGS) -fno-rtti -fexceptions -std=gnu++11
 
