@@ -229,6 +229,10 @@ UpdateChoice drawConfirmationScreen(const UpdateArgs& args, const bool usingConf
 	return UpdateChoice(NoChoice);
 }
 
+void drawUpdateNag(const LatestUpdaterInfo& latest) {
+
+}
+
 bool backupA9LH(const std::string& payloadName) {
 	std::ifstream original(payloadName, std::ifstream::binary);
 	if (!original.good()) {
@@ -445,32 +449,47 @@ int main(int argc, char* argv[]) {
 		consoleSetProgressData("Checking for an updated updater", 0.1);
 		consoleScreen(GFX_BOTTOM);
 
-		std::printf("Checking for new Luma3DS Updater releases...\n");
-		LatestUpdaterInfo newUpdater;
+		consoleScreen(GFX_TOP);
+		consoleSetProgressData("Detecting updater install", 0.2);
+		consoleScreen(GFX_BOTTOM);
+
+		// Check for selfupdate
+		std::printf("Trying detection of current updater install...\n");
+		UpdaterInfo info = { HbTypeUnknown, HbLocUnknown };
 		bool selfupdateContinue = true;
-		try {
-			newUpdater = updaterGetLatest();
-		} catch (const std::string& err) {
-			std::printf("Got error: %s\nSkipping self-update...\n", err.c_str());
+		if (argc > 0) {
+			info = updaterGetInfo(argv[0]);
+		}
+		if (info.type == HbTypeUnknown) {
+			std::printf("Could not detect install type, skipping self-update...\n");
+			selfupdateContinue = false;
+		}
+		if (info.location == HbLoc3DSLink) {
+			std::printf("Updater launched over 3DSLink, skipping self-update...\n");
 			selfupdateContinue = false;
 		}
 
 		if (selfupdateContinue) {
-			consoleScreen(GFX_TOP);
-			consoleSetProgressData("Detecting updater install", 0.2);
-			consoleScreen(GFX_BOTTOM);
+			std::printf("Checking for new Luma3DS Updater releases...\n");
+			LatestUpdaterInfo newUpdater;
+			try {
+				newUpdater = updaterGetLatest();
+				selfupdateContinue = newUpdater.isNewer;
+				if (!newUpdater.isNewer) {
+					std::printf("Current updater is already at latest release.\n");
+				}
+			} catch (const std::string& err) {
+				std::printf("Got error: %s\nSkipping self-update...\n", err.c_str());
+				selfupdateContinue = false;
+			}
 
-			// Check for selfupdate
-			std::printf("Trying detection of current updater install...\n");
-			UpdaterInfo info = { HbTypeUnknown, HbLocUnknown };
-			if (argc > 0) {
-				info = updaterGetInfo(argv[0]);
-			}
-			if (info.type == HbTypeUnknown) {
-				std::printf("Could not detect install type, skipping self-update...\n");
-			}
-			if (info.location == HbLoc3DSLink) {
-				std::printf("Updater launched over 3DSLink, skipping self-update...\n");
+			if (selfupdateContinue) {
+				// Show selfupdate nag
+				while (aptMainLoop()) {
+					hidScanInput();
+					u32 kDown = hidKeysDown();
+					drawUpdateNag(newUpdater);
+				}
 			}
 		}
 	} else {

@@ -27,6 +27,7 @@ struct LatestUpdaterInfo {
 	std::string version;
 	std::string url;
 	std::string changelog;
+	bool        isNewer;
 };
 
 /*! \brief Get currently installed homebrew info
