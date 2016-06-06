@@ -46,9 +46,9 @@ bool arnVersionCheck(const std::string& versionString) {
 bool arnMigrate() {
 	const static FS_Path aurei = fsMakePath(PATH_ASCII, "/aurei");
 	const static FS_Path luma = fsMakePath(PATH_ASCII, "/luma");
-	FS_Archive sdmcArchive = { 0x00000009,{ PATH_EMPTY, 1, (u8*) "" } };
+	FS_Archive sdmcArchive;
 
-	if (FSUSER_OpenArchive(&sdmcArchive) != 0) {
+	if (FSUSER_OpenArchive(&sdmcArchive, ARCHIVE_SDMC, fsMakePath(PATH_EMPTY, NULL)) != 0) {
 		std::printf("\nCould not access SD Card (?)\n\n");
 		return false;
 	}
@@ -60,7 +60,7 @@ bool arnMigrate() {
 	}
 
 	if (!renameRecursive(sdmcArchive, "/aurei", "/luma")) {
-		FSUSER_CloseArchive(&sdmcArchive);
+		FSUSER_CloseArchive(sdmcArchive);
 		return false;
 	}
 
@@ -70,7 +70,7 @@ bool arnMigrate() {
 		std::printf("\nWARN: Could not delete original /aurei (%ld)!\n\n",  res);
 	}
 	
-	FSUSER_CloseArchive(&sdmcArchive);
+	FSUSER_CloseArchive(sdmcArchive);
 	return true;
 }
 

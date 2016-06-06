@@ -6,10 +6,10 @@ static const std::string PayloadPath = "/luma/payloads/";
 
 std::vector<std::string> listPayloads() {
 	std::vector<std::string> files = {};
-	FS_Archive sdmcArchive = { 0x00000009,{ PATH_EMPTY, 1, (u8*) "" } };
+	FS_Archive sdmcArchive;
 
 	// Open SD card
-	if (FSUSER_OpenArchive(&sdmcArchive) != 0) {
+	if (FSUSER_OpenArchive(&sdmcArchive, ARCHIVE_SDMC, fsMakePath(PATH_EMPTY, NULL)) != 0) {
 		std::printf("\nCould not access SD Card (?)\n\n");
 		return files;
 	}
@@ -18,7 +18,7 @@ std::vector<std::string> listPayloads() {
 	Handle directory = 0;
 	if (FSUSER_OpenDirectory(&directory, sdmcArchive, fsMakePath(PATH_ASCII, "/luma/payloads")) != 0) {
 		std::printf("\nCould not open /luma/payloads\n\n");
-		FSUSER_CloseArchive(&sdmcArchive);
+		FSUSER_CloseArchive(sdmcArchive);
 		return files;
 	}
 
@@ -39,7 +39,7 @@ std::vector<std::string> listPayloads() {
 		files.push_back(std::string(name8));
 	}
 
-	FSUSER_CloseArchive(&sdmcArchive);
+	FSUSER_CloseArchive(sdmcArchive);
 
 	return files;
 }
