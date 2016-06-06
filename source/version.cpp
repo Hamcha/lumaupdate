@@ -45,11 +45,10 @@ std::string versionMemsearch(const std::string& path) {
 	}
 
 	if (found) {
-		// Version is what comes before "configuration" but after "v"
+		// Version is what comes before "configuration" but after " v"
 		size_t verOffset = curProposedOffset;
 		for (; verOffset > 0; --verOffset) {
-			char current = payloadData[verOffset];
-			if (current == 'v') {
+			if (payloadData[verOffset] == 'v' && payloadData[verOffset-1] == ' ') {
 				break;
 			}
 		}
