@@ -4,6 +4,8 @@
 *.smdh
 *.cia
 *.zip
+*.lst
+*.map
 out
 build
 archive
