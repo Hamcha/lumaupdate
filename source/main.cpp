@@ -160,18 +160,18 @@ UpdateChoice drawConfirmationScreen(const UpdateArgs& args, const bool usingConf
 		);
 
 		if (args.currentVersion != "") {
-			std::printf("  Current installed version:    %s%s%s\n", (haveLatestStable ? CONSOLE_GREEN : CONSOLE_RED), args.currentVersion.c_str(), CONSOLE_RESET);
+			std::printf("  Current installed version: %s%s%s\n", (haveLatestStable ? CONSOLE_GREEN : CONSOLE_RED), args.currentVersion.c_str(), CONSOLE_RESET);
 		} else {
 			std::printf("  %sCould not detect current version%s\n\n", CONSOLE_MAGENTA, CONSOLE_RESET);
 		}
 		if (backupVersionDetected) {
 			bool backupIsLatest = args.backupVersion == args.stable->name;
-			std::printf("  Current backup version:       %s%s%s\n", (backupIsLatest ? CONSOLE_GREEN : CONSOLE_RED), args.backupVersion.c_str(), CONSOLE_RESET);
+			std::printf("  Current backup version:    %s%s%s\n", (backupIsLatest ? CONSOLE_GREEN : CONSOLE_RED), args.backupVersion.c_str(), CONSOLE_RESET);
 		}
-		std::printf("  Latest version (from Github): %s%s%s\n", CONSOLE_GREEN, args.stable->name.c_str(), CONSOLE_RESET);
+		std::printf("  Latest version (Github):   %s%s%s\n", CONSOLE_GREEN, args.stable->name.c_str(), CONSOLE_RESET);
 
 		if (args.hourly != nullptr) {
-			std::printf("  Latest hourly build:          %s%s%s\n", CONSOLE_GREEN, args.hourly->name.c_str(), CONSOLE_RESET);
+			std::printf("  Latest hourly build:       %s%s%s\n", CONSOLE_GREEN, args.hourly->name.c_str(), CONSOLE_RESET);
 		}
 
 		if (haveLatestStable) {
@@ -196,7 +196,7 @@ UpdateChoice drawConfirmationScreen(const UpdateArgs& args, const bool usingConf
 
 		if (args.stable->description != "") {
 			// Get full text
-			std::string releaseNotes = indent(stripMarkdown(args.stable->description), " ", 39);
+			std::string releaseNotes = indent(stripMarkdown(args.stable->description), " ", 38);
 
 			// Get page count
 			pageCount = getPageCount(releaseNotes, 18);
