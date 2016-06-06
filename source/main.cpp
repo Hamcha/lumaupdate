@@ -67,10 +67,14 @@ struct UpdateArgs {
 };
 
 UpdateChoice drawConfirmationScreen(const UpdateArgs& args, const bool usingConfig) {
+	static bool redrawTop = false;
+	static bool redrawBottom = false;
 	static bool partialredraw = false;
 	static int  selected = 0;
 	static int  hourlyOptionStart = INT_MAX;
 	static int  extraOptionStart  = INT_MAX;
+	static int  currentPage = 0;
+	static int  pageCount = 0;
 
 	std::string latestStable = versionGetStable(args.currentVersion);
 	std::string latestCommit = versionGetCommit(args.currentVersion);
@@ -80,6 +84,7 @@ UpdateChoice drawConfirmationScreen(const UpdateArgs& args, const bool usingConf
 	bool backupVersionDetected = args.backupExists && args.backupVersion != "";
 
 	u32 keydown = hidKeysDown();
+
 	if (keydown & (KEY_UP | KEY_DOWN)) {
 		partialredraw = true;
 		if (keydown & KEY_UP) {
@@ -89,6 +94,18 @@ UpdateChoice drawConfirmationScreen(const UpdateArgs& args, const bool usingConf
 			++selected;
 		}
 	}
+
+	if (keydown & (KEY_L | KEY_R)) {
+		if (keydown & KEY_L && currentPage > 0) {
+			--currentPage;
+			redrawBottom = true;
+		}
+		if (keydown & KEY_R && currentPage < pageCount - 1) {
+			++currentPage;
+			redrawBottom = true;
+		}
+	}
+
 	if (keydown & KEY_A) {
 		if (selected < hourlyOptionStart) {
 			return UpdateChoice(UpdatePayload, args.stable->versions[selected], false);
@@ -117,13 +134,17 @@ UpdateChoice drawConfirmationScreen(const UpdateArgs& args, const bool usingConf
 		}
 	}
 
-	if (!redraw && !partialredraw) {
+	if (redraw) {
+		redrawTop = redrawBottom = true;
+	}
+
+	if (!redrawTop && !redrawBottom && !partialredraw) {
 		return UpdateChoice(NoChoice);
 	}
 
 	consoleScreen(GFX_TOP);
 
-	if (redraw) {
+	if (redrawTop) {
 		consoleClear();
 		consolePrintHeader();
 
@@ -163,17 +184,44 @@ UpdateChoice drawConfirmationScreen(const UpdateArgs& args, const bool usingConf
 			std::printf("\n  A new stable version of Luma3DS is available.\n");
 		}
 
-
 		std::printf("\n  Choose action:\n");
 
 		consolePrintFooter();
+	}
 
+	if (redrawBottom) {
 		consoleScreen(GFX_BOTTOM);
 		consoleClear();
 		consoleMoveTo(1, 1);
 
 		if (args.stable->description != "") {
-			printf("%sRelease notes for %sv%s%s\n\n%s", CONSOLE_YELLOW, CONSOLE_GREEN, args.stable->name.c_str(), CONSOLE_RESET, indent(stripMarkdown(args.stable->description), " ", 39).c_str());
+			// Get full text
+			std::string releaseNotes = indent(stripMarkdown(args.stable->description), " ", 39);
+
+			// Get page count
+			pageCount = getPageCount(releaseNotes, 18);
+
+			// Print header
+			printf("%sRelease notes for %sv%s%s\n\n", CONSOLE_YELLOW, CONSOLE_GREEN, args.stable->name.c_str(), CONSOLE_RESET);
+
+			if (currentPage > 0) {
+				consoleMoveTo(19, 2);
+				printf("....\n");
+			}
+
+			// Get current page and print it
+			std::string releasePage = getPage(releaseNotes, currentPage, 18);
+			printf("%s", releasePage.c_str());
+
+			if (currentPage < pageCount - 1) {
+				consoleMoveTo(19, 26);
+				printf("....");
+			}
+
+			consoleMoveTo(2, 28);
+			std::printf(" L  prev   <Page %d of %d>    R  next", currentPage + 1, pageCount);
+		} else {
+			printf("%sNo release notes found for %sv%s%s\n\n", CONSOLE_YELLOW, CONSOLE_GREEN, args.stable->name.c_str(), CONSOLE_RESET);
 		}
 
 		consoleScreen(GFX_TOP);
@@ -224,7 +272,7 @@ UpdateChoice drawConfirmationScreen(const UpdateArgs& args, const bool usingConf
 		++curOption;
 	}
 
-	redraw = false;
+	redraw = redrawTop = redrawBottom = false;
 	partialredraw = false;
 	return UpdateChoice(NoChoice);
 }
@@ -429,7 +477,7 @@ int main(int argc, char* argv[]) {
 	// Load config values
 	updateArgs.payloadPath = config.Get("payload path", PAYLOADPATH);
 	updateArgs.backupExisting = tolower(config.Get("backup", "y")[0]) == 'y';
-	updateArgs.selfUpdate = tolower(config.Get("selfupdate", "y")[0]) == 'y';
+	//updateArgs.selfUpdate = tolower(config.Get("selfupdate", "y")[0]) == 'y';
 
 	// Add initial slash to payload path, if missing
 	if (updateArgs.payloadPath[0] != '/') {
@@ -443,7 +491,7 @@ int main(int argc, char* argv[]) {
 		WAIT_START
 		goto cleanup;
 	}
-
+	/*
 	if (updateArgs.selfUpdate) {
 		consoleScreen(GFX_TOP);
 		consoleSetProgressData("Checking for an updated updater", 0.1);
@@ -495,7 +543,7 @@ int main(int argc, char* argv[]) {
 	} else {
 		std::printf("Skipping self-update checks as it's disabled\n");
 	}
-
+	*/
 	consoleScreen(GFX_TOP);
 	consoleSetProgressData("Detecting installed version", 0.3);
 	consoleScreen(GFX_BOTTOM);

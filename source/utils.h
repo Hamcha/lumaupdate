@@ -52,3 +52,22 @@ std::string stripMarkdown(std::string text);
  *  \return Text indented and wrapped
  */
 std::string indent(std::string text, const std::string& indent, const size_t cols);
+
+/*! \brief Get how many pages a multiline text makes 
+ *
+ *  \param text Text to count pages from
+ *  \param rows Number of lines per page
+ *
+ *  \return Number of pages the text forms
+ */
+int getPageCount(const std::string& text, const int rows);
+
+/*! \brief Get one specific page of a multiline text
+ *
+ *  \param text Text to extract specific page from
+ *  \param num  Page number
+ *  \param rows Number of lines per page
+ *
+ *  \return Requested page, or blank string if it's an inexistant page
+ */
+std::string getPage(const std::string& text, const int num, const int rows);

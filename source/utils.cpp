@@ -80,9 +80,9 @@ std::string stripMarkdown(std::string text) {
 }
 
 std::string indent(std::string text, const std::string& indent, const size_t cols) {
+	const std::string nlindent = "\n" + indent + indent;
 	size_t offset = 0;
 	bool hasMore = true;
-	std::string nlindent = "\n" + indent + indent;
 
 	while (hasMore) {
 		// Start of line, add indent
@@ -122,4 +122,31 @@ std::string indent(std::string text, const std::string& indent, const size_t col
 	}
 
 	return text;
+}
+
+int getPageCount(const std::string& text, const int rows) {
+	return ceil(std::count(text.begin(), text.end(), '\n') / (float)rows);
+}
+
+std::string getPage(const std::string& text, const int num, const int rows) {
+	const int startAtIndex = rows * num;
+	const int stopAtIndex = rows * (num + 1);
+
+	std::size_t startIndex = 0;
+	for (int i = 0; i < startAtIndex; i++) {
+		startIndex = text.find('\n', startIndex + 1);
+		if (startIndex == std::string::npos) {
+			return "";
+		}
+	}
+
+	std::size_t endIndex = startIndex;
+	for (int i = startAtIndex; i < stopAtIndex; i++) {
+		endIndex = text.find('\n', endIndex + 1);
+		if (endIndex == std::string::npos) {
+			break;
+		}
+	}
+
+	return text.substr(startIndex, endIndex);
 }
