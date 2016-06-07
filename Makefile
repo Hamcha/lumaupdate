@@ -70,9 +70,6 @@ ZIPNAME   = lumaupdater-$(shell git describe --tags | tr -d 'v').zip
 
 # Shortcuts
 
-info:
-	@echo $(LIBPATHS)
-
 all : prereq $(OUTPUT).3dsx $(OUTPUT).cia
 3dsx: prereq $(OUTPUT).3dsx
 cia : prereq $(OUTPUT).cia
