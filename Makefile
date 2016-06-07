@@ -47,7 +47,7 @@ ARCH     := -march=armv6k -mtune=mpcore -mfloat-abi=hard -mtp=soft
 
 CFLAGS   := -g -Wall -Wextra -pedantic -mword-relocations \
             -fomit-frame-pointer -ffunction-sections \
-            $(ARCH)
+            $(ARCH) $(EXTRACFLAGS)
 
 CFLAGS   += $(INCLUDE) -DARM11 -D_3DS
 
