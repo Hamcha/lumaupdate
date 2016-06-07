@@ -11,11 +11,11 @@ int httpGet(const char* url, u8** buf, u32* size, bool verbose) {
 	// Add User Agent field (required by Github API calls)
 	CHECK(httpcAddRequestHeaderField(&context, (char*)"User-Agent", (char*)"LUMA-UPDATER"), "Could not set User Agent");
 
-	CHECK(httpcBeginRequest(&context), "Could not begin request");
-
 	// Add root CA required for Github and AWS URLs
 	CHECK(httpcAddTrustedRootCA(&context, cybertrust_cer, cybertrust_cer_len), "Could not add Cybertrust root CA");
 	CHECK(httpcAddTrustedRootCA(&context, digicert_cer, digicert_cer_len), "Could not add Digicert root CA");
+
+	CHECK(httpcBeginRequest(&context), "Could not begin request");
 
 	u32 statuscode = 0;
 	CHECK(httpcGetResponseStatusCode(&context, &statuscode, 0), "Could not get status code");
