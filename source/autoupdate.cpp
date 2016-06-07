@@ -12,9 +12,9 @@ UpdaterInfo updaterGetInfo(const std::string& source) {
 	HomebrewType type = HbTypeUnknown;
 
 	// Check for SDMC or 3DSLINK
-	if (source.find("sdmc:") == 0) {
+	if (source.compare(0, 5, "sdmc:") == 0) {
 		location = HbLocSDMC;
-	} else if (source.find("3dslink:") == 0) {
+	} else if (source.compare(0, 8, "3dslink:") == 0) {
 		location = HbLoc3DSLink;
 	}
 
