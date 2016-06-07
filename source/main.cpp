@@ -199,22 +199,22 @@ UpdateChoice drawConfirmationScreen(const UpdateArgs& args, const bool usingConf
 			std::string releaseNotes = indent(stripMarkdown(args.stable->description), 39);
 
 			// Get page count
-			pageCount = getPageCount(releaseNotes, 18);
+			pageCount = getPageCount(releaseNotes, 23);
 
 			// Print header
 			printf("%sRelease notes for %sv%s%s\n\n", CONSOLE_YELLOW, CONSOLE_GREEN, args.stable->name.c_str(), CONSOLE_RESET);
 
 			if (currentPage > 0) {
-				consoleMoveTo(19, 2);
+				consoleMoveTo(18, 2);
 				printf("....\n");
 			}
 
 			// Get current page and print it
-			std::string releasePage = getPage(releaseNotes, currentPage, 18);
+			std::string releasePage = getPage(releaseNotes, currentPage, 23);
 			printf("%s", releasePage.c_str());
 
 			if (currentPage < pageCount - 1) {
-				consoleMoveTo(19, 26);
+				consoleMoveTo(18, 26);
 				printf("....");
 			}
 

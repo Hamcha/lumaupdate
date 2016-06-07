@@ -161,5 +161,5 @@ std::string getPage(const std::string& text, const int num, const int rows) {
 		}
 	}
 
-	return text.substr(startIndex, endIndex);
+	return text.substr(startIndex, endIndex - startIndex);
 }
