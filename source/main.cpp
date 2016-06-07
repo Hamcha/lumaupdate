@@ -219,7 +219,10 @@ UpdateChoice drawConfirmationScreen(const UpdateArgs& args, const bool usingConf
 			}
 
 			consoleMoveTo(2, 28);
-			std::printf(" L  prev   <Page %d of %d>    R  next", currentPage + 1, pageCount);
+
+			if (pageCount > 1) {
+				std::printf("L R  prev/next          Page %d of %d", currentPage + 1, pageCount);
+			}
 		} else {
 			printf("%sNo release notes found for %sv%s%s\n\n", CONSOLE_YELLOW, CONSOLE_GREEN, args.stable->name.c_str(), CONSOLE_RESET);
 		}

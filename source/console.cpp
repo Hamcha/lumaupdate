@@ -37,7 +37,7 @@ void consolePrintHeader() {
 }
 
 void consolePrintFooter() {
-	consoleMoveTo(2, consoleCurrent->consoleHeight - 1);
+	consoleMoveTo(2, consoleCurrent->consoleHeight - 2);
 	std::printf("< > select options   A choose   START quit");
 }
 
