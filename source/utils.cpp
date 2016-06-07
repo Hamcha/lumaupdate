@@ -79,49 +79,49 @@ std::string stripMarkdown(std::string text) {
 	return text;
 }
 
-std::string indent(std::string text, const std::string& indent, const size_t cols) {
-	const std::string nlindent = "\n" + indent + indent;
+std::string indent(const std::string& text, const size_t cols) {
+	static const std::string indent = " ";
+	static const std::string nlindent = indent + indent;
+
+	std::string out = "";
 	size_t offset = 0;
 	bool hasMore = true;
 
 	while (hasMore) {
-		// Start of line, add indent
-		text.insert(offset, indent);
-		offset += indent.length();
-
-		// Search for new line
-		size_t index = text.find('\n', offset + 1);
+		size_t index = text.find('\n', offset);
 		if (index == std::string::npos) {
 			// Last line, break after this cycle
 			hasMore = false;
 			index = text.length();
 		}
 
-		size_t extraOffset = 0;
-		while (index - offset > cols) {
-			// Find nearest whitespace before cutting point
-			size_t cuttingPoint = offset + cols - indent.length();
-			size_t distance = 0;
-			while (text[cuttingPoint - distance] != ' ') {
-				distance++;
-				// Give up if the word is too long
-				if (distance > 10) {
-					distance = 1;
-					text.insert(offset + cols - indent.length() - distance, "-");
-					distance--;
-					break;
-				}
-			}
+		bool fstline = true;
+		while (index - offset >= cols) {
+			size_t textamt = cols - 2;
+			textamt -= (fstline ? indent.length() : nlindent.length());
 
-			text.insert(offset + cols - indent.length() - distance, nlindent);
-			offset += cols + 1;
-			extraOffset += nlindent.length();
+			// Search for nearby whitespace (word wrapping)
+			size_t lastWhitespace = text.find_last_of(' ', offset + textamt);
+			size_t distance = (offset + cols) - lastWhitespace;
+			if (lastWhitespace != std::string::npos && distance <= 10) {
+				// Nearby space found, wrap word to next line
+				std::string curline = text.substr(offset, lastWhitespace - offset);
+				out += (fstline ? indent : nlindent) + curline + "\r\n";
+				textamt = lastWhitespace - offset + 1;
+			} else {
+				// No nearby space found, truncate word
+				std::string curline = text.substr(offset, textamt);
+				out += (fstline ? indent : nlindent) + curline + "-\r\n";
+			}
+			offset += textamt;
+			fstline = false;
 		}
 
-		offset = index + extraOffset + 1;
+		out += (fstline ? indent : nlindent) + text.substr(offset, index - offset) + "\r\n";
+		offset = index + 1;
 	}
 
-	return text;
+	return out;
 }
 
 int getPageCount(const std::string& text, const int rows) {

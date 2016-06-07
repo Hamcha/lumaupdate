@@ -46,12 +46,11 @@ std::string stripMarkdown(std::string text);
 /*! \brief Indent multiline text
  *
  *  \param text   Text to indent
- *  \param indent What to indent lines with
  *  \param cols   Number of columns (for word wrapping)
  *
  *  \return Text indented and wrapped
  */
-std::string indent(std::string text, const std::string& indent, const size_t cols);
+std::string indent(const std::string& text, const size_t cols);
 
 /*! \brief Get how many pages a multiline text makes 
  *
