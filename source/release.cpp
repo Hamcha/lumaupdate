@@ -131,6 +131,11 @@ ReleaseInfo releaseGetLatestHourly() {
 
 	static const char* versions[] = { LastCommitURL, LastDevCommitURL };
 	static const char* vertypes[] = { "hourly", "dev hourly" };
+	static const std::string verurls[] = {
+		"https://astronautlevel2.github.io/Luma3DS/builds/Luma-",
+		"https://astronautlevel2.github.io/Luma3DSDev/builds/Luma-",
+	};
+
 
 	static const int versionCount = sizeof(versions) / sizeof(versions[0]);
 
@@ -158,7 +163,7 @@ ReleaseInfo releaseGetLatestHourly() {
 			hourly.name = hourlyName;
 		}
 
-		std::string url = std::string("https://astronautlevel2.github.io/Luma3DS/builds/Luma-") + hourlyName + ".zip";
+		std::string url = verurls[i] + hourlyName + ".zip";
 
 		hourly.versions.push_back(ReleaseVer { hourlyName, "latest " + std::string(vertypes[i]) + " (" + hourlyName + ")", std::string(url) });
 
