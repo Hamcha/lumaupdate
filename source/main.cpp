@@ -196,7 +196,7 @@ UpdateChoice drawConfirmationScreen(const UpdateArgs& args, const bool usingConf
 
 		if (args.stable->description != "") {
 			// Get full text
-			std::string releaseNotes = indent(stripMarkdown(args.stable->description), 38);
+			std::string releaseNotes = indent(stripMarkdown(args.stable->description), 39);
 
 			// Get page count
 			pageCount = getPageCount(releaseNotes, 18);

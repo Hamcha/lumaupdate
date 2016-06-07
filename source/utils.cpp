@@ -76,6 +76,19 @@ std::string stripMarkdown(std::string text) {
 		text.replace(index, linkEnd - index + 1, linkName);
 	}
 
+	// Strip \r
+	offset = 0;
+	while (true) {
+		offset = text.find('\r', offset);
+		if (offset == std::string::npos) {
+			// No more \r, exit
+			break;
+		}
+
+		// Replace with blank
+		text.replace(offset, 1, "");
+	}
+
 	return text;
 }
 
@@ -96,28 +109,28 @@ std::string indent(const std::string& text, const size_t cols) {
 		}
 
 		bool fstline = true;
-		while (index - offset >= cols) {
+		while (index - offset >= cols - 2) {
 			size_t textamt = cols - 2;
 			textamt -= (fstline ? indent.length() : nlindent.length());
 
 			// Search for nearby whitespace (word wrapping)
 			size_t lastWhitespace = text.find_last_of(' ', offset + textamt);
 			size_t distance = (offset + cols) - lastWhitespace;
-			if (lastWhitespace != std::string::npos && distance <= 10) {
+			if (lastWhitespace != std::string::npos && distance < 15) {
 				// Nearby space found, wrap word to next line
 				std::string curline = text.substr(offset, lastWhitespace - offset);
-				out += (fstline ? indent : nlindent) + curline + "\r\n";
+				out += (fstline ? indent : nlindent) + curline + "\n";
 				textamt = lastWhitespace - offset + 1;
 			} else {
 				// No nearby space found, truncate word
 				std::string curline = text.substr(offset, textamt);
-				out += (fstline ? indent : nlindent) + curline + "-\r\n";
+				out += (fstline ? indent : nlindent) + curline + "-\n";
 			}
 			offset += textamt;
 			fstline = false;
 		}
 
-		out += (fstline ? indent : nlindent) + text.substr(offset, index - offset) + "\r\n";
+		out += (fstline ? indent : nlindent) + text.substr(offset, index - offset) + "\n";
 		offset = index + 1;
 	}
 
