@@ -70,18 +70,21 @@ ZIPNAME   = lumaupdater-$(shell git describe --tags | tr -d 'v').zip
 
 # Shortcuts
 
-all : prereq $(OUTPUT).3dsx $(OUTPUT).cia $(ZIPNAME)
+info:
+	@echo $(LIBPATHS)
+
+all : prereq $(OUTPUT).3dsx $(OUTPUT).cia
 3dsx: prereq $(OUTPUT).3dsx
 cia : prereq $(OUTPUT).cia
 pkg : prereq $(ZIPNAME)
 
 prereq:
-	@[ -d $(BUILD) ] || mkdir -p $(BUILD)
-	@[ -d $(BINDIR) ] || mkdir -p $(BINDIR)
+	@[ -d $(TOPDIR)/$(BUILD) ] || mkdir -p $(TOPDIR)/$(BUILD)
+	@[ -d $(TOPDIR)/$(BINDIR) ] || mkdir -p $(TOPDIR)/$(BINDIR)
 
 clean:
 	@echo clean ...
-	@rm -fr $(BUILD) $(TOPDIR)/archive $(TARGET).3dsx $(OUTPUT).cia $(OUTPUT).smdh $(TARGET).elf
+	@rm -fr $(BUILD) $(TARGET).3dsx $(OUTPUT).cia $(OUTPUT).smdh $(TARGET).elf
 
 # Archive
 
