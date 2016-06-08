@@ -1,4 +1,4 @@
-# Luma3DS Updater
+# Luma Updater
 
 Formerly known as "ARN Updater"
 
@@ -18,7 +18,6 @@ A `arm9loaderhax.bin` updater for Luma3DS (formerly AuReiNand) as a 3DS homebrew
 #### Extra flags
 
 You can use `make CITRA=1` to disable features that aren't properly emulated on Citra (HTTPc) for easier testing
-
 
 #### Credits
 

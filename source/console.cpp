@@ -33,7 +33,7 @@ void consolePrintHeader() {
 	consoleMoveTo(2, 1);
 	consoleCurrent->cursorX = 2;
 	consoleCurrent->cursorY = 1;
-	std::printf("%sLuma3DS Updater %s%s\n\n", CONSOLE_YELLOW, GIT_VER, CONSOLE_RESET);
+	std::printf("%sLuma Updater %s%s\n\n", CONSOLE_YELLOW, GIT_VER, CONSOLE_RESET);
 }
 
 void consolePrintFooter() {
