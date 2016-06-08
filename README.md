@@ -8,18 +8,26 @@ A `arm9loaderhax.bin` updater for Luma3DS (formerly AuReiNand) as a 3DS homebrew
 
 - Your usual 3DS compilation environment
 - Latest ctrulib (the one currently bundled with devKitPro won't cut it)
-- [makerom](http://3dbrew.org/wiki/Makerom) and [bannertool](https://github.com/Steveice10/bannertool) somewhere in your $PATH
+- [makerom](http://3dbrew.org/wiki/Makerom) and [bannertool](https://github.com/Steveice10/bannertool) somewhere in your `PATH` environment
 - zlib (get it from [devkitPro/3ds_portlibs](https://github.com/devkitPro/3ds_portlibs))
 
 #### Optional
 
 - `zip` binary for generating release archives (`make pkg`)
 
+## Compiling
+
+`make` should create the output folder and fill it with both the 3dsx and the cia builds
+
+`make 3dsx` will only build the 3dsx version
+
 #### Extra flags
 
-You can use `make CITRA=1` to disable features that aren't properly emulated on Citra (HTTPc) for easier testing
+`make CITRA=1` disables features that aren't properly emulated on Citra (HTTPc) for easier testing
 
-#### Credits
+`make DEBUG=1` will disable compile-time optimizations entirely
+
+## Credits
 
 - Luma3DS builds (and development) by [Aurora Wright](https://github.com/AuroraWright)
 - Hourlies built and provided by [astronautlevel](https://github.com/astronautlevel2)
