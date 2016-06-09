@@ -20,6 +20,7 @@ export TOPDIR   := $(CURDIR)
 export VPATH    := $(foreach dir,$(SOURCES),$(CURDIR)/$(dir)) \
                    $(foreach dir,$(DATA),$(CURDIR)/$(dir))
 
+export BUILD    := build
 export DEPSDIR  := $(CURDIR)/$(BUILD)
 
 CFILES          := $(foreach dir,$(SOURCES),$(notdir $(wildcard $(dir)/*.c)))
