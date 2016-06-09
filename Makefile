@@ -4,43 +4,40 @@ ifeq ($(strip $(DEVKITARM)),)
 	$(error "Please set DEVKITARM in your environment. export DEVKITARM=<path to>devkitARM")
 endif
 
-TOPDIR ?= $(CURDIR)
+CURDIR ?= $(CURDIR)
 include $(DEVKITARM)/3ds_rules
 
-include $(TOPDIR)/Makefile.config
+CFGFILE ?= Makefile.config
+include $(CURDIR)/$(CFGFILE)
 
-TARGET := $(BINDIR)/$(BINNAME)
+TARGET   := $(BINDIR)/$(BINNAME)
 
 LIBS     := $(foreach lib,$(LIBRARIES),-l$(lib))
 LIBDIRS  := $(CTRULIB)
 
-export OUTPUT   := $(CURDIR)/$(TARGET)
-export TOPDIR   := $(CURDIR)
+OUTPUT   := $(CURDIR)/$(TARGET)
 
-export VPATH    := $(foreach dir,$(SOURCES),$(CURDIR)/$(dir)) \
-                   $(foreach dir,$(DATA),$(CURDIR)/$(dir))
+VPATH    := $(foreach dir,$(SOURCES),$(CURDIR)/$(dir))
 
-export BUILD    := build
-export DEPSDIR  := $(CURDIR)/$(BUILD)
+DEPSDIR  := $(CURDIR)/$(BUILD)
 
-CFILES          := $(foreach dir,$(SOURCES),$(notdir $(wildcard $(dir)/*.c)))
-CPPFILES        := $(foreach dir,$(SOURCES),$(notdir $(wildcard $(dir)/*.cpp)))
+CFILES   := $(foreach dir,$(SOURCES),$(notdir $(wildcard $(dir)/*.c)))
+CPPFILES := $(foreach dir,$(SOURCES),$(notdir $(wildcard $(dir)/*.cpp)))
+OFILES   := $(addprefix $(BUILD)/, $(CPPFILES:.cpp=.o) $(CFILES:.c=.o))
 
-export LD       := $(CXX)
+LD       := $(CXX)
 
-export OFILES   := $(addprefix $(BUILD)/, $(CPPFILES:.cpp=.o) $(CFILES:.c=.o))
+INCLUDE  := $(foreach dir,$(INCLUDES),-I$(CURDIR)/$(dir)) \
+            $(foreach dir,$(LIBDIRS),-I$(dir)/include) \
+            $(foreach dir,$(PORTLIBS),-I$(dir)/include) \
+            -I$(CURDIR)/$(BUILD)
 
-export INCLUDE  := $(foreach dir,$(INCLUDES),-I$(CURDIR)/$(dir)) \
-                   $(foreach dir,$(LIBDIRS),-I$(dir)/include) \
-                   $(foreach dir,$(PORTLIBS),-I$(dir)/include) \
-                   -I$(CURDIR)/$(BUILD)
+LIBPATHS := $(foreach dir,$(LIBDIRS),-L$(dir)/lib) \
+            $(foreach dir,$(PORTLIBS),-L$(dir)/lib)
 
-export LIBPATHS := $(foreach dir,$(LIBDIRS),-L$(dir)/lib) \
-                   $(foreach dir,$(PORTLIBS),-L$(dir)/lib)
+APP_ICON := $(CURDIR)/$(ICON)
 
-export APP_ICON := $(TOPDIR)/$(ICON)
-
-export _3DSXFLAGS += --smdh=$(CURDIR)/$(TARGET).smdh
+_3DSXFLAGS += --smdh=$(CURDIR)/$(TARGET).smdh
 
 # Compiler flags
 
@@ -77,8 +74,8 @@ cia : prereq $(OUTPUT).cia
 pkg : prereq $(ZIPNAME)
 
 prereq:
-	@[ -d $(TOPDIR)/$(BUILD) ] || mkdir -p $(TOPDIR)/$(BUILD)
-	@[ -d $(TOPDIR)/$(BINDIR) ] || mkdir -p $(TOPDIR)/$(BINDIR)
+	@[ -d $(CURDIR)/$(BUILD) ] || mkdir -p $(CURDIR)/$(BUILD)
+	@[ -d $(CURDIR)/$(BINDIR) ] || mkdir -p $(CURDIR)/$(BINDIR)
 
 clean:
 	@echo clean ...
@@ -87,12 +84,12 @@ clean:
 # Archive
 
 $(ZIPNAME): $(OUTPUT).cia
-	mkdir -p $(TOPDIR)/archive/3DS/lumaupdate
-	cp $(TOPDIR)/lumaupdater.cfg $(TOPDIR)/archive
-	cp $(OUTPUT).cia $(TOPDIR)/archive
-	cp $(OUTPUT).3dsx $(OUTPUT).smdh $(TOPDIR)/archive/3DS/lumaupdate
+	mkdir -p $(CURDIR)/archive/3DS/lumaupdate
+	cp $(CURDIR)/lumaupdater.cfg $(CURDIR)/archive
+	cp $(OUTPUT).cia $(CURDIR)/archive
+	cp $(OUTPUT).3dsx $(OUTPUT).smdh $(CURDIR)/archive/3DS/lumaupdate
 	@(cd archive; zip -r -9 ../$(ZIPNAME) .)
-	rm -rf $(TOPDIR)/archive
+	rm -rf $(CURDIR)/archive
 	@echo
 	@echo "built ... $(ZIPNAME)"
 
@@ -105,7 +102,7 @@ $(OUTPUT).elf: $(OFILES)
 $(OUTPUT).3dsx: $(OUTPUT).elf $(OUTPUT).smdh
 
 $(OUTPUT).cia: $(OUTPUT).elf $(BUILD)/banner.bnr $(BUILD)/icon.icn
-	$(MAKEROM) -f cia -o $@ -elf $< -rsf $(TOPDIR)/rominfo.rsf -target t -exefslogo -banner $(BUILD)/banner.bnr -icon $(BUILD)/icon.icn -DAPP_TITLE="$(APP_TITLE)" -DPRODUCT_CODE="$(PRODUCT_CODE)" -DUNIQUE_ID="$(UNIQUE_ID)"
+	$(MAKEROM) -f cia -o $@ -elf $< -rsf $(CURDIR)/rominfo.rsf -target t -exefslogo -banner $(BUILD)/banner.bnr -icon $(BUILD)/icon.icn -DAPP_TITLE="$(APP_TITLE)" -DPRODUCT_CODE="$(PRODUCT_CODE)" -DUNIQUE_ID="$(UNIQUE_ID)"
 	@echo "built ... $(BINNAME).cia"
 
 # Banner
