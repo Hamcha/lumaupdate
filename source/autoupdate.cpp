@@ -8,19 +8,19 @@
 #include "utils.h"
 
 UpdaterInfo updaterGetInfo(const std::string& source) {
-	HomebrewLocation location = HbLocUnknown;
-	HomebrewType type = HbTypeUnknown;
+	HomebrewLocation location = HomebrewLocation::Unknown;
+	HomebrewType type = HomebrewType::Unknown;
 
 	// Check for SDMC or 3DSLINK
 	if (source.compare(0, 5, "sdmc:") == 0) {
-		location = HbLocSDMC;
+		location = HomebrewLocation::SDMC;
 	} else if (source.compare(0, 8, "3dslink:") == 0) {
-		location = HbLoc3DSLink;
+		location = HomebrewLocation::Remote;
 	}
 
 	// Check for Homebrew
 	if (source.find(".3dsx") != std::string::npos) {
-		type = HbType3DSX;
+		type = HomebrewType::Homebrew;
 	}
 
 	//TODO Check for CIA (build-time constant maybe?)

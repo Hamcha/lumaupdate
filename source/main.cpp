@@ -29,14 +29,20 @@ enum UpdateState {
 	RestoreFailed
 };
 
-enum ChoiceType {
+enum class ChoiceType {
 	NoChoice,
 	UpdatePayload,
 	RestoreBackup
 };
 
+enum class SelfUpdateChoice {
+	NoChoice,
+	SelfUpdate,
+	IgnoreUpdate,
+};
+
 struct UpdateChoice {
-	ChoiceType type          = NoChoice;
+	ChoiceType type          = ChoiceType::NoChoice;
 	ReleaseVer chosenVersion = ReleaseVer{};
 	bool       isHourly      = false;
 
@@ -63,7 +69,7 @@ struct UpdateArgs {
 	ReleaseInfo* hourly = nullptr;
 
 	// Chosen settings
-	UpdateChoice choice = UpdateChoice(NoChoice);
+	UpdateChoice choice = UpdateChoice(ChoiceType::NoChoice);
 };
 
 UpdateChoice drawConfirmationScreen(const UpdateArgs& args, const bool usingConfig) {
@@ -111,10 +117,10 @@ UpdateChoice drawConfirmationScreen(const UpdateArgs& args, const bool usingConf
 
 	if (keydown & KEY_A) {
 		if (selected < hourlyOptionStart) {
-			return UpdateChoice(UpdatePayload, args.stable->versions[selected], false);
+			return UpdateChoice(ChoiceType::UpdatePayload, args.stable->versions[selected], false);
 		}
 		if (selected < extraOptionStart) {
-			return UpdateChoice(UpdatePayload, args.hourly->versions[selected - hourlyOptionStart], true);
+			return UpdateChoice(ChoiceType::UpdatePayload, args.hourly->versions[selected - hourlyOptionStart], true);
 		}
 		int extraOptionID = selected - extraOptionStart;
 
@@ -126,14 +132,14 @@ UpdateChoice drawConfirmationScreen(const UpdateArgs& args, const bool usingConf
 		switch (extraOptionID) {
 		case 0:
 			// Restore backup
-			return UpdateChoice(RestoreBackup);
+			return UpdateChoice(ChoiceType::RestoreBackup);
 		default:
 			// Panic!
 			printf("Unknown option selected (?)\n");
 			WAIT_START;
 			redraw = true;
 			selected = 0;
-			return UpdateChoice(NoChoice);
+			return UpdateChoice(ChoiceType::NoChoice);
 		}
 	}
 
@@ -142,7 +148,7 @@ UpdateChoice drawConfirmationScreen(const UpdateArgs& args, const bool usingConf
 	}
 
 	if (!redrawTop && !redrawBottom && !partialredraw) {
-		return UpdateChoice(NoChoice);
+		return UpdateChoice(ChoiceType::NoChoice);
 	}
 
 	consoleScreen(GFX_TOP);
@@ -280,11 +286,11 @@ UpdateChoice drawConfirmationScreen(const UpdateArgs& args, const bool usingConf
 
 	redraw = redrawTop = redrawBottom = false;
 	partialredraw = false;
-	return UpdateChoice(NoChoice);
+	return UpdateChoice(ChoiceType::NoChoice);
 }
 
-void drawUpdateNag(const LatestUpdaterInfo& latest) {
-	//TODO
+SelfUpdateChoice drawUpdateNag(const LatestUpdaterInfo& latest) {
+	return SelfUpdateChoice::NoChoice;
 }
 
 bool backupA9LH(const std::string& payloadName) {
@@ -625,11 +631,11 @@ int main(int argc, char* argv[]) {
 		case UpdateConfirmationScreen:
 			updateArgs.choice = drawConfirmationScreen(updateArgs, configFound);
 			switch (updateArgs.choice.type) {
-			case UpdatePayload:
+			case ChoiceType::UpdatePayload:
 				state = Updating;
 				redraw = true;
 				break;
-			case RestoreBackup:
+			case ChoiceType::RestoreBackup:
 				state = Restoring;
 				redraw = true;
 				break;
