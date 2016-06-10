@@ -281,7 +281,7 @@ UpdateChoice drawConfirmationScreen(const UpdateArgs& args, const bool usingConf
 }
 
 void drawUpdateNag(const LatestUpdaterInfo& latest) {
-
+	//TODO
 }
 
 bool backupA9LH(const std::string& payloadName) {
@@ -420,12 +420,17 @@ bool restore(const UpdateArgs& args) {
 }
 
 int main(int argc, char* argv[]) {
-	const static char* cfgPaths[] = {
+	std::vector<std::string> cfgPaths = {
 		"/lumaupdater.cfg",
 		"/3DS/lumaupdater.cfg",
 		"/luma/lumaupdater.cfg",
 	};
-	const static size_t cfgPathsLen = sizeof(cfgPaths) / sizeof(cfgPaths[0]);
+
+	// If argv0 is present, add its path (without file) to config paths
+	if (argc > 0) {
+		std::string path(argv[0]);
+		cfgPaths.push_back(path.substr(0, path.find_last_of('/')));
+	}
 
 	UpdateState state = UpdateConfirmationScreen;
 	ReleaseInfo release = {}, hourly = {};
@@ -442,9 +447,9 @@ int main(int argc, char* argv[]) {
 	consoleScreen(GFX_BOTTOM);
 
 	// Read config file
-	bool usingConfig = false;
-	for (size_t cfgIndex = 0; !usingConfig && (cfgIndex < cfgPathsLen); ++cfgIndex) {
-		LoadConfigError confStatus = config.LoadFile(cfgPaths[cfgIndex]);
+	bool configFound = false;
+	for (const std::string& path : cfgPaths) {
+		LoadConfigError confStatus = config.LoadFile(path);
 		switch (confStatus) {
 		case CFGE_NOTEXISTS:
 			break;
@@ -460,20 +465,23 @@ int main(int argc, char* argv[]) {
 			goto cleanup;
 		case CFGE_NONE:
 			std::printf("Configuration file loaded successfully.\n");
-			usingConfig = true;
+			configFound = true;
+			break;
+		}
+		if (configFound) {
 			break;
 		}
 	}
 
 	// Check required values in config, if existing
-	if (usingConfig && !config.Has("payload path")) {
+	if (configFound && !config.Has("payload path")) {
 		std::printf("Missing required config value: payload path\n");
 		gfxFlushBuffers();
 		WAIT_START
 		goto cleanup;
 	}
 	
-	if (!usingConfig) {
+	if (!configFound) {
 		std::printf("The configuration file could not be found, skipping...\n");
 	}
 
@@ -608,7 +616,7 @@ int main(int argc, char* argv[]) {
 
 		switch (state) {
 		case UpdateConfirmationScreen:
-			updateArgs.choice = drawConfirmationScreen(updateArgs, usingConfig);
+			updateArgs.choice = drawConfirmationScreen(updateArgs, configFound);
 			switch (updateArgs.choice.type) {
 			case UpdatePayload:
 				state = Updating;
