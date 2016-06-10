@@ -501,7 +501,7 @@ int main(int argc, char* argv[]) {
 	// Load config values
 	updateArgs.payloadPath = config.Get("payload path", PAYLOADPATH);
 	updateArgs.backupExisting = tolower(config.Get("backup", "y")[0]) == 'y';
-	//updateArgs.selfUpdate = tolower(config.Get("selfupdate", "y")[0]) == 'y';
+	updateArgs.selfUpdate = tolower(config.Get("selfupdate", "y")[0]) == 'y';
 
 	// Add initial slash to payload path, if missing
 	if (updateArgs.payloadPath[0] != '/') {
@@ -515,7 +515,7 @@ int main(int argc, char* argv[]) {
 		WAIT_START
 		goto cleanup;
 	}
-	/*
+
 	if (updateArgs.selfUpdate) {
 		consoleScreen(GFX_TOP);
 		consoleSetProgressData("Checking for an updated updater", 0.1);
@@ -527,16 +527,16 @@ int main(int argc, char* argv[]) {
 
 		// Check for selfupdate
 		std::printf("Trying detection of current updater install...\n");
-		UpdaterInfo info = { HbTypeUnknown, HbLocUnknown };
+		UpdaterInfo info = { HomebrewType::Unknown, HomebrewLocation::Unknown };
 		bool selfupdateContinue = true;
 		if (argc > 0) {
 			info = updaterGetInfo(argv[0]);
 		}
-		if (info.type == HbTypeUnknown) {
+		if (info.type == HomebrewType::Unknown) {
 			std::printf("Could not detect install type, skipping self-update...\n");
 			selfupdateContinue = false;
 		}
-		if (info.location == HbLoc3DSLink) {
+		if (info.location == HomebrewLocation::Remote) {
 			std::printf("Updater launched over 3DSLink, skipping self-update...\n");
 			selfupdateContinue = false;
 		}
@@ -559,7 +559,6 @@ int main(int argc, char* argv[]) {
 				// Show selfupdate nag
 				while (aptMainLoop()) {
 					hidScanInput();
-					u32 kDown = hidKeysDown();
 					drawUpdateNag(newUpdater);
 				}
 			}
@@ -567,7 +566,7 @@ int main(int argc, char* argv[]) {
 	} else {
 		std::printf("Skipping self-update checks as it's disabled\n");
 	}
-	*/
+
 	consoleScreen(GFX_TOP);
 	consoleSetProgressData("Detecting installed version", 0.3);
 	consoleScreen(GFX_BOTTOM);
