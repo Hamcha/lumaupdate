@@ -73,5 +73,5 @@ std::string versionGetCommit(const std::string& version) {
 	if (separator == std::string::npos) {
 		return "";
 	}
-	return version.substr(separator);
+	return version.substr(separator + 1);
 }
