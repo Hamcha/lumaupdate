@@ -5,7 +5,7 @@
 #include "certs/cybertrust.h"
 #include "certs/digicert.h"
 
-int httpGet(const char* url, u8** buf, u32* size, bool verbose) {
+int httpGet(const char* url, u8** buf, u32* size, bool verbose, HTTPResponseInfo* info) {
 	httpcContext context;
 	CHECK(httpcOpenContext(&context, HTTPC_METHOD_GET, (char*)url, 0), "Could not open HTTP context");
 	// Add User Agent field (required by Github API calls)
@@ -28,6 +28,14 @@ int httpGet(const char* url, u8** buf, u32* size, bool verbose) {
 			return httpGet(newUrl, buf, size, verbose );
 		}
 		throw formatErrMessage("Non-200 status code", statuscode);
+	}
+
+	// Retrieve extra info if required
+	if (info != nullptr) {
+		char etagChr[512];
+		if (httpcGetResponseHeader(&context, (char*)"ETag", etagChr, 512) == 0) {
+			info->etag = std::string(etagChr);
+		}
 	}
 
 	u32 pos = 0;

@@ -13,6 +13,9 @@
 // jsmn includes
 #include "jsmn.h"
 
+// libmd5-rfc includes
+#include "md5/md5.h"
+
 // Internal includes
 #include "http.h"
 #include "utils.h"
@@ -27,6 +30,29 @@ static int jsoneq(const char *json, jsmntok_t *tok, const char *s) {
 }
 #endif
 
+static const bool checkEtag(std::string etag, u8* fileData, u32 fileSize) {
+	// Strip quotes from either side of the etag
+	if (etag[0] == '"') {
+		etag = etag.substr(1, etag.length() - 2);
+	}
+
+	// Get MD5 bytes from Etag header
+	md5_byte_t expected[16];
+	const char* etagchr = etag.c_str();
+	for (u8 i = 0; i < 16; i++) {
+		std::sscanf(etagchr + (i*2), "%02x", &expected[i]);
+	}
+
+	// Calculate MD5 hash of downloaded archive
+	md5_state_t state;
+	md5_byte_t result[16];
+	md5_init(&state);
+	md5_append(&state, (const md5_byte_t *)fileData, fileSize);
+	md5_finish(&state, result);
+
+	return memcmp(expected, result, 16) == 0;
+}
+
 ReleaseInfo releaseGetLatestStable() {
 	ReleaseInfo release;
 
@@ -34,7 +60,7 @@ ReleaseInfo releaseGetLatestStable() {
 	// Citra doesn't support HTTPc right now, so just fake a successful request
 	release.name = "5.2";
 	release.description = "- Remade the chainloader to only try to load the right payload for the pressed button. Now the only buttons which have a matching payload will actually do something during boot\r\n- Got rid of the default payload (start now boots \"start_NAME.bin\")\r\n- sel_NAME.bin is now select_NAME.bin as there are no more SFN/8.3 limitations anymore\r\n\r\nRefer to [the wiki](https://github.com/AuroraWright/Luma3DS/wiki/Installation-and-Upgrade#upgrading-from-v531) for upgrade instructions.";
-	release.versions.push_back(ReleaseVer{ "CITRA", "CITRA", "https://github.com/AuroraWright/Luma3DS/releases/download/v5.2/Luma3DSv5.2.7z"});
+	release.versions.push_back(ReleaseVer{ "CITRA", "CITRA", "https://github.com/AuroraWright/Luma3DS/releases/download/v5.2/Luma3DSv5.2.7z", 143234 });
 #else
 
 	static const char* ReleaseURL = "https://api.github.com/repos/AuroraWright/Luma3DS/releases/latest";
@@ -60,7 +86,8 @@ ReleaseInfo releaseGetLatestStable() {
 	std::printf("JSON parsed successfully!\n");
 	gfxFlushBuffers();
 
-	bool namefound = false, bodyfound = false, inassets = false, verHasName = false, verHasURL = false, isDev = false;
+	bool namefound = false, bodyfound = false, inassets = false;
+	bool verHasName = false, verHasURL = false, verHasSize = false, isDev = false;
 	ReleaseVer current;
 	for (int i = 0; i < r; i++) {
 		if (!namefound && jsoneq((const char*)apiReqData, &t[i], "name") == 0) {
@@ -95,16 +122,22 @@ ReleaseInfo releaseGetLatestStable() {
 				current.url = std::string((const char*)apiReqData + val.start, val.end - val.start);
 				verHasURL = true;
 			}
+			if (jsoneq((const char*)apiReqData, &t[i], "size") == 0) {
+				jsmntok_t val = t[i + 1];
+				std::string sizeStr = std::string((const char*)apiReqData + val.start, val.end - val.start);
+				current.fileSize = std::atoi(sizeStr.c_str());
+				verHasSize = true;
+			}
 			if (verHasName && verHasURL) {
 				printf("Found version: %s\n", current.filename.c_str());
-				ReleaseVer version = ReleaseVer{ current.filename, current.friendlyName, current.url };
+				ReleaseVer version = ReleaseVer{ current.filename, current.friendlyName, current.url, current.fileSize };
 				// Put normal version in front, dev on back
 				if (!isDev) {
 					release.versions.insert(release.versions.begin(), version);
 				} else {
 					release.versions.push_back(version);
 				}
-				verHasName = verHasURL = isDev = false;
+				verHasName = verHasURL = verHasSize = isDev = false;
 			}
 		}
 	}
@@ -123,7 +156,7 @@ ReleaseInfo releaseGetLatestHourly() {
 #ifdef FAKEDL
 	// Citra doesn't support HTTPc right now, so just fake a successful request
 	hourly.name = "aaaaaaa";
-	hourly.versions.push_back(ReleaseVer{ "CITRA", "latest hourly (aaaaaaa)", "https://github.com/AuroraWright/Luma3DS/releases/download/v5.2/Luma3DSv5.2.7z" });
+	hourly.versions.push_back(ReleaseVer{ "CITRA", "latest hourly (aaaaaaa)", "https://github.com/AuroraWright/Luma3DS/releases/download/v5.2/Luma3DSv5.2.7z", 143234 });
 #else
 
 	static const char* LastCommitURL = "https://raw.githubusercontent.com/astronautlevel2/Luma3DS/gh-pages/lastCommit";
@@ -331,6 +364,7 @@ cleanup:
 bool releaseGetPayload(ReleaseVer release, bool isHourly, u8** payloadData, size_t* offset, size_t* payloadSize) {
 	u8* fileData = nullptr;
 	u32 fileSize = 0;
+	HTTPResponseInfo info = {};
 
 	try {
 #ifdef FAKEDL
@@ -340,14 +374,36 @@ bool releaseGetPayload(ReleaseVer release, bool isHourly, u8** payloadData, size
 		predownloaded.seekg(0, std::ios::beg);
 		fileData = (u8*)malloc(fileSize);
 		predownloaded.read((char*)fileData, fileSize);
+		info.etag = "\"0973d3d5fe62fccc30c8f663aec6918c\"";
 #else
-		httpGet(release.url.c_str(), &fileData, &fileSize, true);
+		httpGet(release.url.c_str(), &fileData, &fileSize, true, &info);
 #endif
 	} catch (std::string& e) {
 		std::printf("%s\n", e.c_str());
 		return false;
 	}
 	std::printf("Download complete! Size: %lu\n", fileSize);
+
+	std::printf("Integrity check #1");
+	if (fileSize != release.fileSize) {
+		std::printf(" [ERR]\r\nReceived file is a different size than expected!");
+		gfxFlushBuffers();
+		return false;
+	}
+	std::printf(" [OK]\r\n");
+
+	if (info.etag == "") {
+		std::printf("No Etag provided, skipping integrity check #2\r\n");
+	} else {
+		std::printf("Integrity check #2");
+		if (!checkEtag(info.etag, fileData, fileSize)) {
+			std::printf(" [ERR]\r\nMD5 mismatch between server's and local file!");
+			gfxFlushBuffers();
+			return false;
+		}
+		std::printf(" [OK]\r\n");
+	}
+
 	std::printf("\nDecompressing archive in memory...\n");
 	gfxFlushBuffers();
 

@@ -8,6 +8,7 @@ struct ReleaseVer {
 	std::string filename;
 	std::string friendlyName;
 	std::string url;
+	size_t      fileSize;
 };
 
 struct ReleaseInfo {
