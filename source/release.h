@@ -15,6 +15,7 @@ struct ReleaseInfo {
 	std::string name = "";
 	std::string description = "";
 	std::vector<ReleaseVer> versions = {};
+	std::map<std::string, std::string> commits = {};
 };
 
 /* \brief Gets last official release (from Aurora's Github)

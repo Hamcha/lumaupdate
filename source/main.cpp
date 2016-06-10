@@ -79,8 +79,11 @@ UpdateChoice drawConfirmationScreen(const UpdateArgs& args, const bool usingConf
 	std::string latestStable = versionGetStable(args.currentVersion);
 	std::string latestCommit = versionGetCommit(args.currentVersion);
 
+	bool isDev = args.currentVersion.find("(dev)") != std::string::npos;
+
 	bool haveLatestStable = latestStable == args.stable->name;
-	bool haveLatestCommit = latestCommit == args.hourly->name;
+	bool haveLatestCommit = latestCommit == args.hourly->commits[isDev ? "dev hourly" : "hourly"];
+
 	bool backupVersionDetected = args.backupExists && args.backupVersion != "";
 
 	u32 keydown = hidKeysDown();

@@ -199,6 +199,7 @@ ReleaseInfo releaseGetLatestHourly() {
 		std::string url = verurls[i] + hourlyName + ".zip";
 
 		hourly.versions.push_back(ReleaseVer { hourlyName, "latest " + std::string(vertypes[i]) + " (" + hourlyName + ")", std::string(url), 0 });
+		hourly.commits[std::string(vertypes[i])] = hourlyName;
 
 		std::free(apiReqData);
 	}
