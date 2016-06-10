@@ -25,16 +25,18 @@ int httpGet(const char* url, u8** buf, u32* size, bool verbose, HTTPResponseInfo
 			char newUrl[1024];
 			CHECK(httpcGetResponseHeader(&context, (char*)"Location", newUrl, 1024), "Could not get Location header for 3xx reply");
 			CHECK(httpcCloseContext(&context), "Could not close HTTP context");
-			return httpGet(newUrl, buf, size, verbose );
+			return httpGet(newUrl, buf, size, verbose, info);
 		}
 		throw formatErrMessage("Non-200 status code", statuscode);
 	}
 
 	// Retrieve extra info if required
 	if (info != nullptr) {
-		char etagChr[512];
-		if (httpcGetResponseHeader(&context, (char*)"ETag", etagChr, 512) == 0) {
+		char etagChr[512] = { 0 };
+		if (httpcGetResponseHeader(&context, (char*)"Etag", etagChr, 512) == 0) {
 			info->etag = std::string(etagChr);
+		} else {
+			std::printf("WOOPSIE FUCKING DOOPIES\r\n");
 		}
 	}
 

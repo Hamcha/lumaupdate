@@ -198,7 +198,7 @@ ReleaseInfo releaseGetLatestHourly() {
 
 		std::string url = verurls[i] + hourlyName + ".zip";
 
-		hourly.versions.push_back(ReleaseVer { hourlyName, "latest " + std::string(vertypes[i]) + " (" + hourlyName + ")", std::string(url) });
+		hourly.versions.push_back(ReleaseVer { hourlyName, "latest " + std::string(vertypes[i]) + " (" + hourlyName + ")", std::string(url), 0 });
 
 		std::free(apiReqData);
 	}
@@ -364,7 +364,7 @@ cleanup:
 bool releaseGetPayload(ReleaseVer release, bool isHourly, u8** payloadData, size_t* offset, size_t* payloadSize) {
 	u8* fileData = nullptr;
 	u32 fileSize = 0;
-	HTTPResponseInfo info = {};
+	HTTPResponseInfo info;
 
 	try {
 #ifdef FAKEDL
@@ -384,24 +384,28 @@ bool releaseGetPayload(ReleaseVer release, bool isHourly, u8** payloadData, size
 	}
 	std::printf("Download complete! Size: %lu\n", fileSize);
 
-	std::printf("Integrity check #1");
-	if (fileSize != release.fileSize) {
-		std::printf(" [ERR]\r\nReceived file is a different size than expected!");
-		gfxFlushBuffers();
-		return false;
-	}
-	std::printf(" [OK]\r\n");
-
-	if (info.etag == "") {
-		std::printf("No Etag provided, skipping integrity check #2\r\n");
-	} else {
-		std::printf("Integrity check #2");
-		if (!checkEtag(info.etag, fileData, fileSize)) {
-			std::printf(" [ERR]\r\nMD5 mismatch between server's and local file!");
+	if (release.fileSize != 0) {
+		std::printf("Integrity check #1");
+		if (fileSize != release.fileSize) {
+			std::printf(" [ERR]\r\nReceived file is a different size than expected!\r\n");
 			gfxFlushBuffers();
 			return false;
 		}
 		std::printf(" [OK]\r\n");
+	} else {
+		std::printf("Skipping integrity check #1 [No size]\r\n");
+	}
+
+	if (info.etag != "") {
+		std::printf("Integrity check #2");
+		if (!checkEtag(info.etag, fileData, fileSize)) {
+			std::printf(" [ERR]\r\nMD5 mismatch between server's and local file!\r\n");
+			gfxFlushBuffers();
+			return false;
+		}
+		std::printf(" [OK]\r\n");
+	} else {
+		std::printf("Skipping integrity check #2 [No Etag]\r\n");
 	}
 
 	std::printf("\nDecompressing archive in memory...\n");
