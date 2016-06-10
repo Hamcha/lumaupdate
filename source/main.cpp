@@ -429,11 +429,6 @@ int main(int argc, char* argv[]) {
 		"/luma/lumaupdater.cfg",
 	};
 
-	// If argv0 is present, add its path (without file) to config paths
-	if (argc > 0) {
-		std::string path(argv[0]);
-		cfgPaths.push_back(path.substr(0, path.find_last_of('/')));
-	}
 
 	UpdateState state = UpdateConfirmationScreen;
 	ReleaseInfo release = {}, hourly = {};
@@ -448,6 +443,15 @@ int main(int argc, char* argv[]) {
 	consoleScreen(GFX_TOP);
 	consoleInitProgress("Loading Luma3DS Updater", "Reading configuration file", 0);
 	consoleScreen(GFX_BOTTOM);
+
+
+	// If argv0 is present, add its path (without file) to config paths
+	if (argc > 0) {
+		std::string path(argv[0]);
+		size_t start = path.find_first_of(':') + 1;
+		std::string realpath = path.substr(start, path.find_last_of('/') - start);
+		cfgPaths.push_back(realpath + "/lumaupdater.cfg");
+	}
 
 	// Read config file
 	bool configFound = false;
