@@ -11,8 +11,10 @@ void consoleScreen(const gfxScreen_t screen);
 /*! \brief Prints the menu header */
 void consolePrintHeader();
 
-/*! \brief Prints the menu footer */
-void consolePrintFooter();
+/*! \brief Prints the menu footer
+ *  \param horizontal Left/Right for moving instead of Up/Down
+ */
+void consolePrintFooter(bool horizontal = false);
 
 /*! \brief Moves console's cursor to a specified position
  *

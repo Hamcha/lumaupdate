@@ -36,9 +36,9 @@ void consolePrintHeader() {
 	std::printf("%sLuma Updater %s%s\n\n", CONSOLE_YELLOW, GIT_VER, CONSOLE_RESET);
 }
 
-void consolePrintFooter() {
+void consolePrintFooter(bool horizontal) {
 	consoleMoveTo(2, consoleCurrent->consoleHeight - 2);
-	std::printf("\x18\x19 select options     A choose     START quit");
+	std::printf("%s select options     A choose     START quit", horizontal ? "\x1b\x1a" : "\x18\x19");
 }
 
 void consoleMoveTo(const int x, const int y) {

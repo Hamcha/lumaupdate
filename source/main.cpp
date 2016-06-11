@@ -290,6 +290,127 @@ UpdateChoice drawConfirmationScreen(const UpdateArgs& args, const bool usingConf
 }
 
 SelfUpdateChoice drawUpdateNag(const LatestUpdaterInfo& latest) {
+	static bool redrawTop = false;
+	static bool redrawBottom = false;
+	static bool partialredraw = false;
+	static int  selected = 0;
+	static int  currentPage = 0;
+	static int  pageCount = 0;
+
+	u32 keydown = hidKeysDown();
+
+	if (keydown & (KEY_UP | KEY_DOWN)) {
+		partialredraw = true;
+		if (keydown & KEY_UP) {
+			--selected;
+		}
+		if (keydown & KEY_DOWN) {
+			++selected;
+		}
+	}
+
+	if (keydown & (KEY_L | KEY_R)) {
+		if (keydown & KEY_L && currentPage > 0) {
+			--currentPage;
+			redrawBottom = true;
+		}
+		if (keydown & KEY_R && currentPage < pageCount - 1) {
+			++currentPage;
+			redrawBottom = true;
+		}
+	}
+
+	if (keydown & KEY_A) {
+		switch (selected) {
+		case 0:
+			// Self update
+			return SelfUpdateChoice::SelfUpdate;
+		case 1:
+			// Ignore update
+			return SelfUpdateChoice::IgnoreUpdate;
+		default:
+			consoleScreen(GFX_TOP);
+			// Panic!
+			printf("Unknown option selected (?)\n");
+			WAIT_START;
+			redraw = true;
+			selected = 0;
+			return SelfUpdateChoice::NoChoice;
+		}
+	}
+
+	if (redraw) {
+		redrawTop = redrawBottom = true;
+	}
+
+	if (!redrawTop && !redrawBottom && !partialredraw) {
+		return SelfUpdateChoice::NoChoice;
+	}
+
+	if (redrawTop) {
+		consoleScreen(GFX_TOP);
+		consoleClear();
+
+		consoleMoveTo(5, 10);
+		std::printf("%sAn update for LumaUpdater is available!%s", CONSOLE_YELLOW, CONSOLE_RESET);
+
+		consoleMoveTo(15, 12);
+		std::printf("LumaUpdater %s%s%s", CONSOLE_GREEN, latest.version.c_str(), CONSOLE_RESET);
+		consoleMoveTo(10, 13);
+		std::printf("See screen below for changes", CONSOLE_GREEN, latest.version.c_str(), CONSOLE_RESET);
+
+		consoleMoveTo(12, 15);
+		std::printf("Would you like to update?");
+
+		consolePrintFooter(true);
+	}
+
+	if (redrawBottom) {
+		consoleScreen(GFX_BOTTOM);
+		consoleClear();
+		consoleMoveTo(1, 1);
+
+		if (latest.changelog != "") {
+			// Get full text
+			std::string releaseNotes = indent(stripMarkdown(latest.changelog), 39);
+
+			// Get page count
+			pageCount = getPageCount(releaseNotes, 23);
+
+			// Print header
+			printf("%sRelease notes for %s%s%s\n\n", CONSOLE_YELLOW, CONSOLE_GREEN, latest.version.c_str(), CONSOLE_RESET);
+
+			if (currentPage > 0) {
+				consoleMoveTo(18, 2);
+				printf("....\n");
+			}
+
+			// Get current page and print it
+			std::string releasePage = getPage(releaseNotes, currentPage, 23);
+			printf("%s", releasePage.c_str());
+
+			if (currentPage < pageCount - 1) {
+				consoleMoveTo(18, 26);
+				printf("....");
+			}
+
+			consoleMoveTo(2, 28);
+
+			if (pageCount > 1) {
+				std::printf("L R  prev/next          Page %d of %d", currentPage + 1, pageCount);
+			}
+		}
+		else {
+			printf("%sNo release notes found for %sv%s%s\n\n", CONSOLE_YELLOW, CONSOLE_GREEN, latest.version.c_str(), CONSOLE_RESET);
+		}
+
+		consoleScreen(GFX_TOP);
+	}
+
+	selected = selected % 2;
+
+	redraw = redrawTop = redrawBottom = false;
+	partialredraw = false;
 	return SelfUpdateChoice::NoChoice;
 }
 
@@ -435,12 +556,12 @@ int main(int argc, char* argv[]) {
 		"/luma/lumaupdater.cfg",
 	};
 
-
 	UpdateState state = UpdateConfirmationScreen;
 	ReleaseInfo release = {}, hourly = {};
 	UpdateArgs updateArgs = {};
 	bool nohourly = false; // Used if fetching hourlies fails
 
+	aptInit();
 	gfxInitDefault();
 	httpcInit(0);
 
@@ -449,7 +570,6 @@ int main(int argc, char* argv[]) {
 	consoleScreen(GFX_TOP);
 	consoleInitProgress("Loading Luma3DS Updater", "Reading configuration file", 0);
 	consoleScreen(GFX_BOTTOM);
-
 
 	// If argv0 is present, add its path (without file) to config paths
 	if (argc > 0) {
@@ -529,17 +649,20 @@ int main(int argc, char* argv[]) {
 		std::printf("Trying detection of current updater install...\n");
 		UpdaterInfo info = { HomebrewType::Unknown, HomebrewLocation::Unknown };
 		bool selfupdateContinue = true;
-		if (argc > 0) {
-			info = updaterGetInfo(argv[0]);
-		}
+
+		info = updaterGetInfo(argc > 0 ? argv[0] : nullptr);
+		gfxFlushBuffers();
+
 		if (info.type == HomebrewType::Unknown) {
 			std::printf("Could not detect install type, skipping self-update...\n");
 			selfupdateContinue = false;
 		}
+		/*
 		if (info.location == HomebrewLocation::Remote) {
 			std::printf("Updater launched over 3DSLink, skipping self-update...\n");
 			selfupdateContinue = false;
 		}
+		*/
 
 		if (selfupdateContinue) {
 			std::printf("Checking for new Luma3DS Updater releases...\n");
@@ -556,13 +679,44 @@ int main(int argc, char* argv[]) {
 			}
 
 			if (selfupdateContinue) {
+				redraw = true;
+
 				// Show selfupdate nag
-				while (aptMainLoop()) {
+				bool choiceMade = false;
+				while (aptMainLoop() && !choiceMade) {
 					hidScanInput();
-					drawUpdateNag(newUpdater);
+					u32 kDown = hidKeysDown();
+					
+					switch (drawUpdateNag(newUpdater)) {
+					case SelfUpdateChoice::IgnoreUpdate:
+						selfupdateContinue = false;
+						choiceMade = true;
+						break;
+					case SelfUpdateChoice::SelfUpdate:
+						selfupdateContinue = true;
+						choiceMade = true;
+						break;
+					case SelfUpdateChoice::NoChoice:
+						choiceMade = false;
+						break;
+					};
+
+					if ((kDown & KEY_START) != 0) {
+						goto cleanup;
+					}
+
+					// Flush and swap framebuffers
+					gfxFlushBuffers();
+					gfxSwapBuffers();
+					gspWaitForVBlank();
 				}
 			}
+
+			consoleScreen(GFX_TOP);
+			consoleInitProgress();
 		}
+		consoleScreen(GFX_BOTTOM);
+		consoleClear();
 	} else {
 		std::printf("Skipping self-update checks as it's disabled\n");
 	}
@@ -738,5 +892,6 @@ cleanup:
 	// Exit services
 	httpcExit();
 	gfxExit();
+	aptExit();
 	return 0;
 }
