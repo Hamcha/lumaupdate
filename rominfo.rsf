@@ -169,8 +169,8 @@ AccessControlInfo:
    - boss:U
    #- cam:u
    - cecd:u
-   - cfg:nor
-   - cfg:u
+   #- cfg:nor
+   #- cfg:u
    #- csnd:SND
    #- dsp::DSP
    #- frd:u
@@ -185,7 +185,7 @@ AccessControlInfo:
    - ndm:u
    #- news:s
    - nwm::UDS
-   - ptm:u
+   #- ptm:u
    - pxi:dev
    - soc:U
    - ssl:C
@@ -203,7 +203,7 @@ SystemControlInfo:
     boss: 0x0004013000003402
     #camera: 0x0004013000001602
     cecd: 0x0004013000002602
-    cfg: 0x0004013000001702
+    #cfg: 0x0004013000001702
     codec: 0x0004013000001802
     #csnd: 0x0004013000002702
     dlp: 0x0004013000002802
@@ -223,8 +223,8 @@ SystemControlInfo:
     nim: 0x0004013000002c02
     nwm: 0x0004013000002d02
     pdn: 0x0004013000002102
-    ps: 0x0004013000003102
-    ptm: 0x0004013000002202
+    #ps: 0x0004013000003102
+    #ptm: 0x0004013000002202
     #qtm: 0x0004013020004202
     ro: 0x0004013000003702
     socket: 0x0004013000002e02
