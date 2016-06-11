@@ -35,8 +35,6 @@ int httpGet(const char* url, u8** buf, u32* size, bool verbose, HTTPResponseInfo
 		char etagChr[512] = { 0 };
 		if (httpcGetResponseHeader(&context, (char*)"Etag", etagChr, 512) == 0) {
 			info->etag = std::string(etagChr);
-		} else {
-			std::printf("WOOPSIE FUCKING DOOPIES\r\n");
 		}
 	}
 
