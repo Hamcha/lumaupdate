@@ -32,11 +32,11 @@ struct LatestUpdaterInfo {
 
 /*! \brief Get currently installed homebrew info
  *
- *  \param source Path to currently executing homebrew, usually argv[0]
+ *  \param path Path to currently executing homebrew, usually argv[0]
  *
  *  \return Detected install parameters (if any)
  */
-UpdaterInfo updaterGetInfo(const std::string& source);
+UpdaterInfo updaterGetInfo(const char* path = nullptr);
 
 /*! \brief Get latest available release of Luma3DS Updater
  *

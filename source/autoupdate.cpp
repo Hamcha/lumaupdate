@@ -7,23 +7,40 @@
 #include "http.h"
 #include "utils.h"
 
-UpdaterInfo updaterGetInfo(const std::string& source) {
+UpdaterInfo updaterGetInfo(const char* path) {
 	HomebrewLocation location = HomebrewLocation::Unknown;
 	HomebrewType type = HomebrewType::Unknown;
 
-	// Check for SDMC or 3DSLINK
-	if (source.compare(0, 5, "sdmc:") == 0) {
-		location = HomebrewLocation::SDMC;
-	} else if (source.compare(0, 8, "3dslink:") == 0) {
-		location = HomebrewLocation::Remote;
+	if (path != nullptr) {
+		std::string source(path);
+
+		// Check for SDMC or 3DSLINK
+		if (source.compare(0, 5, "sdmc:") == 0) {
+			location = HomebrewLocation::SDMC;
+		}
+		else if (source.compare(0, 8, "3dslink:") == 0) {
+			location = HomebrewLocation::Remote;
+		}
+
+		// Check for Homebrew
+		if (source.find(".3dsx") != std::string::npos) {
+			type = HomebrewType::Homebrew;
+		}
+	} else {
 	}
 
-	// Check for Homebrew
-	if (source.find(".3dsx") != std::string::npos) {
-		type = HomebrewType::Homebrew;
+#ifdef UNIQUE_ID
+	// Check for CIA
+	u32 aptid = envGetAptAppId();
+	aptOpenSession();
+	u64 appid = 0;
+	if (APT_GetProgramID(&appid) == 0) {
+		if (appid & UNIQUE_ID == UNIQUE_ID) {
+			type = HomebrewType::CIA;
+		}
 	}
-
-	//TODO Check for CIA (build-time constant maybe?)
+	aptCloseSession();
+#endif
 
 	return { type, location };
 }
