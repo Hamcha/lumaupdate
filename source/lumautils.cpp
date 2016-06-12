@@ -40,12 +40,10 @@ std::vector<std::string> listPayloads() {
 	}
 
 	FSUSER_CloseArchive(sdmcArchive);
-
 	return files;
 }
 
-bool hasPrefix(const std::string& name, const std::string& prefix)
-{
+bool hasPrefix(const std::string& name, const std::string& prefix) {
 	if (name.length() < prefix.length()) {
 		return false;
 	}

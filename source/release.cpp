@@ -21,7 +21,7 @@
 #include "utils.h"
 
 #ifndef FAKEDL
-static int jsoneq(const char *json, jsmntok_t *tok, const char *s) {
+static int jsoneq(const char *json, const jsmntok_t *tok, const char *s) {
 	if (tok->type == JSMN_STRING && (int)strlen(s) == tok->end - tok->start &&
 		std::strncmp(json + tok->start, s, tok->end - tok->start) == 0) {
 		return 0;
@@ -30,7 +30,7 @@ static int jsoneq(const char *json, jsmntok_t *tok, const char *s) {
 }
 #endif
 
-static bool checkEtag(std::string etag, u8* fileData, u32 fileSize) {
+static bool checkEtag(std::string etag, const u8* fileData, const u32 fileSize) {
 	// Strip quotes from either side of the etag
 	if (etag[0] == '"') {
 		etag = etag.substr(1, etag.length() - 2);
@@ -209,7 +209,7 @@ ReleaseInfo releaseGetLatestHourly() {
 	return hourly;
 }
 
-bool extract7z(u8* fileData, size_t fileSize, u8** payloadData, size_t* offset, size_t* payloadSize) {
+static bool extract7z(u8* fileData, const size_t fileSize, u8** payloadData, size_t* offset, size_t* payloadSize) {
 	CMemInStream memStream;
 	MemInStream_Init(&memStream, fileData, fileSize);
 	std::printf("Created 7z InStream, opening as archive...\n");
@@ -228,45 +228,45 @@ bool extract7z(u8* fileData, size_t fileSize, u8** payloadData, size_t* offset, 
 
 	SRes res = SzArEx_Open(&db, &memStream.s, &allocImp, &allocTempImp);
 	u32 codeIndex = UINT32_MAX;
-	if (res == SZ_OK) {
-		std::printf("Archive opened in memory.\n\nSearching for %s: ", PAYLOADPATH);
-		gfxFlushBuffers();
-		for (u32 i = 0; i < db.NumFiles; ++i) {
-			// Skip directories
-			unsigned isDir = SzArEx_IsDir(&db, i);
-			if (isDir) {
-				continue;
-			}
-
-			// Get name
-			size_t len;
-			len = SzArEx_GetFileNameUtf16(&db, i, NULL);
-			// Super long filename? Just skip it..
-			if (len >= 256) {
-				continue;
-			}
-			u16 name[256] = { 0 };
-			SzArEx_GetFileNameUtf16(&db, i, name);
-
-			// Convert name to ASCII (just cut the other bytes)
-			char name8[256] = { 0 };
-			for (size_t j = 0; j < len; ++j) {
-				name8[j] = name[j] % 0xff;
-			}
-
-			// Check if it's the A9LH payload
-			int res = strncmp(name8, PAYLOADPATH, len - 1);
-			if (res == 0) {
-				codeIndex = i;
-				std::printf("FOUND! (%lu)\n", codeIndex);
-				break;
-			}
-		}
-	} else {
+	if (res != SZ_OK) {
 		std::printf("Could not open archive (SzArEx_Open)\n");
 		SzArEx_Free(&db, &allocImp);
 		std::free(fileData);
 		return false;
+	}
+
+	std::printf("Archive opened in memory.\n\nSearching for %s: ", PAYLOADPATH);
+	gfxFlushBuffers();
+	for (u32 i = 0; i < db.NumFiles; ++i) {
+		// Skip directories
+		unsigned isDir = SzArEx_IsDir(&db, i);
+		if (isDir) {
+			continue;
+		}
+
+		// Get name
+		size_t len;
+		len = SzArEx_GetFileNameUtf16(&db, i, NULL);
+		// Super long filename? Just skip it..
+		if (len >= 256) {
+			continue;
+		}
+		u16 name[256] = { 0 };
+		SzArEx_GetFileNameUtf16(&db, i, name);
+
+		// Convert name to ASCII (just cut the other bytes)
+		char name8[256] = { 0 };
+		for (size_t j = 0; j < len; ++j) {
+			name8[j] = name[j] % 0xff;
+		}
+
+		// Check if it's the A9LH payload
+		int res = strncmp(name8, PAYLOADPATH, len - 1);
+		if (res == 0) {
+			codeIndex = i;
+			std::printf("FOUND! (%lu)\n", codeIndex);
+			break;
+		}
 	}
 
 	if (codeIndex == UINT32_MAX) {
@@ -309,7 +309,7 @@ bool extract7z(u8* fileData, size_t fileSize, u8** payloadData, size_t* offset, 
 	return true;
 }
 
-bool extractZip(u8* fileData, size_t fileSize, u8** payloadData, size_t* payloadSize) {
+static bool extractZip(u8* fileData, const size_t fileSize, u8** payloadData, size_t* payloadSize) {
 	zlib_filefunc_def filefunc32 = {};
 	ourmemory_t unzmem = {};
 	unz_file_info payloadInfo = {};
@@ -361,7 +361,7 @@ cleanup:
 	return success;
 }
 
-bool releaseGetPayload(ReleaseVer release, bool isHourly, u8** payloadData, size_t* offset, size_t* payloadSize) {
+bool releaseGetPayload(const ReleaseVer& release, const bool isHourly, u8** payloadData, size_t* offset, size_t* payloadSize) {
 	u8* fileData = nullptr;
 	u32 fileSize = 0;
 	HTTPResponseInfo info;

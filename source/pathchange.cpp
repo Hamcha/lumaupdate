@@ -30,10 +30,11 @@ bool pathchange(u8* buf, const size_t bufSize, const std::string& path) {
 			}
 			curStringIndex++;
 			offset++; // Skip one byte because Unicode
-		} else {
-			if (curStringIndex > 0) {
-				curStringIndex = 0;
-			}
+			continue;
+		}
+
+		if (curStringIndex > 0) {
+			curStringIndex = 0;
 		}
 	}
 
@@ -45,11 +46,12 @@ bool pathchange(u8* buf, const size_t bufSize, const std::string& path) {
 
 	// Replace "arm9loaderhax.bin" with own payload path
 	size_t offset = curProposedOffset + prefixSize;
-	for (u8 i = 0; i < pathLength; ++i) {
+	u8 i = 0;
+	for (i = 0; i < pathLength; ++i) {
 		buf[offset + i*2] = path[i];
 	};
 	// Replace remaining characters from original path with 0s
-	for (u8 i = pathLength; i < originalSize; ++i) {
+	for (i = pathLength; i < originalSize; ++i) {
 		buf[offset + i*2] = 0;
 	}
 

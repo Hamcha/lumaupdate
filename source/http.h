@@ -18,4 +18,4 @@ struct HTTPResponseInfo {
  *
  *  \return 1 if the request completed successfully.
  */
-int httpGet(const char* url, u8** buf, u32* size, bool verbose = false, HTTPResponseInfo* info = nullptr);
+int httpGet(const char* url, u8** buf, u32* size, const bool verbose = false, HTTPResponseInfo* info = nullptr);

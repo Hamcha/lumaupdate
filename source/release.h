@@ -43,4 +43,4 @@ ReleaseInfo releaseGetLatestHourly();
  *
  * \return true if everything succeeds, false otherwise
  */
-bool releaseGetPayload(ReleaseVer release, bool isHourly, u8** payloadData, size_t* offset, size_t* payloadSize);
+bool releaseGetPayload(const ReleaseVer& release, const bool isHourly, u8** payloadData, size_t* offset, size_t* payloadSize);

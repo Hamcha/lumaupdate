@@ -5,7 +5,7 @@
 #include "certs/cybertrust.h"
 #include "certs/digicert.h"
 
-int httpGet(const char* url, u8** buf, u32* size, bool verbose, HTTPResponseInfo* info) {
+int httpGet(const char* url, u8** buf, u32* size, const bool verbose, HTTPResponseInfo* info) {
 	httpcContext context;
 	CHECK(httpcOpenContext(&context, HTTPC_METHOD_GET, (char*)url, 0), "Could not open HTTP context");
 	// Add User Agent field (required by Github API calls)
