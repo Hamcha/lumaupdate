@@ -72,6 +72,49 @@ struct UpdateArgs {
 	UpdateChoice choice = UpdateChoice(ChoiceType::NoChoice);
 };
 
+int drawChangelog(const std::string& name, const std::string& log, const int page) {
+	int pageCount = 0;
+
+	consoleScreen(GFX_BOTTOM);
+	consoleClear();
+	consoleMoveTo(1, 1);
+
+	if (log != "") {
+		// Get full text
+		std::string releaseNotes = indent(stripMarkdown(log), 39);
+
+		// Get page count
+		pageCount = getPageCount(releaseNotes, 23);
+
+		// Print header
+		printf("%sRelease notes for %sv%s%s\n\n", CONSOLE_YELLOW, CONSOLE_GREEN, name.c_str(), CONSOLE_RESET);
+
+		if (page > 0) {
+			consoleMoveTo(18, 2);
+			printf("....\n");
+		}
+
+		// Get current page and print it
+		std::string releasePage = getPage(releaseNotes, page, 23);
+		printf("%s", releasePage.c_str());
+
+		if (page < pageCount - 1) {
+			consoleMoveTo(18, 26);
+			printf("....");
+		}
+
+		consoleMoveTo(2, 28);
+
+		if (pageCount > 1) {
+			std::printf("L R  prev/next          Page %d of %d", page + 1, pageCount);
+		}
+	} else {
+		printf("%sNo release notes found for %sv%s%s\n\n", CONSOLE_YELLOW, CONSOLE_GREEN, name.c_str(), CONSOLE_RESET);
+	}
+
+	return pageCount;
+}
+
 UpdateChoice drawConfirmationScreen(const UpdateArgs& args, const bool usingConfig) {
 	static bool redrawTop = false;
 	static bool redrawBottom = false;
@@ -82,37 +125,33 @@ UpdateChoice drawConfirmationScreen(const UpdateArgs& args, const bool usingConf
 	static int  currentPage = 0;
 	static int  pageCount = 0;
 
-	std::string latestStable = versionGetStable(args.currentVersion);
-	std::string latestCommit = versionGetCommit(args.currentVersion);
+	const std::string latestStable = versionGetStable(args.currentVersion);
+	const std::string latestCommit = versionGetCommit(args.currentVersion);
 
-	bool isDev = args.currentVersion.find("(dev)") != std::string::npos;
+	const bool isDev = args.currentVersion.find("(dev)") != std::string::npos;
 
-	bool haveLatestStable = latestStable == args.stable->name;
-	bool haveLatestCommit = latestCommit == args.hourly->commits[isDev ? "dev hourly" : "hourly"];
+	const bool haveLatestStable = latestStable == args.stable->name;
+	const bool haveLatestCommit = latestCommit == args.hourly->commits[isDev ? "dev hourly" : "hourly"];
 
-	bool backupVersionDetected = args.backupExists && args.backupVersion != "";
+	const bool backupVersionDetected = args.backupExists && args.backupVersion != "";
 
-	u32 keydown = hidKeysDown();
+	const u32 keydown = hidKeysDown();
 
-	if (keydown & (KEY_UP | KEY_DOWN)) {
+	if (keydown & KEY_UP) {
 		partialredraw = true;
-		if (keydown & KEY_UP) {
-			--selected;
-		}
-		if (keydown & KEY_DOWN) {
-			++selected;
-		}
+		--selected;
 	}
-
-	if (keydown & (KEY_L | KEY_R)) {
-		if (keydown & KEY_L && currentPage > 0) {
-			--currentPage;
-			redrawBottom = true;
-		}
-		if (keydown & KEY_R && currentPage < pageCount - 1) {
-			++currentPage;
-			redrawBottom = true;
-		}
+	if (keydown & KEY_DOWN) {
+		partialredraw = true;
+		++selected;
+	}
+	if (keydown & KEY_L && currentPage > 0) {
+		--currentPage;
+		redrawBottom = true;
+	}
+	if (keydown & KEY_R && currentPage < pageCount - 1) {
+		++currentPage;
+		redrawBottom = true;
 	}
 
 	if (keydown & KEY_A) {
@@ -199,43 +238,7 @@ UpdateChoice drawConfirmationScreen(const UpdateArgs& args, const bool usingConf
 	}
 
 	if (redrawBottom) {
-		consoleScreen(GFX_BOTTOM);
-		consoleClear();
-		consoleMoveTo(1, 1);
-
-		if (args.stable->description != "") {
-			// Get full text
-			std::string releaseNotes = indent(stripMarkdown(args.stable->description), 39);
-
-			// Get page count
-			pageCount = getPageCount(releaseNotes, 23);
-
-			// Print header
-			printf("%sRelease notes for %sv%s%s\n\n", CONSOLE_YELLOW, CONSOLE_GREEN, args.stable->name.c_str(), CONSOLE_RESET);
-
-			if (currentPage > 0) {
-				consoleMoveTo(18, 2);
-				printf("....\n");
-			}
-
-			// Get current page and print it
-			std::string releasePage = getPage(releaseNotes, currentPage, 23);
-			printf("%s", releasePage.c_str());
-
-			if (currentPage < pageCount - 1) {
-				consoleMoveTo(18, 26);
-				printf("....");
-			}
-
-			consoleMoveTo(2, 28);
-
-			if (pageCount > 1) {
-				std::printf("L R  prev/next          Page %d of %d", currentPage + 1, pageCount);
-			}
-		} else {
-			printf("%sNo release notes found for %sv%s%s\n\n", CONSOLE_YELLOW, CONSOLE_GREEN, args.stable->name.c_str(), CONSOLE_RESET);
-		}
-
+		pageCount = drawChangelog(args.stable->name, args.stable->description, currentPage);
 		consoleScreen(GFX_TOP);
 	}
 
@@ -261,16 +264,14 @@ UpdateChoice drawConfirmationScreen(const UpdateArgs& args, const bool usingConf
 
 	int curOption = 0;
 	for (ReleaseVer r : args.stable->versions) {
-		printf(curOption == selected ? "   \x10 " : "     ");
-		printf("Install %s\n", r.friendlyName.c_str());
+		printf("     Install %s\n", r.friendlyName.c_str());
 		++curOption;
 	}
 
 	hourlyOptionStart = curOption;
 	if (args.hourly != nullptr) {
 		for (ReleaseVer h : args.hourly->versions) {
-			printf(curOption == selected ? "   \x10 " : "     ");
-			printf("Install %s\n", h.friendlyName.c_str());
+			printf("     Install %s\n", h.friendlyName.c_str());
 			++curOption;
 		}
 	}
@@ -279,13 +280,16 @@ UpdateChoice drawConfirmationScreen(const UpdateArgs& args, const bool usingConf
 
 	// Extra #0: Restore backup
 	if (args.backupExists) {
-		printf(curOption == selected ? "   \x10 " : "     ");
-		printf("Restore backup\n");
+		printf("     Restore backup\n");
 		++curOption;
 	}
 
-	redraw = redrawTop = redrawBottom = false;
-	partialredraw = false;
+	// Print cursor
+	consoleMoveTo(3, y + selected);
+	printf("\x10");
+
+	// Reset redraw vars
+	redraw = redrawTop = redrawBottom = partialredraw = false;
 	return UpdateChoice(ChoiceType::NoChoice);
 }
 
@@ -297,27 +301,23 @@ SelfUpdateChoice drawUpdateNag(const LatestUpdaterInfo& latest) {
 	static int  currentPage = 0;
 	static int  pageCount = 0;
 
-	u32 keydown = hidKeysDown();
+	const u32 keydown = hidKeysDown();
 
-	if (keydown & (KEY_UP | KEY_DOWN)) {
+	if (keydown & KEY_UP) {
+		--selected;
 		partialredraw = true;
-		if (keydown & KEY_UP) {
-			--selected;
-		}
-		if (keydown & KEY_DOWN) {
-			++selected;
-		}
 	}
-
-	if (keydown & (KEY_L | KEY_R)) {
-		if (keydown & KEY_L && currentPage > 0) {
-			--currentPage;
-			redrawBottom = true;
-		}
-		if (keydown & KEY_R && currentPage < pageCount - 1) {
-			++currentPage;
-			redrawBottom = true;
-		}
+	if (keydown & KEY_DOWN) {
+		++selected;
+		partialredraw = true;
+	}
+	if (keydown & KEY_L && currentPage > 0) {
+		--currentPage;
+		redrawBottom = true;
+	}
+	if (keydown & KEY_R && currentPage < pageCount - 1) {
+		++currentPage;
+		redrawBottom = true;
 	}
 
 	if (keydown & KEY_A) {
@@ -366,51 +366,13 @@ SelfUpdateChoice drawUpdateNag(const LatestUpdaterInfo& latest) {
 	}
 
 	if (redrawBottom) {
-		consoleScreen(GFX_BOTTOM);
-		consoleClear();
-		consoleMoveTo(1, 1);
-
-		if (latest.changelog != "") {
-			// Get full text
-			std::string releaseNotes = indent(stripMarkdown(latest.changelog), 39);
-
-			// Get page count
-			pageCount = getPageCount(releaseNotes, 23);
-
-			// Print header
-			printf("%sRelease notes for %s%s%s\n\n", CONSOLE_YELLOW, CONSOLE_GREEN, latest.version.c_str(), CONSOLE_RESET);
-
-			if (currentPage > 0) {
-				consoleMoveTo(18, 2);
-				printf("....\n");
-			}
-
-			// Get current page and print it
-			std::string releasePage = getPage(releaseNotes, currentPage, 23);
-			printf("%s", releasePage.c_str());
-
-			if (currentPage < pageCount - 1) {
-				consoleMoveTo(18, 26);
-				printf("....");
-			}
-
-			consoleMoveTo(2, 28);
-
-			if (pageCount > 1) {
-				std::printf("L R  prev/next          Page %d of %d", currentPage + 1, pageCount);
-			}
-		}
-		else {
-			printf("%sNo release notes found for %sv%s%s\n\n", CONSOLE_YELLOW, CONSOLE_GREEN, latest.version.c_str(), CONSOLE_RESET);
-		}
-
+		pageCount = drawChangelog(latest.version, latest.changelog, currentPage);
 		consoleScreen(GFX_TOP);
 	}
 
 	selected = selected % 2;
 
-	redraw = redrawTop = redrawBottom = false;
-	partialredraw = false;
+	redraw = redrawTop = redrawBottom = partialredraw = false;
 	return SelfUpdateChoice::NoChoice;
 }
 

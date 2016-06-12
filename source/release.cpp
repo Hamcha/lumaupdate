@@ -30,7 +30,7 @@ static int jsoneq(const char *json, jsmntok_t *tok, const char *s) {
 }
 #endif
 
-static const bool checkEtag(std::string etag, u8* fileData, u32 fileSize) {
+static bool checkEtag(std::string etag, u8* fileData, u32 fileSize) {
 	// Strip quotes from either side of the etag
 	if (etag[0] == '"') {
 		etag = etag.substr(1, etag.length() - 2);
