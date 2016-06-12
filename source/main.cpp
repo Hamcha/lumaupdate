@@ -713,7 +713,7 @@ int main(int argc, char* argv[]) {
 			}
 
 			consoleScreen(GFX_TOP);
-			consoleInitProgress();
+			consoleInitProgress("Loading Luma3DS Updater");
 		}
 		consoleScreen(GFX_BOTTOM);
 		consoleClear();
