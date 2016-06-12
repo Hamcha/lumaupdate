@@ -89,7 +89,7 @@ struct PromptStatus {
 	bool optionChosen = false;
 };
 
-static int drawChangelog(const std::string& name, const std::string& log, const int page) {
+static inline int drawChangelog(const std::string& name, const std::string& log, const int page) {
 	int pageCount = 0;
 
 	consoleScreen(GFX_BOTTOM);
@@ -104,7 +104,7 @@ static int drawChangelog(const std::string& name, const std::string& log, const 
 		pageCount = getPageCount(releaseNotes, 23);
 
 		// Print header
-		printf("%sRelease notes for %sv%s%s\n\n", CONSOLE_YELLOW, CONSOLE_GREEN, name.c_str(), CONSOLE_RESET);
+		printf("%sRelease notes for %s%s%s\n\n", CONSOLE_YELLOW, CONSOLE_GREEN, name.c_str(), CONSOLE_RESET);
 
 		if (page > 0) {
 			consoleMoveTo(18, 2);
@@ -132,14 +132,14 @@ static int drawChangelog(const std::string& name, const std::string& log, const 
 	return pageCount;
 }
 
-static void handlePromptInput(PromptStatus& status, const bool horizontal) {
+static inline void handlePromptInput(PromptStatus& status) {
 	const u32 keydown = hidKeysDown();
 
-	if (keydown & (horizontal ? KEY_LEFT : KEY_UP)) {
+	if (keydown & KEY_UP) {
 		status.partialredraw = true;
 		--status.selected;
 	}
-	if (keydown & (horizontal ? KEY_RIGHT : KEY_DOWN)) {
+	if (keydown & KEY_DOWN) {
 		status.partialredraw = true;
 		++status.selected;
 	}
@@ -171,7 +171,7 @@ static UpdateChoice drawConfirmationScreen(const UpdateArgs& args, const bool us
 
 	const bool backupVersionDetected = args.backupExists && args.backupVersion != "";
 
-	handlePromptInput(status, false);
+	handlePromptInput(status);
 
 	if (status.optionChosen) {
 		if (status.selected < hourlyOptionStart) {
@@ -251,36 +251,24 @@ static UpdateChoice drawConfirmationScreen(const UpdateArgs& args, const bool us
 			std::printf("\n  A new stable version of Luma3DS is available.\n");
 		}
 
-		std::printf("\n  Choose action:\n");
-
 		consolePrintFooter();
 	}
 
 	if (status.redrawBottom) {
-		status.pageCount = drawChangelog(args.stable->name, args.stable->description, status.currentPage);
+		status.pageCount = drawChangelog("v" + args.stable->name, args.stable->description, status.currentPage);
 		consoleScreen(GFX_TOP);
 	}
 
-	int y = 11;
-
-	if (!usingConfig) {
-		y += 3;
-	}
-	if (args.hourly != nullptr) {
-		y += 1;
-	}
-	if (backupVersionDetected) {
-		y += 1;
-	}
+	int y = 11 + (!usingConfig ? 3 : 0) + (args.hourly != nullptr ? 1 : 0) + (backupVersionDetected ? 1 : 0);
 
 	consoleMoveTo(0, y);
 
-	int optionCount = args.stable->versions.size() + (args.hourly != nullptr ? args.hourly->versions.size() : 0) + (args.backupExists ? 1 : 0);
-
 	// Wrap around cursor
+	int optionCount = args.stable->versions.size() + (args.hourly != nullptr ? args.hourly->versions.size() : 0) + (args.backupExists ? 1 : 0);
 	while (status.selected < 0) status.selected += optionCount;
 	status.selected = status.selected % optionCount;
 
+	// Print options
 	int curOption = 0;
 	for (ReleaseVer r : args.stable->versions) {
 		std::printf("     Install %s\n", r.friendlyName.c_str());
@@ -316,7 +304,7 @@ static UpdateChoice drawConfirmationScreen(const UpdateArgs& args, const bool us
 static SelfUpdateChoice drawUpdateNag(const LatestUpdaterInfo& latest) {
 	static PromptStatus status;
 
-	handlePromptInput(status, true);
+	handlePromptInput(status);
 
 	if (status.optionChosen) {
 		switch (status.selected) {
@@ -352,15 +340,15 @@ static SelfUpdateChoice drawUpdateNag(const LatestUpdaterInfo& latest) {
 		consoleMoveTo(5, 10);
 		std::printf("%sAn update for LumaUpdater is available!%s", CONSOLE_YELLOW, CONSOLE_RESET);
 
-		consoleMoveTo(15, 12);
+		consoleMoveTo(5, 12);
 		std::printf("LumaUpdater %s%s%s", CONSOLE_GREEN, latest.version.c_str(), CONSOLE_RESET);
-		consoleMoveTo(10, 13);
+		consoleMoveTo(5, 13);
 		std::printf("See screen below for changes", CONSOLE_GREEN, latest.version.c_str(), CONSOLE_RESET);
 
-		consoleMoveTo(12, 15);
-		std::printf("Would you like to update?");
+		consoleMoveTo(5, 15);
+		std::printf("Choose action:");
 
-		consolePrintFooter(true);
+		consolePrintFooter();
 	}
 
 	if (status.redrawBottom) {
@@ -398,7 +386,7 @@ static bool backupA9LH(const std::string& payloadName) {
 	return true;
 }
 
-static bool update(const UpdateArgs& args) {
+static inline bool update(const UpdateArgs& args) {
 	consoleScreen(GFX_TOP);
 	consoleInitProgress("Updating Luma3DS", "Performing preliminary operations", 0);
 
@@ -434,8 +422,7 @@ static bool update(const UpdateArgs& args) {
 	u8* payloadData = nullptr;
 	size_t offset = 0;
 	size_t payloadSize = 0;
-	bool ret = releaseGetPayload(args.choice.chosenVersion, args.choice.isHourly, &payloadData, &offset, &payloadSize);
-	if (!ret) {
+	if (!releaseGetPayload(args.choice.chosenVersion, args.choice.isHourly, &payloadData, &offset, &payloadSize)) {
 		std::printf("FATAL\nCould not get A9LH payload...\n");
 		std::free(payloadData);
 		errcode = "DOWNLOAD FAILED";
@@ -448,8 +435,7 @@ static bool update(const UpdateArgs& args) {
 		consoleScreen(GFX_BOTTOM);
 
 		std::printf("Requested payload path is not %s, applying path patch...\n", PAYLOADPATH);
-		bool res = pathchange(payloadData + offset, payloadSize, args.payloadPath);
-		if (!res) {
+		if (!pathchange(payloadData + offset, payloadSize, args.payloadPath)) {
 			std::free(payloadData);
 			errcode = "PATHCHANGE FAILED";
 			return false;
@@ -491,7 +477,7 @@ static bool update(const UpdateArgs& args) {
 	return true;
 }
 
-static bool restore(const UpdateArgs& args) {
+static inline bool restore(const UpdateArgs& args) {
 	// Rename current payload to .broken
 	if (std::rename(args.payloadPath.c_str(), (args.payloadPath + ".broken").c_str()) != 0) {
 		std::perror("Can't rename current version");
@@ -521,7 +507,6 @@ int main(int argc, char* argv[]) {
 	UpdateState state = UpdateConfirmationScreen;
 	ReleaseInfo release = {}, hourly = {};
 	UpdateArgs updateArgs = {};
-	bool nohourly = false; // Used if fetching hourlies fails
 
 	aptInit();
 	gfxInitDefault();
@@ -535,16 +520,16 @@ int main(int argc, char* argv[]) {
 
 	// If argv0 is present, add its path (without file) to config paths
 	if (argc > 0) {
-		std::string path(argv[0]);
+		const std::string path(argv[0]);
 		size_t start = path.find_first_of(':') + 1;
-		std::string realpath = path.substr(start, path.find_last_of('/') - start);
+		const std::string realpath = path.substr(start, path.find_last_of('/') - start);
 		cfgPaths.push_back(realpath + "/lumaupdater.cfg");
 	}
 
 	// Read config file
 	bool configFound = false;
 	for (const std::string& path : cfgPaths) {
-		LoadConfigError confStatus = config.LoadFile(path);
+		const LoadConfigError confStatus = config.LoadFile(path);
 		switch (confStatus) {
 		case CFGE_NOTEXISTS:
 			break;
@@ -568,16 +553,16 @@ int main(int argc, char* argv[]) {
 		}
 	}
 
-	// Check required values in config, if existing
-	if (configFound && !config.Has("payload path")) {
-		std::printf("Missing required config value: payload path\n");
-		gfxFlushBuffers();
-		WAIT_START
-		goto cleanup;
-	}
-	
 	if (!configFound) {
 		std::printf("The configuration file could not be found, skipping...\n");
+	} else {
+		// Check required values in config, if existing
+		if (!config.Has("payload path")) {
+			std::printf("Missing required config value: payload path\n");
+			gfxFlushBuffers();
+			WAIT_START
+			goto cleanup;
+		}
 	}
 
 	// Load config values
@@ -704,8 +689,10 @@ int main(int argc, char* argv[]) {
 	consoleSetProgressData("Fetching latest release data", 0.6);
 	consoleScreen(GFX_BOTTOM);
 
+	updateArgs.stable = nullptr;
 	try {
 		release = releaseGetLatestStable();
+		updateArgs.stable = &release;
 	} catch (const std::string& e) {
 		std::printf("%s\n", e.c_str());
 		std::printf("\nFATAL ERROR\nFailed to obtain required data.\n\nPress START to exit.\n");
@@ -714,23 +701,18 @@ int main(int argc, char* argv[]) {
 		goto cleanup;
 	}
 
-	updateArgs.stable = &release;
-
 	consoleScreen(GFX_TOP);
 	consoleSetProgressData("Fetching latest hourly", 0.8);
 	consoleScreen(GFX_BOTTOM);
 
+	updateArgs.hourly = nullptr;
 	try {
 		hourly = releaseGetLatestHourly();
+		updateArgs.hourly = &hourly;
 	} catch (const std::string& e) {
 		std::printf("%s\n", e.c_str());
 		std::printf("\nWARN\nCould not obtain latest hourly, skipping...\n");
-		nohourly = true;
 		gfxFlushBuffers();
-	}
-
-	if (!nohourly) {
-		updateArgs.hourly = &hourly;
 	}
 
 	consoleClear();
@@ -754,16 +736,10 @@ int main(int argc, char* argv[]) {
 				state = Restoring;
 				redraw = true;
 				break;
-			default:
-				break;
 			}
 			break;
 		case Updating:
-			if (update(updateArgs)) {
-				state = UpdateComplete;
-			} else {
-				state = UpdateFailed;
-			}
+			state = update(updateArgs) ? UpdateComplete : UpdateFailed;
 			redraw = true;
 			break;
 		case UpdateFailed:
@@ -800,19 +776,16 @@ int main(int argc, char* argv[]) {
 			}
 			break;
 		case Restoring:
-			if (restore(updateArgs)) {
-				state = RestoreComplete;
-			} else {
-				state = RestoreFailed;
-			}
+			state = restore(updateArgs) ? RestoreComplete : RestoreFailed;
 			redraw = true;
 			break;
 		case RestoreComplete:
 			if (redraw) {
 				consoleClear();
 				consolePrintHeader();
-				std::printf("\n  %sRestore complete.%s\n", CONSOLE_GREEN, CONSOLE_RESET);
-				std::printf("\n  Press START to reboot.");
+				std::printf("\n  %sRestore complete.%s\n" \
+					"\n  Press START to reboot.",
+					CONSOLE_GREEN, CONSOLE_RESET);
 				redraw = false;
 			}
 			if ((kDown & KEY_START) != 0) {
@@ -833,7 +806,8 @@ int main(int argc, char* argv[]) {
 					"Reason for failure: %s\n\n  "
 					"If you think this is a bug, please open an\n  " \
 					"issue on the following URL:\n  https://github.com/Hamcha/lumaupdate/issues\n\n  " \
-					"Press START to exit.\n", CONSOLE_RED, CONSOLE_RESET, errcode.c_str());
+					"Press START to exit.\n",
+					CONSOLE_RED, CONSOLE_RESET, errcode.c_str());
 				redraw = false;
 			}
 			break;

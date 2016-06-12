@@ -36,9 +36,9 @@ void consolePrintHeader() {
 	std::printf("%sLuma Updater %s%s\n\n", CONSOLE_YELLOW, GIT_VER, CONSOLE_RESET);
 }
 
-void consolePrintFooter(bool horizontal) {
+void consolePrintFooter() {
 	consoleMoveTo(2, consoleCurrent->consoleHeight - 2);
-	std::printf("%s select options     A choose     START quit", horizontal ? "\x1b\x1a" : "\x18\x19");
+	std::printf("\x18\x19 select options     A choose     START quit");
 }
 
 void consoleMoveTo(const int x, const int y) {
@@ -48,7 +48,7 @@ void consoleMoveTo(const int x, const int y) {
 
 void consoleClearLine() {
 	consoleCurrent->cursorX = 0;
-	printf("%.*s", consoleCurrent->consoleWidth, LINE_BLANK);
+	std::printf("%.*s", consoleCurrent->consoleWidth, LINE_BLANK);
 	consoleCurrent->cursorX = 0;
 }
 
@@ -70,13 +70,13 @@ void consoleInitProgress(const char* header, const char* text, const float progr
 	for (int i = startX; i < endX; i++) {
 		// Draw left and right border
 		for (int j = 0; j < 12; j++) {
-			consoleCurrent->frameBuffer[((startX*8-3)*240)+(230-(startY*8))+j] = 0xffff;
-			consoleCurrent->frameBuffer[((endX*8-6)*240)+(230-(startY*8))+j] = 0xffff;
+			consoleCurrent->frameBuffer[((startX * 8 - 3) * 240) + (230 - (startY * 8)) + j] = 0xffff;
+			consoleCurrent->frameBuffer[((endX * 8 - 6) * 240) + (230 - (startY * 8)) + j] = 0xffff;
 		}
 		// Draw top and bottom borders
-		for (int j = 0; j < (i < endX-1 ? 8 : 6); j++) {
-			consoleCurrent->frameBuffer[((i*8+j-3)*240)+(239-(startY*8-3))] = 0xffff;
-			consoleCurrent->frameBuffer[((i*8+j-3)*240)+(239-((startY+1)*8+2))] = 0xffff;
+		for (int j = 0; j < (i < endX - 1 ? 8 : 6); j++) {
+			consoleCurrent->frameBuffer[((i * 8 + j - 3) * 240) + (239 - (startY * 8 - 3))] = 0xffff;
+			consoleCurrent->frameBuffer[((i * 8 + j - 3) * 240) + (239 - ((startY + 1) * 8 + 2))] = 0xffff;
 		}
 	}
 

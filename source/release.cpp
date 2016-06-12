@@ -411,17 +411,15 @@ bool releaseGetPayload(const ReleaseVer& release, const bool isHourly, u8** payl
 	std::printf("\nDecompressing archive in memory...\n");
 	gfxFlushBuffers();
 
+	bool success;
 	if (isHourly) {
-		bool ret = extractZip(fileData, fileSize, payloadData, payloadSize);
+		success = extractZip(fileData, fileSize, payloadData, payloadSize);
 		offset = 0;
-		if (!ret) {
-			return false;
-		}
 	} else {
-		bool ret = extract7z(fileData, fileSize, payloadData, offset, payloadSize);
-		if (!ret) {
-			return false;
-		}
+		success = extract7z(fileData, fileSize, payloadData, offset, payloadSize);
+	}
+	if (!success) {
+		return false;
 	}
 
 	std::free(fileData);
