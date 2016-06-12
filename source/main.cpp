@@ -72,7 +72,24 @@ struct UpdateArgs {
 	UpdateChoice choice = UpdateChoice(ChoiceType::NoChoice);
 };
 
-int drawChangelog(const std::string& name, const std::string& log, const int page) {
+struct PromptStatus {
+	// Redraw queries
+	bool redrawTop = false;
+	bool redrawBottom = false;
+	bool partialredraw = false;
+	bool redrawRequired() { return redrawTop || redrawBottom || partialredraw; }
+	void resetRedraw() { redrawTop = redrawBottom = partialredraw = false; }
+
+	// Selection and paging
+	int  selected = 0;
+	int  currentPage = 0;
+	int  pageCount = 0;
+
+	// Prompt choice taken?
+	bool optionChosen = false;
+};
+
+static int drawChangelog(const std::string& name, const std::string& log, const int page) {
 	int pageCount = 0;
 
 	consoleScreen(GFX_BOTTOM);
@@ -115,15 +132,34 @@ int drawChangelog(const std::string& name, const std::string& log, const int pag
 	return pageCount;
 }
 
-UpdateChoice drawConfirmationScreen(const UpdateArgs& args, const bool usingConfig) {
-	static bool redrawTop = false;
-	static bool redrawBottom = false;
-	static bool partialredraw = false;
-	static int  selected = 0;
-	static int  hourlyOptionStart = INT_MAX;
-	static int  extraOptionStart  = INT_MAX;
-	static int  currentPage = 0;
-	static int  pageCount = 0;
+static void handlePromptInput(PromptStatus& status, const bool horizontal) {
+	const u32 keydown = hidKeysDown();
+
+	if (keydown & (horizontal ? KEY_LEFT : KEY_UP)) {
+		status.partialredraw = true;
+		--status.selected;
+	}
+	if (keydown & (horizontal ? KEY_RIGHT : KEY_DOWN)) {
+		status.partialredraw = true;
+		++status.selected;
+	}
+
+	if (keydown & KEY_L && status.currentPage > 0) {
+		--status.currentPage;
+		status.redrawBottom = true;
+	}
+	if (keydown & KEY_R && status.currentPage < status.pageCount - 1) {
+		++status.currentPage;
+		status.redrawBottom = true;
+	}
+
+	status.optionChosen = keydown & KEY_A;
+}
+
+static UpdateChoice drawConfirmationScreen(const UpdateArgs& args, const bool usingConfig) {
+	static PromptStatus status;
+	static int hourlyOptionStart = INT_MAX;
+	static int extraOptionStart = INT_MAX;
 
 	const std::string latestStable = versionGetStable(args.currentVersion);
 	const std::string latestCommit = versionGetCommit(args.currentVersion);
@@ -135,33 +171,16 @@ UpdateChoice drawConfirmationScreen(const UpdateArgs& args, const bool usingConf
 
 	const bool backupVersionDetected = args.backupExists && args.backupVersion != "";
 
-	const u32 keydown = hidKeysDown();
+	handlePromptInput(status, false);
 
-	if (keydown & KEY_UP) {
-		partialredraw = true;
-		--selected;
-	}
-	if (keydown & KEY_DOWN) {
-		partialredraw = true;
-		++selected;
-	}
-	if (keydown & KEY_L && currentPage > 0) {
-		--currentPage;
-		redrawBottom = true;
-	}
-	if (keydown & KEY_R && currentPage < pageCount - 1) {
-		++currentPage;
-		redrawBottom = true;
-	}
-
-	if (keydown & KEY_A) {
-		if (selected < hourlyOptionStart) {
-			return UpdateChoice(ChoiceType::UpdatePayload, args.stable->versions[selected], false);
+	if (status.optionChosen) {
+		if (status.selected < hourlyOptionStart) {
+			return UpdateChoice(ChoiceType::UpdatePayload, args.stable->versions[status.selected], false);
 		}
-		if (selected < extraOptionStart) {
-			return UpdateChoice(ChoiceType::UpdatePayload, args.hourly->versions[selected - hourlyOptionStart], true);
+		if (status.selected < extraOptionStart) {
+			return UpdateChoice(ChoiceType::UpdatePayload, args.hourly->versions[status.selected - hourlyOptionStart], true);
 		}
-		int extraOptionID = selected - extraOptionStart;
+		int extraOptionID = status.selected - extraOptionStart;
 
 		// Skip restoring backups if they don't exist
 		if (!args.backupExists) {
@@ -177,22 +196,22 @@ UpdateChoice drawConfirmationScreen(const UpdateArgs& args, const bool usingConf
 			printf("Unknown option selected (?)\n");
 			WAIT_START;
 			redraw = true;
-			selected = 0;
+			status.selected = 0;
 			return UpdateChoice(ChoiceType::NoChoice);
 		}
 	}
 
 	if (redraw) {
-		redrawTop = redrawBottom = true;
+		status.redrawTop = status.redrawBottom = true;
 	}
 
-	if (!redrawTop && !redrawBottom && !partialredraw) {
+	if (!status.redrawRequired()) {
 		return UpdateChoice(ChoiceType::NoChoice);
 	}
 
 	consoleScreen(GFX_TOP);
 
-	if (redrawTop) {
+	if (status.redrawTop) {
 		consoleClear();
 		consolePrintHeader();
 
@@ -237,8 +256,8 @@ UpdateChoice drawConfirmationScreen(const UpdateArgs& args, const bool usingConf
 		consolePrintFooter();
 	}
 
-	if (redrawBottom) {
-		pageCount = drawChangelog(args.stable->name, args.stable->description, currentPage);
+	if (status.redrawBottom) {
+		status.pageCount = drawChangelog(args.stable->name, args.stable->description, status.currentPage);
 		consoleScreen(GFX_TOP);
 	}
 
@@ -259,19 +278,19 @@ UpdateChoice drawConfirmationScreen(const UpdateArgs& args, const bool usingConf
 	int optionCount = args.stable->versions.size() + (args.hourly != nullptr ? args.hourly->versions.size() : 0) + (args.backupExists ? 1 : 0);
 
 	// Wrap around cursor
-	while (selected < 0) selected += optionCount;
-	selected = selected % optionCount;
+	while (status.selected < 0) status.selected += optionCount;
+	status.selected = status.selected % optionCount;
 
 	int curOption = 0;
 	for (ReleaseVer r : args.stable->versions) {
-		printf("     Install %s\n", r.friendlyName.c_str());
+		std::printf("     Install %s\n", r.friendlyName.c_str());
 		++curOption;
 	}
 
 	hourlyOptionStart = curOption;
 	if (args.hourly != nullptr) {
 		for (ReleaseVer h : args.hourly->versions) {
-			printf("     Install %s\n", h.friendlyName.c_str());
+			std::printf("     Install %s\n", h.friendlyName.c_str());
 			++curOption;
 		}
 	}
@@ -280,48 +299,27 @@ UpdateChoice drawConfirmationScreen(const UpdateArgs& args, const bool usingConf
 
 	// Extra #0: Restore backup
 	if (args.backupExists) {
-		printf("     Restore backup\n");
+		std::printf("     Restore backup\n");
 		++curOption;
 	}
 
 	// Print cursor
-	consoleMoveTo(3, y + selected);
-	printf("\x10");
+	consoleMoveTo(3, y + status.selected);
+	std::printf("\x10");
 
 	// Reset redraw vars
-	redraw = redrawTop = redrawBottom = partialredraw = false;
+	redraw = false;
+	status.resetRedraw();
 	return UpdateChoice(ChoiceType::NoChoice);
 }
 
-SelfUpdateChoice drawUpdateNag(const LatestUpdaterInfo& latest) {
-	static bool redrawTop = false;
-	static bool redrawBottom = false;
-	static bool partialredraw = false;
-	static int  selected = 0;
-	static int  currentPage = 0;
-	static int  pageCount = 0;
+static SelfUpdateChoice drawUpdateNag(const LatestUpdaterInfo& latest) {
+	static PromptStatus status;
 
-	const u32 keydown = hidKeysDown();
+	handlePromptInput(status, true);
 
-	if (keydown & KEY_UP) {
-		--selected;
-		partialredraw = true;
-	}
-	if (keydown & KEY_DOWN) {
-		++selected;
-		partialredraw = true;
-	}
-	if (keydown & KEY_L && currentPage > 0) {
-		--currentPage;
-		redrawBottom = true;
-	}
-	if (keydown & KEY_R && currentPage < pageCount - 1) {
-		++currentPage;
-		redrawBottom = true;
-	}
-
-	if (keydown & KEY_A) {
-		switch (selected) {
+	if (status.optionChosen) {
+		switch (status.selected) {
 		case 0:
 			// Self update
 			return SelfUpdateChoice::SelfUpdate;
@@ -334,20 +332,20 @@ SelfUpdateChoice drawUpdateNag(const LatestUpdaterInfo& latest) {
 			printf("Unknown option selected (?)\n");
 			WAIT_START;
 			redraw = true;
-			selected = 0;
+			status.selected = 0;
 			return SelfUpdateChoice::NoChoice;
 		}
 	}
 
 	if (redraw) {
-		redrawTop = redrawBottom = true;
+		status.redrawTop = status.redrawBottom = true;
 	}
 
-	if (!redrawTop && !redrawBottom && !partialredraw) {
+	if (!status.redrawRequired()) {
 		return SelfUpdateChoice::NoChoice;
 	}
 
-	if (redrawTop) {
+	if (status.redrawTop) {
 		consoleScreen(GFX_TOP);
 		consoleClear();
 
@@ -365,18 +363,20 @@ SelfUpdateChoice drawUpdateNag(const LatestUpdaterInfo& latest) {
 		consolePrintFooter(true);
 	}
 
-	if (redrawBottom) {
-		pageCount = drawChangelog(latest.version, latest.changelog, currentPage);
+	if (status.redrawBottom) {
+		status.pageCount = drawChangelog(latest.version, latest.changelog, status.currentPage);
 		consoleScreen(GFX_TOP);
 	}
 
-	selected = selected % 2;
+	status.selected = status.selected % 2;
 
-	redraw = redrawTop = redrawBottom = partialredraw = false;
+	// Reset redraw vars
+	redraw = false;
+	status.resetRedraw();
 	return SelfUpdateChoice::NoChoice;
 }
 
-bool backupA9LH(const std::string& payloadName) {
+static bool backupA9LH(const std::string& payloadName) {
 	std::ifstream original(payloadName, std::ifstream::binary);
 	if (!original.good()) {
 		std::printf("Could not open %s\n", payloadName.c_str());
@@ -398,7 +398,7 @@ bool backupA9LH(const std::string& payloadName) {
 	return true;
 }
 
-bool update(const UpdateArgs& args) {
+static bool update(const UpdateArgs& args) {
 	consoleScreen(GFX_TOP);
 	consoleInitProgress("Updating Luma3DS", "Performing preliminary operations", 0);
 
@@ -491,7 +491,7 @@ bool update(const UpdateArgs& args) {
 	return true;
 }
 
-bool restore(const UpdateArgs& args) {
+static bool restore(const UpdateArgs& args) {
 	// Rename current payload to .broken
 	if (std::rename(args.payloadPath.c_str(), (args.payloadPath + ".broken").c_str()) != 0) {
 		std::perror("Can't rename current version");
