@@ -129,7 +129,7 @@ ReleaseInfo releaseGetLatestStable() {
 				verHasSize = true;
 			}
 			if (verHasName && verHasURL) {
-				printf("Found version: %s\n", current.filename.c_str());
+				std::printf("Found version: %s\n", current.filename.c_str());
 				ReleaseVer version = ReleaseVer{ current.filename, current.friendlyName, current.url, current.fileSize };
 				// Put normal version in front, dev on back
 				if (!isDev) {
@@ -317,7 +317,7 @@ bool extractZip(u8* fileData, size_t fileSize, u8** payloadData, size_t* payload
 
 	unzmem.size = fileSize;
 	unzmem.base = (char*)malloc(unzmem.size);
-	memcpy(unzmem.base, fileData, unzmem.size);
+	std::memcpy(unzmem.base, fileData, unzmem.size);
 
 	fill_memory_filefunc(&filefunc32, &unzmem);
 
@@ -325,31 +325,31 @@ bool extractZip(u8* fileData, size_t fileSize, u8** payloadData, size_t* payload
 	
 	int res = unzLocateFile(zipfile, (std::string("out/") + PAYLOADPATH).c_str(), nullptr);
 	if (res == UNZ_END_OF_LIST_OF_FILE) {
-		printf("ERR Could not find %s in zip file\n", PAYLOADPATH);
+		std::printf("ERR Could not find %s in zip file\n", PAYLOADPATH);
 		goto cleanup;
 	}
 
 	res = unzGetCurrentFileInfo(zipfile, &payloadInfo, nullptr, 0, nullptr, 0, nullptr, 0);
 	if (res != UNZ_OK) {
-		printf("ERR Could not read metadata for %s\n", PAYLOADPATH);
+		std::printf("ERR Could not read metadata for %s\n", PAYLOADPATH);
 		goto cleanup;
 	}
 	*payloadSize = payloadInfo.uncompressed_size;
 
 	res = unzOpenCurrentFile(zipfile);
 	if (res != UNZ_OK) {
-		printf("ERR Could not open %s for reading\n", PAYLOADPATH);
+		std::printf("ERR Could not open %s for reading\n", PAYLOADPATH);
 		goto cleanup;
 	}
 
 	*payloadData = (u8*)malloc(*payloadSize);
 	res = unzReadCurrentFile(zipfile, *payloadData, *payloadSize);
 	if (res < 0) {
-		printf("ERR Could not read %s (%d)\n", PAYLOADPATH, res);
+		std::printf("ERR Could not read %s (%d)\n", PAYLOADPATH, res);
 		goto cleanup;
 	}
 	if (res != (int)*payloadSize) {
-		printf("ERR Extracted size does not match expected! (got %d expected %zu)", res, *payloadSize);
+		std::printf("ERR Extracted size does not match expected! (got %d expected %zu)", res, *payloadSize);
 		goto cleanup;
 	}
 

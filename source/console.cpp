@@ -83,7 +83,7 @@ void consoleInitProgress(const char* header, const char* text, const float progr
 	// Print header
 	consoleCurrent->cursorY = progressBarY - 2;
 	consoleCurrent->cursorX = ProgressBarPadding;
-	printf("%s%s%s", CONSOLE_YELLOW, header, CONSOLE_RESET);
+	std::printf("%s%s%s", CONSOLE_YELLOW, header, CONSOLE_RESET);
 
 	// Set data
 	consoleSetProgressData(text, progress);
@@ -101,11 +101,11 @@ void consoleSetProgressText(const char* text) {
 
 	// Clear line
 	consoleCurrent->cursorX = 0;
-	printf("%.*s", consoleCurrent->consoleWidth, LINE_BLANK);
+	std::printf("%.*s", consoleCurrent->consoleWidth, LINE_BLANK);
 
 	// Write text
 	consoleCurrent->cursorX = ProgressBarPadding;
-	printf("%s...", text);
+	std::printf("%s...", text);
 }
 
 void consoleSetProgressValue(const float progress) {
@@ -119,7 +119,7 @@ void consoleSetProgressValue(const float progress) {
 	// Fill progress
 	int progressBarFill = (int)(progressBarLength * progress);
 	consoleCurrent->flags |= CONSOLE_COLOR_REVERSE;
-	printf("%.*s", progressBarFill, LINE_BLANK);
+	std::printf("%.*s", progressBarFill, LINE_BLANK);
 	consoleCurrent->flags &= ~CONSOLE_COLOR_REVERSE;
-	printf("%.*s", progressBarLength - progressBarFill, LINE_BLANK);
+	std::printf("%.*s", progressBarLength - progressBarFill, LINE_BLANK);
 }

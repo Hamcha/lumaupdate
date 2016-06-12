@@ -56,13 +56,13 @@ int httpGet(const char* url, u8** buf, u32* size, bool verbose, HTTPResponseInfo
 		CHECK(httpcGetDownloadSizeState(&context, &dlpos, NULL), "Could not get file size");
 		pos = dlpos - dlstartpos;
 		if (verbose) {
-			printf("Download progress: %lu / %lu", dlpos, *size);
+			std::printf("Download progress: %lu / %lu", dlpos, *size);
 			gfxFlushBuffers();
 		}
 	}
 	
 	if (verbose) {
-		printf("\n");
+		std::printf("\n");
 	}
 
 	CHECK(httpcCloseContext(&context), "Could not close HTTP context");

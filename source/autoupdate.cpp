@@ -17,8 +17,7 @@ UpdaterInfo updaterGetInfo(const char* path) {
 		// Check for SDMC or 3DSLINK
 		if (source.compare(0, 5, "sdmc:") == 0) {
 			location = HomebrewLocation::SDMC;
-		}
-		else if (source.compare(0, 8, "3dslink:") == 0) {
+		} else if (source.compare(0, 8, "3dslink:") == 0) {
 			location = HomebrewLocation::Remote;
 		}
 
