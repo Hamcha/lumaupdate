@@ -1,12 +1,11 @@
 #include "libs.h"
 
-#include "autoupdate.h"
 #include "arnutil.h"
+#include "autoupdate.h"
 #include "config.h"
 #include "http.h"
-#include "lumautils.h"
 #include "console.h"
-#include "pathchange.h"
+#include "update.h"
 #include "release.h"
 #include "utils.h"
 #include "version.h"
@@ -15,7 +14,6 @@
 
 bool redraw = false;
 Config config;
-std::string errcode = "NO REASON";
 
 /* States */
 
@@ -52,10 +50,10 @@ struct UpdateChoice {
 		:type(type), chosenVersion(ver), isHourly(hourly) {}
 };
 
-struct UpdateArgs {
+struct UpdateInfo {
 	// Detected options
-	std::string  currentVersion = "";
-	std::string  backupVersion  = "";
+	std::string  currentVersion;
+	std::string  backupVersion;
 	bool         migrateARN     = false;
 	bool         backupExists   = false;
 
@@ -70,6 +68,10 @@ struct UpdateArgs {
 
 	// Chosen settings
 	UpdateChoice choice = UpdateChoice(ChoiceType::NoChoice);
+
+	UpdateArgs getArgs() {
+		return UpdateArgs{ payloadPath, backupExisting, migrateARN, choice.chosenVersion, choice.isHourly };
+	}
 };
 
 struct PromptStatus {
@@ -156,7 +158,7 @@ static inline void handlePromptInput(PromptStatus& status) {
 	status.optionChosen = keydown & KEY_A;
 }
 
-static UpdateChoice drawConfirmationScreen(const UpdateArgs& args, const bool usingConfig) {
+static UpdateChoice drawConfirmationScreen(const UpdateInfo& args, const bool usingConfig) {
 	static PromptStatus status;
 	static int hourlyOptionStart = INT_MAX;
 	static int extraOptionStart = INT_MAX;
@@ -356,145 +358,23 @@ static SelfUpdateChoice drawUpdateNag(const LatestUpdaterInfo& latest) {
 		consoleScreen(GFX_TOP);
 	}
 
+	// Wrap around cursor
 	status.selected = status.selected % 2;
+
+	// Print options
+	consoleMoveTo(6, 17);
+	std::printf("  Update (must restart afterwards)");
+	consoleMoveTo(6, 18);
+	std::printf("  Don't update and continue");
+
+	// Print cursor
+	consoleMoveTo(6, 17 + status.selected);
+	std::printf("\x10");
 
 	// Reset redraw vars
 	redraw = false;
 	status.resetRedraw();
 	return SelfUpdateChoice::NoChoice;
-}
-
-static bool backupA9LH(const std::string& payloadName) {
-	std::ifstream original(payloadName, std::ifstream::binary);
-	if (!original.good()) {
-		std::printf("Could not open %s\n", payloadName.c_str());
-		return false;
-	}
-
-	std::string backupName = payloadName + ".bak";
-	std::ofstream target(backupName, std::ofstream::binary);
-	if (!target.good()) {
-		std::printf("Could not open %s\n", backupName.c_str());
-		original.close();
-		return false;
-	}
-
-	target << original.rdbuf();
-
-	original.close();
-	target.close();
-	return true;
-}
-
-static inline bool update(const UpdateArgs& args) {
-	consoleScreen(GFX_TOP);
-	consoleInitProgress("Updating Luma3DS", "Performing preliminary operations", 0);
-
-	consoleScreen(GFX_BOTTOM);
-	consoleClear();
-
-	// Back up local file if it exists
-	if (!args.backupExisting) {
-		std::printf("Payload backup is disabled in config, skipping...\n");
-	} else if (!fileExists(args.payloadPath)) {
-		std::printf("Original payload not found, skipping backup...\n");
-	} else {
-		consoleScreen(GFX_TOP);
-		consoleSetProgressData("Backing up old payload", 0.1);
-		consoleScreen(GFX_BOTTOM);
-
-		std::printf("Copying %s to %s.bak...\n", args.payloadPath.c_str(), args.payloadPath.c_str());
-		gfxFlushBuffers();
-		if (!backupA9LH(args.payloadPath)) {
-			std::printf("\nCould not backup %s (!!), aborting...\n", args.payloadPath.c_str());
-			errcode = "BACKUP FAILED";
-			return false;
-		}
-	}
-
-	consoleScreen(GFX_TOP);
-	consoleSetProgressData("Downloading payload", 0.3);
-	consoleScreen(GFX_BOTTOM);
-
-	std::printf("Downloading %s\n", args.choice.chosenVersion.url.c_str());
-	gfxFlushBuffers();
-
-	u8* payloadData = nullptr;
-	size_t offset = 0;
-	size_t payloadSize = 0;
-	if (!releaseGetPayload(args.choice.chosenVersion, args.choice.isHourly, &payloadData, &offset, &payloadSize)) {
-		std::printf("FATAL\nCould not get A9LH payload...\n");
-		std::free(payloadData);
-		errcode = "DOWNLOAD FAILED";
-		return false;
-	}
-
-	if (args.payloadPath != std::string("/") + PAYLOADPATH) {
-		consoleScreen(GFX_TOP);
-		consoleSetProgressData("Applying path changing", 0.6);
-		consoleScreen(GFX_BOTTOM);
-
-		std::printf("Requested payload path is not %s, applying path patch...\n", PAYLOADPATH);
-		if (!pathchange(payloadData + offset, payloadSize, args.payloadPath)) {
-			std::free(payloadData);
-			errcode = "PATHCHANGE FAILED";
-			return false;
-		}
-	}
-
-	if (args.migrateARN) {
-		consoleScreen(GFX_TOP);
-		consoleSetProgressData("Migrating AuReiNand -> Luma3DS", 0.8);
-		consoleScreen(GFX_BOTTOM);
-
-		std::printf("Migrating AuReiNand install to Luma3DS...\n");
-		if (!arnMigrate()) {
-			std::printf("FATAL\nCould not migrate AuReiNand install (?)\n");
-			errcode = "MIGRATION FAILED";
-			return false;
-		}
-	}
-
-	if (!lumaMigratePayloads()) {
-		std::printf("WARN\nCould not migrate payloads\n\n");
-	}
-
-	consoleScreen(GFX_TOP);
-	consoleSetProgressData("Saving payload to SD", 0.9);
-	consoleScreen(GFX_BOTTOM);
-
-	std::printf("Saving %s to SD (as %s)...\n", PAYLOADPATH, args.payloadPath.c_str());
-	std::ofstream a9lhfile("/" + args.payloadPath, std::ofstream::binary);
-	a9lhfile.write((const char*)(payloadData + offset), payloadSize);
-	a9lhfile.close();
-
-	std::printf("All done, freeing resources and exiting...\n");
-	std::free(payloadData);
-
-	consoleClear();
-	consoleScreen(GFX_TOP);
-
-	return true;
-}
-
-static inline bool restore(const UpdateArgs& args) {
-	// Rename current payload to .broken
-	if (std::rename(args.payloadPath.c_str(), (args.payloadPath + ".broken").c_str()) != 0) {
-		std::perror("Can't rename current version");
-		errcode = "RENAME 1 FAILED";
-		return false;
-	}
-	// Rename .bak to current
-	if (std::rename((args.payloadPath + ".bak").c_str(), args.payloadPath.c_str()) != 0) {
-		std::perror("Can't rename backup to current payload name");
-		errcode = "RENAME 2 FAILED";
-		return false;
-	}
-	// Remove .broken
-	if (std::remove((args.payloadPath + ".broken").c_str()) != 0) {
-		std::perror("WARN: Could not remove current payload, please remove it manually");
-	}
-	return true;
 }
 
 int main(int argc, char* argv[]) {
@@ -506,7 +386,8 @@ int main(int argc, char* argv[]) {
 
 	UpdateState state = UpdateConfirmationScreen;
 	ReleaseInfo release = {}, hourly = {};
-	UpdateArgs updateArgs = {};
+	UpdateInfo updateInfo = {};
+	UpdateResult result;
 
 	aptInit();
 	gfxInitDefault();
@@ -566,24 +447,24 @@ int main(int argc, char* argv[]) {
 	}
 
 	// Load config values
-	updateArgs.payloadPath = config.Get("payload path", PAYLOADPATH);
-	updateArgs.backupExisting = tolower(config.Get("backup", "y")[0]) == 'y';
-	updateArgs.selfUpdate = tolower(config.Get("selfupdate", "y")[0]) == 'y';
+	updateInfo.payloadPath = config.Get("payload path", PAYLOADPATH);
+	updateInfo.backupExisting = tolower(config.Get("backup", "y")[0]) == 'y';
+	updateInfo.selfUpdate = tolower(config.Get("selfupdate", "y")[0]) == 'y';
 
 	// Add initial slash to payload path, if missing
-	if (updateArgs.payloadPath[0] != '/') {
-		updateArgs.payloadPath = "/" + updateArgs.payloadPath;
+	if (updateInfo.payloadPath[0] != '/') {
+		updateInfo.payloadPath = "/" + updateInfo.payloadPath;
 	}
 
 	// Check that the payload path is valid
-	if (updateArgs.payloadPath.length() > MAXPATHLEN) {
+	if (updateInfo.payloadPath.length() > MAXPATHLEN) {
 		std::printf("\nFATAL\nPayload path is too long!\nIt can contain at most %d characters!\n\nPress START to quit.\n", MAXPATHLEN);
 		gfxFlushBuffers();
 		WAIT_START
 		goto cleanup;
 	}
 
-	if (updateArgs.selfUpdate) {
+	if (updateInfo.selfUpdate) {
 		consoleScreen(GFX_TOP);
 		consoleSetProgressData("Checking for an updated updater", 0.1);
 		consoleScreen(GFX_BOTTOM);
@@ -604,12 +485,12 @@ int main(int argc, char* argv[]) {
 			std::printf("Could not detect install type, skipping self-update...\n");
 			selfupdateContinue = false;
 		}
-		/*
+
 		if (info.location == HomebrewLocation::Remote) {
 			std::printf("Updater launched over 3DSLink, skipping self-update...\n");
 			selfupdateContinue = false;
 		}
-		*/
+
 
 		if (selfupdateContinue) {
 			std::printf("Checking for new Luma3DS Updater releases...\n");
@@ -674,25 +555,25 @@ int main(int argc, char* argv[]) {
 
 	// Try to detect current version
 	std::printf("Trying detection of current payload version...\n");
-	updateArgs.currentVersion = versionMemsearch(updateArgs.payloadPath);
+	updateInfo.currentVersion = versionMemsearch(updateInfo.payloadPath);
 
 	// Detect bak version, if exists
-	if (fileExists(updateArgs.payloadPath + ".bak")) {
-		updateArgs.backupExists = true;
-		updateArgs.backupVersion = versionMemsearch(updateArgs.payloadPath + ".bak");
+	if (fileExists(updateInfo.payloadPath + ".bak")) {
+		updateInfo.backupExists = true;
+		updateInfo.backupVersion = versionMemsearch(updateInfo.payloadPath + ".bak");
 	}
 
 	// Check for eventual migration from ARN to Luma
-	updateArgs.migrateARN = arnVersionCheck(updateArgs.currentVersion);
+	updateInfo.migrateARN = arnVersionCheck(updateInfo.currentVersion);
 
 	consoleScreen(GFX_TOP);
 	consoleSetProgressData("Fetching latest release data", 0.6);
 	consoleScreen(GFX_BOTTOM);
 
-	updateArgs.stable = nullptr;
+	updateInfo.stable = nullptr;
 	try {
 		release = releaseGetLatestStable();
-		updateArgs.stable = &release;
+		updateInfo.stable = &release;
 	} catch (const std::string& e) {
 		std::printf("%s\n", e.c_str());
 		std::printf("\nFATAL ERROR\nFailed to obtain required data.\n\nPress START to exit.\n");
@@ -705,10 +586,10 @@ int main(int argc, char* argv[]) {
 	consoleSetProgressData("Fetching latest hourly", 0.8);
 	consoleScreen(GFX_BOTTOM);
 
-	updateArgs.hourly = nullptr;
+	updateInfo.hourly = nullptr;
 	try {
 		hourly = releaseGetLatestHourly();
-		updateArgs.hourly = &hourly;
+		updateInfo.hourly = &hourly;
 	} catch (const std::string& e) {
 		std::printf("%s\n", e.c_str());
 		std::printf("\nWARN\nCould not obtain latest hourly, skipping...\n");
@@ -726,8 +607,8 @@ int main(int argc, char* argv[]) {
 
 		switch (state) {
 		case UpdateConfirmationScreen:
-			updateArgs.choice = drawConfirmationScreen(updateArgs, configFound);
-			switch (updateArgs.choice.type) {
+			updateInfo.choice = drawConfirmationScreen(updateInfo, configFound);
+			switch (updateInfo.choice.type) {
 			case ChoiceType::UpdatePayload:
 				state = Updating;
 				redraw = true;
@@ -739,7 +620,8 @@ int main(int argc, char* argv[]) {
 			}
 			break;
 		case Updating:
-			state = update(updateArgs) ? UpdateComplete : UpdateFailed;
+			result = update(updateInfo.getArgs());
+			state = result.success ? UpdateComplete : UpdateFailed;
 			redraw = true;
 			break;
 		case UpdateFailed:
@@ -753,7 +635,7 @@ int main(int argc, char* argv[]) {
 					"Reason for failure: %s\n\n  "
 					"If you think this is a bug, please open an\n  " \
 					"issue on the following URL:\n  https://github.com/Hamcha/lumaupdate/issues\n\n  " \
-					"Press START to exit.\n", CONSOLE_RED, CONSOLE_RESET, errcode.c_str());
+					"Press START to exit.\n", CONSOLE_RED, CONSOLE_RESET, result.errcode.c_str());
 				redraw = false;
 			}
 			break;
@@ -762,8 +644,8 @@ int main(int argc, char* argv[]) {
 				consoleClear();
 				consolePrintHeader();
 				std::printf("\n  %sUpdate complete.%s\n", CONSOLE_GREEN, CONSOLE_RESET);
-				if (updateArgs.backupExisting) {
-					std::printf("\n  In case something goes wrong you can restore\n  the old payload from %s.bak\n", updateArgs.payloadPath.c_str());
+				if (updateInfo.backupExisting) {
+					std::printf("\n  In case something goes wrong you can restore\n  the old payload from %s.bak\n", updateInfo.payloadPath.c_str());
 				}
 				std::printf("\n  Press START to reboot.");
 				redraw = false;
@@ -776,7 +658,8 @@ int main(int argc, char* argv[]) {
 			}
 			break;
 		case Restoring:
-			state = restore(updateArgs) ? RestoreComplete : RestoreFailed;
+			result = restore(updateInfo.getArgs());
+			state = result.success ? RestoreComplete : RestoreFailed;
 			redraw = true;
 			break;
 		case RestoreComplete:
@@ -807,7 +690,7 @@ int main(int argc, char* argv[]) {
 					"If you think this is a bug, please open an\n  " \
 					"issue on the following URL:\n  https://github.com/Hamcha/lumaupdate/issues\n\n  " \
 					"Press START to exit.\n",
-					CONSOLE_RED, CONSOLE_RESET, errcode.c_str());
+					CONSOLE_RED, CONSOLE_RESET, result.errcode.c_str());
 				redraw = false;
 			}
 			break;
