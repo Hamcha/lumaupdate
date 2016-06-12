@@ -262,8 +262,7 @@ bool extract7z(u8* fileData, size_t fileSize, u8** payloadData, size_t* offset, 
 				break;
 			}
 		}
-	}
-	else {
+	} else {
 		std::printf("Could not open archive (SzArEx_Open)\n");
 		SzArEx_Free(&db, &allocImp);
 		std::free(fileData);
@@ -426,12 +425,5 @@ bool releaseGetPayload(ReleaseVer release, bool isHourly, u8** payloadData, size
 	}
 
 	std::free(fileData);
-
-	if (*payloadSize > 0x20000) {
-		std::printf("File is too big to be a valid A9LH payload!\n");
-		gfxFlushBuffers();
-		return false;
-	}
-
 	return true;
 }

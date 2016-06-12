@@ -26,7 +26,6 @@ UpdaterInfo updaterGetInfo(const char* path) {
 		if (source.find(".3dsx") != std::string::npos) {
 			type = HomebrewType::Homebrew;
 		}
-	} else {
 	}
 
 #ifdef UNIQUE_ID
