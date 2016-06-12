@@ -113,7 +113,7 @@ LatestUpdaterInfo updaterGetLatest() {
 	std::free(apiReqData);
 
 #ifdef GIT_VER
-	latest.isNewer = latest.version < GIT_VER;
+	latest.isNewer = latest.version > GIT_VER;
 #else
 	latest.isNewer = false;
 #endif
