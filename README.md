@@ -27,6 +27,18 @@ A `arm9loaderhax.bin` updater for Luma3DS (formerly AuReiNand) as a 3DS homebrew
 
 `make DEBUG=1` will disable compile-time optimizations entirely
 
+## License
+
+The assets and code for the homebrew (code under `source/` and assets under `meta/`) are licensed under the **WTFPL**.
+
+Refer to `LICENSE.txt` for the full text.
+
+This project uses [jsmn](https://github.com/zserge/jsmn), which is licensed under MIT.
+Refer to `LICENSE.jsmn.txt` for the full license text.
+
+This project uses [minizip](https://github.com/nmoinvaz/minizip), which is licensed under the zlib license.
+Refer to `LICENSE.minizip.txt` for the full license text.
+
 ## Credits
 
 - Luma3DS builds (and development) by [Aurora Wright](https://github.com/AuroraWright)
