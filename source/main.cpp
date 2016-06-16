@@ -574,8 +574,8 @@ int main(int argc, char* argv[]) {
 	try {
 		release = releaseGetLatestStable();
 		updateInfo.stable = &release;
-	} catch (const std::string& e) {
-		std::printf("%s\n", e.c_str());
+	} catch (const std::runtime_error& e) {
+		std::printf("%s\n", e.what());
 		std::printf("\nFATAL ERROR\nFailed to obtain required data.\n\nPress START to exit.\n");
 		gfxFlushBuffers();
 		WAIT_START
@@ -590,8 +590,8 @@ int main(int argc, char* argv[]) {
 	try {
 		hourly = releaseGetLatestHourly();
 		updateInfo.hourly = &hourly;
-	} catch (const std::string& e) {
-		std::printf("%s\n", e.c_str());
+	} catch (const std::runtime_error& e) {
+		std::printf("%s\n", e.what());
 		std::printf("\nWARN\nCould not obtain latest hourly, skipping...\n");
 		gfxFlushBuffers();
 	}

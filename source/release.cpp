@@ -13,9 +13,6 @@
 // jsmn includes
 #include "jsmn.h"
 
-// libmd5-rfc includes
-#include "md5/md5.h"
-
 // Internal includes
 #include "http.h"
 #include "utils.h"
@@ -29,29 +26,6 @@ static int jsoneq(const char *json, const jsmntok_t *tok, const char *s) {
 	return -1;
 }
 #endif
-
-static bool checkEtag(std::string etag, const u8* fileData, const u32 fileSize) {
-	// Strip quotes from either side of the etag
-	if (etag[0] == '"') {
-		etag = etag.substr(1, etag.length() - 2);
-	}
-
-	// Get MD5 bytes from Etag header
-	md5_byte_t expected[16];
-	const char* etagchr = etag.c_str();
-	for (u8 i = 0; i < 16; i++) {
-		std::sscanf(etagchr + (i*2), "%02x", &expected[i]);
-	}
-
-	// Calculate MD5 hash of downloaded archive
-	md5_state_t state;
-	md5_byte_t result[16];
-	md5_init(&state);
-	md5_append(&state, (const md5_byte_t *)fileData, fileSize);
-	md5_finish(&state, result);
-
-	return memcmp(expected, result, 16) == 0;
-}
 
 ReleaseInfo releaseGetLatestStable() {
 	ReleaseInfo release;
@@ -180,7 +154,7 @@ ReleaseInfo releaseGetLatestHourly() {
 
 		try {
 			httpGet(versions[i], &apiReqData, &apiReqSize, true);
-		} catch (std::string& e) {
+		} catch (const std::runtime_error& e) {
 			std::printf("Could not download, skipping...");
 			continue;
 		}
@@ -378,8 +352,8 @@ bool releaseGetPayload(const ReleaseVer& release, const bool isHourly, u8** payl
 #else
 		httpGet(release.url.c_str(), &fileData, &fileSize, true, &info);
 #endif
-	} catch (std::string& e) {
-		std::printf("%s\n", e.c_str());
+	} catch (const std::runtime_error& e) {
+		std::printf("%s\n", e.what());
 		return false;
 	}
 	std::printf("Download complete! Size: %lu\n", fileSize);
@@ -393,19 +367,19 @@ bool releaseGetPayload(const ReleaseVer& release, const bool isHourly, u8** payl
 		}
 		std::printf(" [OK]\r\n");
 	} else {
-		std::printf("Skipping integrity check #1 [No size]\r\n");
+		std::printf("Skipping integrity check #1 (unknown size)\r\n");
 	}
 
 	if (info.etag != "") {
 		std::printf("Integrity check #2");
-		if (!checkEtag(info.etag, fileData, fileSize)) {
+		if (!httpCheckETag(info.etag, fileData, fileSize)) {
 			std::printf(" [ERR]\r\nMD5 mismatch between server's and local file!\r\n");
 			gfxFlushBuffers();
 			return false;
 		}
 		std::printf(" [OK]\r\n");
 	} else {
-		std::printf("Skipping integrity check #2 [No Etag]\r\n");
+		std::printf("Skipping integrity check #2 (no ETag found)\r\n");
 	}
 
 	std::printf("\nDecompressing archive in memory...\n");

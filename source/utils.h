@@ -2,7 +2,7 @@
 
 #include "libs.h"
 
-#define CHECK(val, msg) if (val != 0) { throw formatErrMessage(msg, val); }
+#define CHECK(val, msg) if (val != 0) { throw std::runtime_error(formatErrMessage(msg, val)); }
 
 /*! \brief Formats error messages so they are more readable as exceptions
  *

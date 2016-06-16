@@ -5,7 +5,10 @@
 #include "certs/cybertrust.h"
 #include "certs/digicert.h"
 
-int httpGet(const char* url, u8** buf, u32* size, const bool verbose, HTTPResponseInfo* info) {
+// libmd5-rfc includes
+#include "md5/md5.h"
+
+void httpGet(const char* url, u8** buf, u32* size, const bool verbose, HTTPResponseInfo* info) {
 	httpcContext context;
 	CHECK(httpcOpenContext(&context, HTTPC_METHOD_GET, (char*)url, 0), "Could not open HTTP context");
 	// Add User Agent field (required by Github API calls)
@@ -25,7 +28,8 @@ int httpGet(const char* url, u8** buf, u32* size, const bool verbose, HTTPRespon
 			char newUrl[1024];
 			CHECK(httpcGetResponseHeader(&context, (char*)"Location", newUrl, 1024), "Could not get Location header for 3xx reply");
 			CHECK(httpcCloseContext(&context), "Could not close HTTP context");
-			return httpGet(newUrl, buf, size, verbose, info);
+			httpGet(newUrl, buf, size, verbose, info);
+			return;
 		}
 		throw formatErrMessage("Non-200 status code", statuscode);
 	}
@@ -66,6 +70,28 @@ int httpGet(const char* url, u8** buf, u32* size, const bool verbose, HTTPRespon
 	}
 
 	CHECK(httpcCloseContext(&context), "Could not close HTTP context");
+}
 
-	return 1;
+
+bool httpCheckETag(std::string etag, const u8* fileData, const u32 fileSize) {
+	// Strip quotes from either side of the etag
+	if (etag[0] == '"') {
+		etag = etag.substr(1, etag.length() - 2);
+	}
+
+	// Get MD5 bytes from Etag header
+	md5_byte_t expected[16];
+	const char* etagchr = etag.c_str();
+	for (u8 i = 0; i < 16; i++) {
+		std::sscanf(etagchr + (i * 2), "%02x", &expected[i]);
+	}
+
+	// Calculate MD5 hash of downloaded archive
+	md5_state_t state;
+	md5_byte_t result[16];
+	md5_init(&state);
+	md5_append(&state, (const md5_byte_t *)fileData, fileSize);
+	md5_finish(&state, result);
+
+	return memcmp(expected, result, 16) == 0;
 }

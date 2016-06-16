@@ -24,10 +24,11 @@ struct UpdaterInfo {
 
 //! Latest Luma3DS Updater version info
 struct LatestUpdaterInfo {
-	std::string version;
-	std::string url;
-	std::string changelog;
-	bool        isNewer;
+	std::string version;       //!< Version number
+	std::string url;           //!< Download URL
+	std::string changelog;     //!< Changelog
+	bool        isNewer;       //!< Is version newer than the currently installed one
+	size_t      fileSize;      //!< Archive size
 };
 
 /*! \brief Get currently installed homebrew info
@@ -43,3 +44,10 @@ UpdaterInfo updaterGetInfo(const char* path = nullptr);
  *  \return Latest release available on Github
  */
 LatestUpdaterInfo updaterGetLatest();
+
+/*! \brief Update to latest version 
+ *
+ *  \param latest Latest release info (for downloading)
+ *  \param current Current updater install info (for installing)
+ */
+void updaterDoUpdate(LatestUpdaterInfo latest, UpdaterInfo current);

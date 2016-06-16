@@ -102,7 +102,7 @@ LatestUpdaterInfo updaterGetLatest() {
 			if (jsoneq((const char*)apiReqData, &t[i], "browser_download_url") == 0) {
 				jsmntok_t val = t[i + 1];
 				std::string url = std::string((const char*)apiReqData + val.start, val.end - val.start);
-				if (url.find("release.zip") != std::string::npos) {
+				if (url.find(".zip") != std::string::npos) {
 					latest.url = url;
 				}
 			}
@@ -120,4 +120,36 @@ LatestUpdaterInfo updaterGetLatest() {
 
 	return latest;
 #endif
+}
+
+void updaterDoUpdate(LatestUpdaterInfo latest, UpdaterInfo current) {
+	//TODO Download payload
+	u8* archiveData = nullptr;
+	u32 archiveSize = 0;
+	HTTPResponseInfo info;
+
+	httpGet(latest.url.c_str(), &archiveData, &archiveSize, true, &info);
+	std::printf("Download complete! Size: %lu\n", archiveSize);
+
+	if (info.etag != "") {
+		std::printf("Performing integrity check... ");
+		if (!httpCheckETag(info.etag, archiveData, archiveSize)) {
+			std::printf(" ERR\r\n");
+			throw std::runtime_error("MD5 mismatch between server's and local file!\r\n");
+		}
+		std::printf(" OK\r\n");
+	} else {
+		std::printf("Skipping integrity check (no ETag found)\r\n");
+	}
+	
+	switch (current.type) {
+	case HomebrewType::CIA:
+		//TODO Extract CIA from archive, install it
+		break;
+	case HomebrewType::Homebrew:
+		//TODO Extract 3dsx/smdh from archive
+		break;
+	default:
+		throw std::domain_error("Trying to update an unknown install");
+	}
 }
