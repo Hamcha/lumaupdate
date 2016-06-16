@@ -29,15 +29,17 @@ A `arm9loaderhax.bin` updater for Luma3DS (formerly AuReiNand) as a 3DS homebrew
 
 ## License
 
-The assets and code for the homebrew (code under `source/` and assets under `meta/`) are licensed under the **WTFPL**.
-
+The assets and code for the homebrew (code under `source/` and assets under `meta/`) are licensed under the **WTFPL**.  
 Refer to `LICENSE.txt` for the full text.
 
-This project uses [jsmn](https://github.com/zserge/jsmn), which is licensed under MIT.
-Refer to `LICENSE.jsmn.txt` for the full license text.
+This project uses [jsmn](https://github.com/zserge/jsmn), which is licensed under MIT.  
+Refer to `LICENSE.jsmn.txt` for the full text.
 
-This project uses [minizip](https://github.com/nmoinvaz/minizip), which is licensed under the zlib license.
-Refer to `LICENSE.minizip.txt` for the full license text.
+This project uses [minizip](https://github.com/nmoinvaz/minizip), which is licensed under the zlib license.  
+Refer to `LICENSE.minizip.txt` for the full text.
+
+This project uses [libmd5-rfc](https://sourceforge.net/projects/libmd5-rfc/), which is licensed under the BSD license.  
+Refer to `LICENSE.libmd5-rfc.txt` for the full text.
 
 ## Credits
 
