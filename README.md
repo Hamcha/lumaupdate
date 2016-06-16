@@ -32,7 +32,7 @@ A `arm9loaderhax.bin` updater for Luma3DS (formerly AuReiNand) as a 3DS homebrew
 The assets and code for the homebrew (code under `source/` and assets under `meta/`) are licensed under the **WTFPL**.  
 Refer to `LICENSE.txt` for the full text.
 
-This project uses [jsmn](https://github.com/zserge/jsmn), which is licensed under MIT.  
+This project uses [jsmn](https://github.com/zserge/jsmn), which is licensed under the MIT license.  
 Refer to `LICENSE.jsmn.txt` for the full text.
 
 This project uses [minizip](https://github.com/nmoinvaz/minizip), which is licensed under the zlib license.  
@@ -43,7 +43,7 @@ Refer to `LICENSE.libmd5-rfc.txt` for the full text.
 
 ## Credits
 
-- Luma3DS builds (and development) by [Aurora Wright](https://github.com/AuroraWright)
+- Luma3DS builds (and development) by [Aurora Wright](https://github.com/AuroraWright), [TuxSH](https://github.com/TuxSH) and [other contributors](https://github.com/AuroraWright/Luma3DS/graphs/contributors)
 - Hourlies built and provided by [astronautlevel](https://github.com/astronautlevel2)
-- Makefiles are somewhat stripped down [Steveice10](https://github.com/Steveice10)'s buildtools
+- Makefiles are somewhat derived by stripping down [Steveice10](https://github.com/Steveice10)'s buildtools
 - CIA jingle by [Cydon @ FreeSound](https://www.freesound.org/people/cydon/)
