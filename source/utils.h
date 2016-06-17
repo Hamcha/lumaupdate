@@ -70,3 +70,15 @@ int getPageCount(const std::string& text, const int rows);
  *  \return Requested page, or blank string if it's an inexistant page
  */
 std::string getPage(const std::string& text, const int num, const int rows);
+
+/*! \brief Alternative to_string implementation (workaround for mingw)
+ *
+ *  \param n Input parameter
+ *
+ *  \return String representation of the input parameter
+ */
+template < typename T > std::string tostr(const T& n) {
+	std::ostringstream stm;
+	stm << n;
+	return stm.str();
+}

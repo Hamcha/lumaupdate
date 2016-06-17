@@ -1,14 +1,6 @@
 #include "release.h"
 
-// 7z includes
-#include "7z/7z.h"
-#include "7z/7zAlloc.h"
-#include "7z/7zCrc.h"
-#include "7z/7zMemInStream.h"
-
-// minizip includes
-#include "minizip/ioapi_mem.h"
-#include "minizip/unzip.h"
+#include "archive.h"
 
 // jsmn includes
 #include "jsmn.h"
@@ -183,158 +175,6 @@ ReleaseInfo releaseGetLatestHourly() {
 	return hourly;
 }
 
-static bool extract7z(u8* fileData, const size_t fileSize, u8** payloadData, size_t* offset, size_t* payloadSize) {
-	CMemInStream memStream;
-	MemInStream_Init(&memStream, fileData, fileSize);
-	std::printf("Created 7z InStream, opening as archive...\n");
-	gfxFlushBuffers();
-
-	CSzArEx db;
-	ISzAlloc allocImp;
-	ISzAlloc allocTempImp;
-	allocImp.Alloc = SzAlloc;
-	allocImp.Free = SzFree;
-	allocTempImp.Alloc = SzAllocTemp;
-	allocTempImp.Free = SzFreeTemp;
-
-	CrcGenerateTable();
-	SzArEx_Init(&db);
-
-	SRes res = SzArEx_Open(&db, &memStream.s, &allocImp, &allocTempImp);
-	u32 codeIndex = UINT32_MAX;
-	if (res != SZ_OK) {
-		std::printf("Could not open archive (SzArEx_Open)\n");
-		SzArEx_Free(&db, &allocImp);
-		std::free(fileData);
-		return false;
-	}
-
-	std::printf("Archive opened in memory.\n\nSearching for %s: ", PAYLOADPATH);
-	gfxFlushBuffers();
-	for (u32 i = 0; i < db.NumFiles; ++i) {
-		// Skip directories
-		unsigned isDir = SzArEx_IsDir(&db, i);
-		if (isDir) {
-			continue;
-		}
-
-		// Get name
-		size_t len;
-		len = SzArEx_GetFileNameUtf16(&db, i, NULL);
-		// Super long filename? Just skip it..
-		if (len >= 256) {
-			continue;
-		}
-		u16 name[256] = { 0 };
-		SzArEx_GetFileNameUtf16(&db, i, name);
-
-		// Convert name to ASCII (just cut the other bytes)
-		char name8[256] = { 0 };
-		for (size_t j = 0; j < len; ++j) {
-			name8[j] = name[j] % 0xff;
-		}
-
-		// Check if it's the A9LH payload
-		int res = strncmp(name8, PAYLOADPATH, len - 1);
-		if (res == 0) {
-			codeIndex = i;
-			std::printf("FOUND! (%lu)\n", codeIndex);
-			break;
-		}
-	}
-
-	if (codeIndex == UINT32_MAX) {
-		std::printf("ERR\nCould not find %s\n", PAYLOADPATH);
-		SzArEx_Free(&db, &allocImp);
-		std::free(fileData);
-		return false;
-	}
-
-	std::printf("\nExtracting %s from archive...\n", PAYLOADPATH);
-	gfxFlushBuffers();
-
-	UInt32 blockIndex = UINT32_MAX;
-	size_t fileBufSize = 0;
-
-	res = SzArEx_Extract(
-		&db,
-		&memStream.s,
-		codeIndex,
-		&blockIndex,
-		payloadData,
-		&fileBufSize,
-		offset,
-		payloadSize,
-		&allocImp,
-		&allocTempImp
-	);
-	if (res != SZ_OK) {
-		std::printf("\nCould not extract %s\n", PAYLOADPATH);
-		gfxFlushBuffers();
-		SzArEx_Free(&db, &allocImp);
-		std::free(fileData);
-		return false;
-	}
-
-	std::printf("File extracted successfully (%zu bytes)\n", *payloadSize);
-	gfxFlushBuffers();
-
-	SzArEx_Free(&db, &allocImp);
-	return true;
-}
-
-static bool extractZip(u8* fileData, const size_t fileSize, u8** payloadData, size_t* payloadSize) {
-	zlib_filefunc_def filefunc32 = {};
-	ourmemory_t unzmem = {};
-	unz_file_info payloadInfo = {};
-	bool success = false;
-
-	unzmem.size = fileSize;
-	unzmem.base = (char*)malloc(unzmem.size);
-	std::memcpy(unzmem.base, fileData, unzmem.size);
-
-	fill_memory_filefunc(&filefunc32, &unzmem);
-
-	unzFile zipfile = unzOpen2("__notused__", &filefunc32);
-	
-	int res = unzLocateFile(zipfile, (std::string("out/") + PAYLOADPATH).c_str(), nullptr);
-	if (res == UNZ_END_OF_LIST_OF_FILE) {
-		std::printf("ERR Could not find %s in zip file\n", PAYLOADPATH);
-		goto cleanup;
-	}
-
-	res = unzGetCurrentFileInfo(zipfile, &payloadInfo, nullptr, 0, nullptr, 0, nullptr, 0);
-	if (res != UNZ_OK) {
-		std::printf("ERR Could not read metadata for %s\n", PAYLOADPATH);
-		goto cleanup;
-	}
-	*payloadSize = payloadInfo.uncompressed_size;
-
-	res = unzOpenCurrentFile(zipfile);
-	if (res != UNZ_OK) {
-		std::printf("ERR Could not open %s for reading\n", PAYLOADPATH);
-		goto cleanup;
-	}
-
-	*payloadData = (u8*)malloc(*payloadSize);
-	res = unzReadCurrentFile(zipfile, *payloadData, *payloadSize);
-	if (res < 0) {
-		std::printf("ERR Could not read %s (%d)\n", PAYLOADPATH, res);
-		goto cleanup;
-	}
-	if (res != (int)*payloadSize) {
-		std::printf("ERR Extracted size does not match expected! (got %d expected %zu)", res, *payloadSize);
-		goto cleanup;
-	}
-
-	// Close and cleanup
-	success = true;
-cleanup:
-	unzCloseCurrentFile(zipfile);
-	unzClose(zipfile);
-	return success;
-}
-
 bool releaseGetPayload(const ReleaseVer& release, const bool isHourly, u8** payloadData, size_t* offset, size_t* payloadSize) {
 	u8* fileData = nullptr;
 	u32 fileSize = 0;
@@ -361,41 +201,46 @@ bool releaseGetPayload(const ReleaseVer& release, const bool isHourly, u8** payl
 	if (release.fileSize != 0) {
 		std::printf("Integrity check #1");
 		if (fileSize != release.fileSize) {
-			std::printf(" [ERR]\r\nReceived file is a different size than expected!\r\n");
+			std::printf(" [ERR]\r\nReceived file is a different size than expected!\n");
 			gfxFlushBuffers();
 			return false;
 		}
 		std::printf(" [OK]\r\n");
 	} else {
-		std::printf("Skipping integrity check #1 (unknown size)\r\n");
+		std::printf("Skipping integrity check #1 (unknown size)\n");
 	}
 
 	if (info.etag != "") {
 		std::printf("Integrity check #2");
 		if (!httpCheckETag(info.etag, fileData, fileSize)) {
-			std::printf(" [ERR]\r\nMD5 mismatch between server's and local file!\r\n");
+			std::printf(" [ERR]\r\nMD5 mismatch between server's and local file!\n");
 			gfxFlushBuffers();
 			return false;
 		}
 		std::printf(" [OK]\r\n");
 	} else {
-		std::printf("Skipping integrity check #2 (no ETag found)\r\n");
+		std::printf("Skipping integrity check #2 (no ETag found)\n");
 	}
 
-	std::printf("\nDecompressing archive in memory...\n");
+	std::printf("\nExtracting payload");
 	gfxFlushBuffers();
 
-	bool success;
-	if (isHourly) {
-		success = extractZip(fileData, fileSize, payloadData, payloadSize);
-		offset = 0;
-	} else {
-		success = extract7z(fileData, fileSize, payloadData, offset, payloadSize);
-	}
-	if (!success) {
+	try {
+		if (isHourly) {
+			ZipArchive archive(fileData, fileSize);
+			archive.extractFile(std::string("out/") + PAYLOADPATH, payloadData, payloadSize);
+			offset = 0;
+		} else {
+			SzArchive archive(fileData, fileSize);
+			archive.extractFile(PAYLOADPATH, payloadData, offset, payloadSize);
+		}
+	} catch (const std::runtime_error& e) {
+		std::printf(" [ERR]\nFATAL: %s", e.what());
+		std::free(fileData);
 		return false;
 	}
 
+	std::printf(" [OK]\n");
 	std::free(fileData);
 	return true;
 }
