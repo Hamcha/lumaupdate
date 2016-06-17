@@ -3,7 +3,6 @@
 #include "arnutil.h"
 #include "autoupdate.h"
 #include "config.h"
-#include "http.h"
 #include "console.h"
 #include "update.h"
 #include "release.h"
@@ -12,8 +11,7 @@
 
 #define WAIT_START while (aptMainLoop() && !(hidKeysDown() & KEY_START)) { gspWaitForVBlank(); hidScanInput(); }
 
-bool redraw = false;
-Config config;
+static bool redraw = false;
 
 /* States */
 
@@ -388,6 +386,7 @@ int main(int argc, char* argv[]) {
 	ReleaseInfo release = {}, hourly = {};
 	UpdateInfo updateInfo = {};
 	UpdateResult result;
+	Config config;
 
 	aptInit();
 	amInit();

@@ -31,7 +31,7 @@ void httpGet(const char* url, u8** buf, u32* size, const bool verbose, HTTPRespo
 			httpGet(newUrl, buf, size, verbose, info);
 			return;
 		}
-		throw formatErrMessage("Non-200 status code", statuscode);
+		throw std::runtime_error(formatErrMessage("Non-200 status code", statuscode));
 	}
 
 	// Retrieve extra info if required
@@ -50,7 +50,7 @@ void httpGet(const char* url, u8** buf, u32* size, const bool verbose, HTTPRespo
 	CHECK(httpcGetDownloadSizeState(&context, &dlstartpos, size), "Could not get file size");
 
 	*buf = (u8*)std::malloc(*size);
-	if (*buf == NULL) throw formatErrMessage("Could not allocate enough memory", *size);
+	if (*buf == NULL) throw std::runtime_error(formatErrMessage("Could not allocate enough memory", *size));
 	std::memset(*buf, 0, *size);
 
 	while (pos < *size && dlret == (s32)HTTPC_RESULTCODE_DOWNLOADPENDING)
