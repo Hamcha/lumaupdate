@@ -77,7 +77,7 @@ std::string getPage(const std::string& text, const int num, const int rows);
  *
  *  \return String representation of the input parameter
  */
-template < typename T > std::string tostr(const T& n) {
+template<typename T> std::string tostr(const T& n) {
 	std::ostringstream stm;
 	stm << n;
 	return stm.str();
