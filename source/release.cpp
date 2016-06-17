@@ -1,11 +1,10 @@
 #include "release.h"
 
-#include "archive.h"
-
 // jsmn includes
 #include "jsmn.h"
 
 // Internal includes
+#include "archive.h"
 #include "http.h"
 #include "utils.h"
 

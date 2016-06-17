@@ -20,6 +20,7 @@ enum class HomebrewLocation {
 struct UpdaterInfo {
 	HomebrewType     type;     //!< Homebrew type (3dsx, cia, etc)
 	HomebrewLocation location; //!< Homebrew location (SDMC, 3DSLink, NAND etc)
+	std::string      sdmcLoc;  //!< Folder on SDMC (if homebrew)
 };
 
 //! Latest Luma3DS Updater version info

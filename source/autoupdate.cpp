@@ -4,12 +4,14 @@
 #include "jsmn.h"
 
 // Internal includes
+#include "archive.h"
 #include "http.h"
 #include "utils.h"
 
 UpdaterInfo updaterGetInfo(const char* path) {
 	HomebrewLocation location = HomebrewLocation::Unknown;
 	HomebrewType type = HomebrewType::Unknown;
+	std::string sdmcLoc = "";
 
 	if (path != nullptr) {
 		std::string source(path);
@@ -24,6 +26,9 @@ UpdaterInfo updaterGetInfo(const char* path) {
 		// Check for Homebrew
 		if (source.find(".3dsx") != std::string::npos) {
 			type = HomebrewType::Homebrew;
+			size_t start = source.find_first_of(':') + 2;
+			size_t end = source.find_last_of('/');
+			sdmcLoc = source.substr(start, end - start);
 		}
 	}
 
@@ -40,7 +45,7 @@ UpdaterInfo updaterGetInfo(const char* path) {
 	aptCloseSession();
 #endif
 
-	return { type, location };
+	return { type, location, sdmcLoc };
 }
 
 #ifndef FAKEDL
@@ -122,6 +127,26 @@ LatestUpdaterInfo updaterGetLatest() {
 #endif
 }
 
+static void installCIA(const u8* ciaData, const size_t ciaSize) {
+	Handle handle;
+	AM_QueryAvailableExternalTitleDatabase(NULL);
+	CHECK(AM_StartCiaInstall(MEDIATYPE_SD, &handle), "Cannot initialize CIA install");
+	try {
+		CHECK(FSFILE_Write(handle, NULL, 0, ciaData, (u32)ciaSize, NULL), "Cannot write CIA data to handle");
+		CHECK(AM_FinishCiaInstall(handle), "Cannot finalize CIA install");
+	} catch (const std::runtime_error& e) {
+		// Abort CIA install and re-throw
+		CHECK(AM_CancelCIAInstall(handle), "Cannot cancel CIA install");
+		throw e;
+	}
+}
+
+static void copyToFile(const std::string& path, const u8* fileData, const size_t fileSize) {
+	std::ofstream fout(path, std::ios::binary | std::ios::out);
+	fout.write((const char*)fileData, fileSize);
+	fout.close();
+}
+
 void updaterDoUpdate(LatestUpdaterInfo latest, UpdaterInfo current) {
 	//TODO Download payload
 	u8* archiveData = nullptr;
@@ -141,13 +166,30 @@ void updaterDoUpdate(LatestUpdaterInfo latest, UpdaterInfo current) {
 	} else {
 		std::printf("Skipping integrity check (no ETag found)\r\n");
 	}
+
+	ZipArchive archive(archiveData, archiveSize);
 	
 	switch (current.type) {
 	case HomebrewType::CIA:
-		//TODO Extract CIA from archive, install it
+		// Extract CIA from archive, install it
+		u8* ciaData;
+		size_t ciaSize;
+		archive.extractFile("lumaupdater.cia", &ciaData, &ciaSize);
+		installCIA(ciaData, ciaSize);
 		break;
 	case HomebrewType::Homebrew:
-		//TODO Extract 3dsx/smdh from archive
+		// Extract 3dsx/smdh from archive
+		u8* hbData;
+		size_t hbSize;
+		archive.extractFile("3DS/lumaupdater/lumaupdater.3dsx", &hbData, &hbSize);
+		copyToFile(current.sdmcLoc + "/lumaupdater.3dsx", hbData, hbSize);
+		std::free(hbData);
+
+		u8* smdhData;
+		size_t smdhSize;
+		archive.extractFile("3DS/lumaupdater/lumaupdater.smdh", &smdhData, &smdhSize);
+		copyToFile(current.sdmcLoc + "/lumaupdater.smdh", hbData, hbSize);
+		std::free(smdhData);
 		break;
 	default:
 		throw std::domain_error("Trying to update an unknown install");

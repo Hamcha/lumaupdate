@@ -390,6 +390,7 @@ int main(int argc, char* argv[]) {
 	UpdateResult result;
 
 	aptInit();
+	amInit();
 	gfxInitDefault();
 	httpcInit(0);
 
@@ -711,6 +712,7 @@ cleanup:
 	// Exit services
 	httpcExit();
 	gfxExit();
+	amExit();
 	aptExit();
 	return 0;
 }
