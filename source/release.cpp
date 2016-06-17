@@ -93,7 +93,7 @@ ReleaseInfo releaseGetLatestStable() {
 				current.fileSize = std::atoi(sizeStr.c_str());
 				verHasSize = true;
 			}
-			if (verHasName && verHasURL) {
+			if (verHasName && verHasURL && verHasSize) {
 				std::printf("Found version: %s\n", current.filename.c_str());
 				ReleaseVer version = ReleaseVer{ current.filename, current.friendlyName, current.url, current.fileSize };
 				// Put normal version in front, dev on back

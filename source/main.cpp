@@ -345,7 +345,7 @@ static SelfUpdateChoice drawUpdateNag(const LatestUpdaterInfo& latest) {
 		consoleMoveTo(5, 12);
 		std::printf("LumaUpdater %s%s%s", CONSOLE_GREEN, latest.version.c_str(), CONSOLE_RESET);
 		consoleMoveTo(5, 13);
-		std::printf("See screen below for changes", CONSOLE_GREEN, latest.version.c_str(), CONSOLE_RESET);
+		std::printf("See screen below for changes");
 
 		consoleMoveTo(5, 15);
 		std::printf("Choose action:");
@@ -476,10 +476,9 @@ int main(int argc, char* argv[]) {
 
 		// Check for selfupdate
 		std::printf("Trying detection of current updater install...\n");
-		UpdaterInfo info = { HomebrewType::Unknown, HomebrewLocation::Unknown };
 		bool selfupdateContinue = true;
 
-		info = updaterGetInfo(argc > 0 ? argv[0] : nullptr);
+		UpdaterInfo info = updaterGetInfo(argc > 0 ? argv[0] : nullptr);
 		gfxFlushBuffers();
 
 		if (info.type == HomebrewType::Unknown) {

@@ -137,7 +137,7 @@ static void installCIA(const u8* ciaData, const size_t ciaSize) {
 	} catch (const std::runtime_error& e) {
 		// Abort CIA install and re-throw
 		CHECK(AM_CancelCIAInstall(handle), "Cannot cancel CIA install");
-		throw e;
+		throw;
 	}
 }
 
