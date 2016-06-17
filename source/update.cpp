@@ -169,7 +169,7 @@ UpdateResult update(const UpdateArgs& args) {
 	consoleClear();
 	consoleScreen(GFX_TOP);
 
-	return { true };
+	return { true, "NO ERROR" };
 }
 
 UpdateResult restore(const UpdateArgs& args) {
@@ -187,5 +187,5 @@ UpdateResult restore(const UpdateArgs& args) {
 	if (std::remove((args.payloadPath + ".broken").c_str()) != 0) {
 		std::perror("WARN: Could not remove current payload, please remove it manually");
 	}
-	return { true };
+	return { true, "NO ERROR" };
 }

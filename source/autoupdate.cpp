@@ -34,11 +34,10 @@ UpdaterInfo updaterGetInfo(const char* path) {
 
 #ifdef UNIQUE_ID
 	// Check for CIA
-	u32 aptid = envGetAptAppId();
 	aptOpenSession();
 	u64 appid = 0;
 	if (APT_GetProgramID(&appid) == 0) {
-		if (appid & UNIQUE_ID == UNIQUE_ID) {
+		if ((appid & UNIQUE_ID) == UNIQUE_ID) {
 			type = HomebrewType::CIA;
 		}
 	}
@@ -132,7 +131,7 @@ static void installCIA(const u8* ciaData, const size_t ciaSize) {
 	AM_QueryAvailableExternalTitleDatabase(NULL);
 	CHECK(AM_StartCiaInstall(MEDIATYPE_SD, &handle), "Cannot initialize CIA install");
 	try {
-		CHECK(FSFILE_Write(handle, NULL, 0, ciaData, (u32)ciaSize, NULL), "Cannot write CIA data to handle");
+		CHECK(FSFILE_Write(handle, NULL, 0, ciaData, (u32)ciaSize, 0), "Cannot write CIA data to handle");
 		CHECK(AM_FinishCiaInstall(handle), "Cannot finalize CIA install");
 	} catch (const std::runtime_error& e) {
 		// Abort CIA install and re-throw

@@ -413,19 +413,19 @@ int main(int argc, char* argv[]) {
 	for (const std::string& path : cfgPaths) {
 		const LoadConfigError confStatus = config.LoadFile(path);
 		switch (confStatus) {
-		case CFGE_NOTEXISTS:
+		case LoadConfigError::NotExists:
 			break;
-		case CFGE_UNREADABLE:
+		case LoadConfigError::Unreadable:
 			std::printf("FATAL\nConfiguration file is unreadable!\n\nPress START to quit.\n");
 			gfxFlushBuffers();
 			WAIT_START
 			goto cleanup;
-		case CFGE_MALFORMED:
+		case LoadConfigError::Malformed:
 			std::printf("FATAL\nConfiguration file is malformed!\n\nPress START to quit.\n");
 			gfxFlushBuffers();
 			WAIT_START
 			goto cleanup;
-		case CFGE_NONE:
+		case LoadConfigError::None:
 			std::printf("Configuration file loaded successfully.\n");
 			configFound = true;
 			break;
@@ -616,6 +616,8 @@ int main(int argc, char* argv[]) {
 			case ChoiceType::RestoreBackup:
 				state = Restoring;
 				redraw = true;
+				break;
+			case ChoiceType::NoChoice:
 				break;
 			}
 			break;

@@ -53,7 +53,7 @@ void httpGet(const char* url, u8** buf, u32* size, const bool verbose, HTTPRespo
 	if (*buf == NULL) throw formatErrMessage("Could not allocate enough memory", *size);
 	std::memset(*buf, 0, *size);
 
-	while (pos < *size && dlret == HTTPC_RESULTCODE_DOWNLOADPENDING)
+	while (pos < *size && dlret == (s32)HTTPC_RESULTCODE_DOWNLOADPENDING)
 	{
 		u32 sz = *size - pos;
 		dlret = httpcReceiveData(&context, *buf + pos, sz);

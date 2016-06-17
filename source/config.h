@@ -4,11 +4,11 @@
 
 /*! \brief Configuration error reasons
  */
-enum LoadConfigError {
-	CFGE_NONE,       /*< No errors found            */
-	CFGE_NOTEXISTS,  /*< Config file does not exist */
-	CFGE_UNREADABLE, /*< Config file is unreadable  */
-	CFGE_MALFORMED,  /*< Config file is malformed   */
+enum class LoadConfigError {
+	None,       /*< No errors found            */
+	NotExists,  /*< Config file does not exist */
+	Unreadable, /*< Config file is unreadable  */
+	Malformed,  /*< Config file is malformed   */
 };
 
 /*! \brief Configuration loader

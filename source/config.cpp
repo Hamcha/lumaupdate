@@ -6,11 +6,11 @@ LoadConfigError Config::LoadFile(const std::string& path) {
 	std::ifstream cfgfile(path);
 
 	if (!cfgfile.is_open()) {
-		return CFGE_NOTEXISTS;
+		return LoadConfigError::NotExists;
 	}
 
 	if (!cfgfile.good()) {
-		return CFGE_UNREADABLE;
+		return LoadConfigError::Unreadable;
 	}
 
 	std::string curLine;
@@ -24,11 +24,11 @@ LoadConfigError Config::LoadFile(const std::string& path) {
 			values[key] = value;
 		} else {
 			std::printf("Invalid line detected in config: %s\n", curLine.c_str());
-			return CFGE_MALFORMED;
+			return LoadConfigError::Malformed;
 		}
 	}
 
-	return CFGE_NONE;
+	return LoadConfigError::None;
 }
 
 bool Config::Has(const std::string& key) {
