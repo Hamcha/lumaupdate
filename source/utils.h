@@ -71,6 +71,17 @@ int getPageCount(const std::string& text, const int rows);
  */
 std::string getPage(const std::string& text, const int num, const int rows);
 
+/*! \brief Initialize log file 
+ *  \param path Log file path
+ */
+void logInit(const char* path);
+
+/*! \brief Closes log file and cleans up resources */
+void logExit();
+
+/*! \brief Print information on both screen and logfile */
+void logPrintf(const char* format, ...);
+
 /*! \brief Alternative to_string implementation (workaround for mingw)
  *
  *  \param n Input parameter

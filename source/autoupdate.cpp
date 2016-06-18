@@ -73,11 +73,11 @@ LatestUpdaterInfo updaterGetLatest() {
 	u8* apiReqData = nullptr;
 	u32 apiReqSize = 0;
 
-	std::printf("Downloading %s...\n", ReleaseURL);
+	logPrintf("Downloading %s...\n", ReleaseURL);
 
 	httpGet(ReleaseURL, &apiReqData, &apiReqSize, true);
 
-	std::printf("Downloaded %lu bytes\n", apiReqSize);
+	logPrintf("Downloaded %lu bytes\n", apiReqSize);
 	gfxFlushBuffers();
 
 	jsmntok_t t[512] = {};
@@ -85,7 +85,7 @@ LatestUpdaterInfo updaterGetLatest() {
 	if (r < 0) {
 		throw formatErrMessage("Failed to parse JSON", r);
 	}
-	std::printf("JSON parsed successfully!\n");
+	logPrintf("JSON parsed successfully!\n");
 	gfxFlushBuffers();
 
 	bool namefound = false, bodyfound = false, inassets = false;
@@ -94,13 +94,13 @@ LatestUpdaterInfo updaterGetLatest() {
 		if (!namefound && jsoneq((const char*)apiReqData, &t[i], "tag_name") == 0) {
 			jsmntok_t val = t[i + 1];
 			latest.version = std::string((const char*)apiReqData + val.start, val.end - val.start);
-			std::printf("Release found: %s\n", latest.version.c_str());
+			logPrintf("Release found: %s\n", latest.version.c_str());
 			namefound = true;
 		}
 		if (!bodyfound && jsoneq((const char*)apiReqData, &t[i], "body") == 0) {
 			jsmntok_t val = t[i + 1];
 			latest.changelog = unescape(std::string((const char*)apiReqData + val.start, val.end - val.start));
-			std::printf("Changelog found.\n");
+			logPrintf("Changelog found.\n");
 			bodyfound = true;
 		}
 		if (!inassets && jsoneq((const char*)apiReqData, &t[i], "assets") == 0) {
@@ -162,11 +162,11 @@ UpdateResult updaterDoUpdate(LatestUpdaterInfo latest, UpdaterInfo current) {
 	HTTPResponseInfo info;
 
 	try {
-		std::printf("Downloading %s...\n", latest.url.c_str());
+		logPrintf("Downloading %s...\n", latest.url.c_str());
 		httpGet(latest.url.c_str(), &archiveData, &archiveSize, true, &info);
-		std::printf("Download complete! Size: %lu\n", archiveSize);
+		logPrintf("Download complete! Size: %lu\n", archiveSize);
 	} catch (const std::runtime_error& e) {
-		std::printf("\nFATAL: %s", e.what());
+		logPrintf("\nFATAL: %s", e.what());
 		return { false, "DOWNLOAD FAILED" };
 	}
 
@@ -175,14 +175,14 @@ UpdateResult updaterDoUpdate(LatestUpdaterInfo latest, UpdaterInfo current) {
 	consoleScreen(GFX_BOTTOM);
 
 	if (info.etag != "") {
-		std::printf("Performing integrity check... ");
+		logPrintf("Performing integrity check... ");
 		if (!httpCheckETag(info.etag, archiveData, archiveSize)) {
-			std::printf(" ERR\nMD5 mismatch between server's and local file!\n");
+			logPrintf(" ERR\nMD5 mismatch between server's and local file!\n");
 			return { false, "DOWNLOAD FAILED" };
 		}
-		std::printf(" OK\n");
+		logPrintf(" OK\n");
 	} else {
-		std::printf("Skipping integrity check (no ETag found)\n");
+		logPrintf("Skipping integrity check (no ETag found)\n");
 	}
 
 	consoleScreen(GFX_TOP);
@@ -197,15 +197,15 @@ UpdateResult updaterDoUpdate(LatestUpdaterInfo latest, UpdaterInfo current) {
 			// Extract CIA from archive, install it
 			u8* ciaData;
 			size_t ciaSize;
-			std::printf("Extracting lumaupdater.cia");
+			logPrintf("Extracting lumaupdater.cia");
 			archive.extractFile("lumaupdater.cia", &ciaData, &ciaSize);
-			std::printf(" [OK] (%u bytes)\n", ciaSize);
+			logPrintf(" [OK] (%u bytes)\n", ciaSize);
 			try {
-				std::printf("Installing lumaupdater.cia");
+				logPrintf("Installing lumaupdater.cia");
 				installCIA(ciaData, ciaSize);
-				std::printf(" [OK]\n");
+				logPrintf(" [OK]\n");
 			} catch (const std::runtime_error& e) {
-				std::printf(" [ERR]\n\nFATAL: %s", e.what());
+				logPrintf(" [ERR]\n\nFATAL: %s", e.what());
 				return { false, "CIA INSTALL FAILED" };
 			}
 			break;
@@ -213,27 +213,27 @@ UpdateResult updaterDoUpdate(LatestUpdaterInfo latest, UpdaterInfo current) {
 			// Extract 3dsx/smdh from archive
 			u8* hbData;
 			size_t hbSize;
-			std::printf("Extracting lumaupdater.3dsx");
+			logPrintf("Extracting lumaupdater.3dsx");
 			archive.extractFile("3DS/lumaupdater/lumaupdater.3dsx", &hbData, &hbSize);
-			std::printf(" [OK] (%u bytes)\n", hbSize);
+			logPrintf(" [OK] (%u bytes)\n", hbSize);
 
 
 			const std::string targetHb = current.sdmcLoc + "/" + current.sdmcName + ".3dsx";
-			std::printf("Copying to %s", targetHb.c_str());
+			logPrintf("Copying to %s", targetHb.c_str());
 			copyToFile(targetHb, hbData, hbSize);
-			std::printf(" [OK]\n");
+			logPrintf(" [OK]\n");
 			std::free(hbData);
 
 			u8* smdhData;
 			size_t smdhSize;
-			std::printf("Extracting lumaupdater.3dsx");
+			logPrintf("Extracting lumaupdater.3dsx");
 			archive.extractFile("3DS/lumaupdater/lumaupdater.smdh", &smdhData, &smdhSize);
-			std::printf(" [OK] (%u bytes)\n", smdhSize);
+			logPrintf(" [OK] (%u bytes)\n", smdhSize);
 
 			const std::string targetSMDH = current.sdmcLoc + "/" + current.sdmcName + ".smdh";
-			std::printf("Copying to %s", targetSMDH.c_str());
+			logPrintf("Copying to %s", targetSMDH.c_str());
 			copyToFile(targetSMDH, smdhData, smdhSize);
-			std::printf(" [OK]\n");
+			logPrintf(" [OK]\n");
 			std::free(smdhData);
 			break;
 		}
@@ -241,7 +241,7 @@ UpdateResult updaterDoUpdate(LatestUpdaterInfo latest, UpdaterInfo current) {
 			return { false, "UNKNOWN INSTALL" };
 		}
 	} catch (const std::runtime_error& e) {
-		std::printf("[ERR]\n\nFATAL: %s", e.what());
+		logPrintf("[ERR]\n\nFATAL: %s", e.what());
 		return { false, "EXTRACT FAILED" };
 	}
 

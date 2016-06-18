@@ -36,11 +36,11 @@ ReleaseInfo releaseGetLatestStable() {
 	u8* apiReqData = nullptr;
 	u32 apiReqSize = 0;
 
-	std::printf("Downloading %s...\n", ReleaseURL);
+	logPrintf("Downloading %s...\n", ReleaseURL);
 
 	httpGet(ReleaseURL, &apiReqData, &apiReqSize, true);
 
-	std::printf("Downloaded %lu bytes\n", apiReqSize);
+	logPrintf("Downloaded %lu bytes\n", apiReqSize);
 	gfxFlushBuffers();
 
 	jsmntok_t t[512] = {};
@@ -48,7 +48,7 @@ ReleaseInfo releaseGetLatestStable() {
 	if (r < 0) {
 		throw formatErrMessage("Failed to parse JSON", r);
 	}
-	std::printf("JSON parsed successfully!\n");
+	logPrintf("JSON parsed successfully!\n");
 	gfxFlushBuffers();
 
 	bool namefound = false, bodyfound = false, inassets = false;
@@ -62,13 +62,13 @@ ReleaseInfo releaseGetLatestStable() {
 				val.start += 1;
 			}
 			release.name = std::string((const char*)apiReqData + val.start, val.end - val.start);
-			std::printf("Release found: %s\n", release.name.c_str());
+			logPrintf("Release found: %s\n", release.name.c_str());
 			namefound = true;
 		}
 		if (!bodyfound && jsoneq((const char*)apiReqData, &t[i], "body") == 0) {
 			jsmntok_t val = t[i+1];
 			release.description = unescape(std::string((const char*)apiReqData + val.start, val.end - val.start));
-			std::printf("Release description found.\n");
+			logPrintf("Release description found.\n");
 			bodyfound = true;
 		}
 		if (!inassets && jsoneq((const char*)apiReqData, &t[i], "assets") == 0) {
@@ -94,7 +94,7 @@ ReleaseInfo releaseGetLatestStable() {
 				verHasSize = true;
 			}
 			if (verHasName && verHasURL && verHasSize) {
-				std::printf("Found version: %s\n", current.filename.c_str());
+				logPrintf("Found version: %s\n", current.filename.c_str());
 				ReleaseVer version = ReleaseVer{ current.filename, current.friendlyName, current.url, current.fileSize };
 				// Put normal version in front, dev on back
 				if (!isDev) {
@@ -141,16 +141,16 @@ ReleaseInfo releaseGetLatestHourly() {
 		u8* apiReqData = nullptr;
 		u32 apiReqSize = 0;
 
-		std::printf("Downloading %s...\n", versions[i]);
+		logPrintf("Downloading %s...\n", versions[i]);
 
 		try {
 			httpGet(versions[i], &apiReqData, &apiReqSize, true);
 		} catch (const std::runtime_error& e) {
-			std::printf("Could not download, skipping...");
+			logPrintf("Could not download, skipping...");
 			continue;
 		}
 
-		std::printf("Downloaded %lu bytes\n", apiReqSize);
+		logPrintf("Downloaded %lu bytes\n", apiReqSize);
 		gfxFlushBuffers();
 
 		std::string hourlyName = std::string((const char*)apiReqData, apiReqSize);
@@ -192,36 +192,36 @@ bool releaseGetPayload(const ReleaseVer& release, const bool isHourly, u8** payl
 		httpGet(release.url.c_str(), &fileData, &fileSize, true, &info);
 #endif
 	} catch (const std::runtime_error& e) {
-		std::printf("%s\n", e.what());
+		logPrintf("%s\n", e.what());
 		return false;
 	}
-	std::printf("Download complete! Size: %lu\n", fileSize);
+	logPrintf("Download complete! Size: %lu\n", fileSize);
 
 	if (release.fileSize != 0) {
-		std::printf("Integrity check #1");
+		logPrintf("Integrity check #1");
 		if (fileSize != release.fileSize) {
-			std::printf(" [ERR]\r\nReceived file is a different size than expected!\n");
+			logPrintf(" [ERR]\r\nReceived file is a different size than expected!\n");
 			gfxFlushBuffers();
 			return false;
 		}
-		std::printf(" [OK]\r\n");
+		logPrintf(" [OK]\r\n");
 	} else {
-		std::printf("Skipping integrity check #1 (unknown size)\n");
+		logPrintf("Skipping integrity check #1 (unknown size)\n");
 	}
 
 	if (info.etag != "") {
-		std::printf("Integrity check #2");
+		logPrintf("Integrity check #2");
 		if (!httpCheckETag(info.etag, fileData, fileSize)) {
-			std::printf(" [ERR]\r\nMD5 mismatch between server's and local file!\n");
+			logPrintf(" [ERR]\r\nMD5 mismatch between server's and local file!\n");
 			gfxFlushBuffers();
 			return false;
 		}
-		std::printf(" [OK]\r\n");
+		logPrintf(" [OK]\r\n");
 	} else {
-		std::printf("Skipping integrity check #2 (no ETag found)\n");
+		logPrintf("Skipping integrity check #2 (no ETag found)\n");
 	}
 
-	std::printf("\nExtracting payload");
+	logPrintf("\nExtracting payload");
 	gfxFlushBuffers();
 
 	try {
@@ -234,12 +234,12 @@ bool releaseGetPayload(const ReleaseVer& release, const bool isHourly, u8** payl
 			archive.extractFile(PAYLOADPATH, payloadData, offset, payloadSize);
 		}
 	} catch (const std::runtime_error& e) {
-		std::printf(" [ERR]\nFATAL: %s", e.what());
+		logPrintf(" [ERR]\nFATAL: %s", e.what());
 		std::free(fileData);
 		return false;
 	}
 
-	std::printf(" [OK]\n");
+	logPrintf(" [OK]\n");
 	std::free(fileData);
 	return true;
 }

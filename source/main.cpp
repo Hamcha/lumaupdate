@@ -59,6 +59,7 @@ struct UpdateInfo {
 	std::string  payloadPath    = "/arm9loaderhax.bin";
 	bool         backupExisting = true;
 	bool         selfUpdate     = true;
+	bool         writeLog       = true;
 
 	// Available data
 	ReleaseInfo* stable = nullptr;
@@ -126,7 +127,7 @@ static inline int drawChangelog(const std::string& name, const std::string& log,
 			std::printf("L R  prev/next          Page %d of %d", page + 1, pageCount);
 		}
 	} else {
-		printf("%sNo release notes found for %sv%s%s\n\n", CONSOLE_YELLOW, CONSOLE_GREEN, name.c_str(), CONSOLE_RESET);
+		std::printf("%sNo release notes found for %sv%s%s\n\n", CONSOLE_YELLOW, CONSOLE_GREEN, name.c_str(), CONSOLE_RESET);
 	}
 
 	return pageCount;
@@ -193,7 +194,7 @@ static UpdateChoice drawConfirmationScreen(const UpdateInfo& args, const bool us
 			return UpdateChoice(ChoiceType::RestoreBackup);
 		default:
 			// Panic!
-			printf("Unknown option selected (?)\n");
+			logPrintf("Unknown option selected (?)\n");
 			WAIT_START;
 			redraw = true;
 			status.selected = 0;
@@ -259,7 +260,7 @@ static UpdateChoice drawConfirmationScreen(const UpdateInfo& args, const bool us
 		consoleScreen(GFX_TOP);
 	}
 
-	int y = 11 + (!usingConfig ? 3 : 0) + (args.hourly != nullptr ? 1 : 0) + (backupVersionDetected ? 1 : 0);
+	int y = 11 + (!usingConfig ? 2 : 0) + (args.hourly != nullptr ? 1 : 0) + (backupVersionDetected ? 1 : 0);
 
 	consoleMoveTo(0, y);
 
@@ -385,6 +386,7 @@ int main(int argc, char* argv[]) {
 	UpdateState state = UpdateConfirmationScreen;
 	ReleaseInfo release = {}, hourly = {};
 	UpdateInfo updateInfo = {};
+	UpdaterInfo info;
 	UpdateResult result;
 	Config config;
 
@@ -435,11 +437,11 @@ int main(int argc, char* argv[]) {
 	}
 
 	if (!configFound) {
-		std::printf("The configuration file could not be found, skipping...\n");
+		logPrintf("The configuration file could not be found, skipping...\n");
 	} else {
 		// Check required values in config, if existing
 		if (!config.Has("payload path")) {
-			std::printf("Missing required config value: payload path\n");
+			logPrintf("Missing required config value: payload path\n");
 			gfxFlushBuffers();
 			WAIT_START
 			goto cleanup;
@@ -450,6 +452,7 @@ int main(int argc, char* argv[]) {
 	updateInfo.payloadPath = config.Get("payload path", PAYLOADPATH);
 	updateInfo.backupExisting = tolower(config.Get("backup", "y")[0]) == 'y';
 	updateInfo.selfUpdate = tolower(config.Get("selfupdate", "y")[0]) == 'y';
+	updateInfo.writeLog = tolower(config.Get("log enable", "y")[0]) == 'y';
 
 	// Add initial slash to payload path, if missing
 	if (updateInfo.payloadPath[0] != '/') {
@@ -458,10 +461,20 @@ int main(int argc, char* argv[]) {
 
 	// Check that the payload path is valid
 	if (updateInfo.payloadPath.length() > MAXPATHLEN) {
-		std::printf("\nFATAL\nPayload path is too long!\nIt can contain at most %d characters!\n\nPress START to quit.\n", MAXPATHLEN);
+		logPrintf("\nFATAL\nPayload path is too long!\nIt can contain at most %d characters!\n\nPress START to quit.\n", MAXPATHLEN);
 		gfxFlushBuffers();
 		WAIT_START
 		goto cleanup;
+	}
+
+	info = updaterGetInfo(argc > 0 ? argv[0] : nullptr);
+
+	if (updateInfo.writeLog) {
+		std::string logpath = config.Get("log path", "");
+		if (logpath.empty()) {
+			logpath = info.sdmcLoc + "/lumaupdater.log";
+		}
+		logInit(logpath.c_str());
 	}
 
 	if (updateInfo.selfUpdate) {
@@ -474,34 +487,33 @@ int main(int argc, char* argv[]) {
 		consoleScreen(GFX_BOTTOM);
 
 		// Check for selfupdate
-		std::printf("Trying detection of current updater install...\n");
+		logPrintf("Trying detection of current updater install...\n");
 		bool selfupdateContinue = true;
 
-		UpdaterInfo info = updaterGetInfo(argc > 0 ? argv[0] : nullptr);
 		gfxFlushBuffers();
 
 		if (info.type == HomebrewType::Unknown) {
-			std::printf("Could not detect install type, skipping self-update...\n");
+			logPrintf("Could not detect install type, skipping self-update...\n");
 			selfupdateContinue = false;
 		}
 
 		if (info.location == HomebrewLocation::Remote) {
-			std::printf("Updater launched over 3DSLink, skipping self-update...\n");
+			logPrintf("Updater launched over 3DSLink, skipping self-update...\n");
 			selfupdateContinue = false;
 		}
 
 
 		if (selfupdateContinue) {
-			std::printf("Checking for new Luma3DS Updater releases...\n");
+			logPrintf("Checking for new Luma3DS Updater releases...\n");
 			LatestUpdaterInfo newUpdater;
 			try {
 				newUpdater = updaterGetLatest();
 				selfupdateContinue = newUpdater.isNewer;
 				if (!newUpdater.isNewer) {
-					std::printf("Current updater is already at latest release.\n");
+					logPrintf("Current updater is already at latest release.\n");
 				}
 			} catch (const std::string& err) {
-				std::printf("Got error: %s\nSkipping self-update...\n", err.c_str());
+				logPrintf("Got error: %s\nSkipping self-update...\n", err.c_str());
 				selfupdateContinue = false;
 			}
 
@@ -569,7 +581,7 @@ int main(int argc, char* argv[]) {
 		consoleScreen(GFX_BOTTOM);
 		consoleClear();
 	} else {
-		std::printf("Skipping self-update checks as it's disabled\n");
+	logPrintf("Skipping self-update checks as it's disabled\n");
 	}
 
 	consoleScreen(GFX_TOP);
@@ -577,7 +589,7 @@ int main(int argc, char* argv[]) {
 	consoleScreen(GFX_BOTTOM);
 
 	// Try to detect current version
-	std::printf("Trying detection of current payload version...\n");
+	logPrintf("Trying detection of current payload version...\n");
 	updateInfo.currentVersion = versionMemsearch(updateInfo.payloadPath);
 
 	// Detect bak version, if exists
@@ -598,8 +610,8 @@ int main(int argc, char* argv[]) {
 		release = releaseGetLatestStable();
 		updateInfo.stable = &release;
 	} catch (const std::runtime_error& e) {
-		std::printf("%s\n", e.what());
-		std::printf("\nFATAL ERROR\nFailed to obtain required data.\n\nPress START to exit.\n");
+		logPrintf("%s\n", e.what());
+		logPrintf("\nFATAL ERROR\nFailed to obtain required data.\n\nPress START to exit.\n");
 		gfxFlushBuffers();
 		WAIT_START
 		goto cleanup;
@@ -614,8 +626,8 @@ int main(int argc, char* argv[]) {
 		hourly = releaseGetLatestHourly();
 		updateInfo.hourly = &hourly;
 	} catch (const std::runtime_error& e) {
-		std::printf("%s\n", e.what());
-		std::printf("\nWARN\nCould not obtain latest hourly, skipping...\n");
+		logPrintf("%s\n", e.what());
+		logPrintf("\nWARN\nCould not obtain latest hourly, skipping...\n");
 		gfxFlushBuffers();
 	}
 
@@ -738,5 +750,6 @@ cleanup:
 	gfxExit();
 	amExit();
 	aptExit();
+	logExit();
 	return 0;
 }

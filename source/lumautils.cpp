@@ -10,14 +10,14 @@ std::vector<std::string> listPayloads() {
 
 	// Open SD card
 	if (FSUSER_OpenArchive(&sdmcArchive, ARCHIVE_SDMC, fsMakePath(PATH_EMPTY, NULL)) != 0) {
-		std::printf("\nCould not access SD Card (?)\n\n");
+		logPrintf("\nCould not access SD Card (?)\n\n");
 		return files;
 	}
 
 	// Open source directory
 	Handle directory = 0;
 	if (FSUSER_OpenDirectory(&directory, sdmcArchive, fsMakePath(PATH_ASCII, "/luma/payloads")) != 0) {
-		std::printf("\nCould not open /luma/payloads\n\n");
+		logPrintf("\nCould not open /luma/payloads\n\n");
 		FSUSER_CloseArchive(sdmcArchive);
 		return files;
 	}
@@ -64,11 +64,11 @@ bool findAndRename(const char* oldName, const char* newName) {
 bool findAndRenamePrefix(const std::vector<std::string>& files, const std::string& oldPrefix, const std::string& newPrefix) {
 	const size_t oldPrefixLen = oldPrefix.length();
 	for (std::string file : files) {
-		std::printf("Considering %s\n", file.c_str());
+		logPrintf("Considering %s\n", file.c_str());
 		if (hasPrefix(file, oldPrefix)) {
 			std::string newName = PayloadPath + newPrefix + file.substr(oldPrefixLen);
 			file = PayloadPath + file;
-			std::printf("%s -> %s", file.c_str(), newName.c_str());
+			logPrintf("%s -> %s", file.c_str(), newName.c_str());
 			if (std::rename(file.c_str(), newName.c_str()) != 0) {
 				std::perror((std::string("Could not rename ") + newName).c_str());
 			}

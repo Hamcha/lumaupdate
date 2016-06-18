@@ -1,5 +1,7 @@
 #include "utils.h"
 
+#include <stdarg.h>
+
 std::string formatErrMessage(const char* msg, const Result& val) {
 	std::ostringstream os;
 	os << msg << "\nRet code: " << val;
@@ -162,4 +164,26 @@ std::string getPage(const std::string& text, const int num, const int rows) {
 	}
 
 	return text.substr(startIndex == 0 ? 0 : startIndex + 1, endIndex - startIndex);
+}
+
+FILE* _logfile = nullptr;
+
+void logInit(const char* path) {
+	_logfile = fopen(path, "w+");
+}
+void logExit() {
+	if (_logfile != nullptr) {
+		fclose(_logfile);
+	}
+}
+
+void logPrintf(const char* format, ...) {
+	va_list args;
+	va_start(args, format);
+	if (_logfile != nullptr) {
+		char buff[512];
+		vfprintf(_logfile, format, args);
+	}
+	vprintf(format, args);
+	va_end(args);
 }

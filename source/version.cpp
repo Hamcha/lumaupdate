@@ -1,12 +1,14 @@
 #include "version.h"
 
+#include "utils.h"
+
 std::string versionMemsearch(const std::string& path) {
 	const static char searchString[] = " configuration";
 	const static size_t searchStringLen = sizeof(searchString)/sizeof(char) - 1;
 
 	std::ifstream payloadFile(path, std::ios::binary | std::ios::ate);
 	if (!payloadFile) {
-		std::printf("Could not open existing payload, does it exists?\n");
+		logPrintf("Could not open existing payload, does it exists?\n");
 		return "";
 	}
 
@@ -17,7 +19,7 @@ std::string versionMemsearch(const std::string& path) {
 	payloadFile.read(payloadData, payloadSize);
 	payloadFile.close();
 
-	std::printf("Loaded existing payload in memory, searching for version number...\n");
+	logPrintf("Loaded existing payload in memory, searching for version number...\n");
 
 	size_t curProposedOffset = 0;
 	unsigned short curStringIndex = 0;

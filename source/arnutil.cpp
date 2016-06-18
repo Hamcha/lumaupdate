@@ -1,12 +1,14 @@
 #include "arnutil.h"
 
+#include "utils.h"
+
 bool renameRecursive(const FS_Archive& archive, const std::string& source, const std::string& target);
 
 bool arnVersionCheck(const std::string& versionString) {
 	// Bound checking before trying to do naughty things
 	const size_t verLength = versionString.length();
 	if (verLength < 1) {
-		std::printf("Weird version string: it's empty (?)\n");
+		logPrintf("Weird version string: it's empty (?)\n");
 		return false;
 	}
 
@@ -49,13 +51,13 @@ bool arnMigrate() {
 	FS_Archive sdmcArchive;
 
 	if (FSUSER_OpenArchive(&sdmcArchive, ARCHIVE_SDMC, fsMakePath(PATH_EMPTY, NULL)) != 0) {
-		std::printf("\nCould not access SD Card (?)\n\n");
+		logPrintf("\nCould not access SD Card (?)\n\n");
 		return false;
 	}
 
 	// Check if /luma already existsHandle directory = { 0 };
 	if (FSUSER_OpenDirectory(NULL, sdmcArchive, luma) == 0) {
-		std::printf("Luma directory already exists, skipping migration..\n");
+		logPrintf("Luma directory already exists, skipping migration..\n");
 		return true;
 	}
 
@@ -67,7 +69,7 @@ bool arnMigrate() {
 	// Delete the source directory and check if it succeeds
 	Result res = FSUSER_DeleteDirectoryRecursively(sdmcArchive, aurei);
 	if (res != 0) {
-		std::printf("\nWARN: Could not delete original /aurei (%ld)!\n\n",  res);
+		logPrintf("\nWARN: Could not delete original /aurei (%ld)!\n\n",  res);
 	}
 	
 	FSUSER_CloseArchive(sdmcArchive);
@@ -81,13 +83,13 @@ bool renameRecursive(const FS_Archive& archive, const std::string& source, const
 	// Open source directory
 	Handle directory = 0;
 	if (FSUSER_OpenDirectory(&directory, archive, sourcePath) != 0) {
-		std::printf("\nCould not open %s\n\n", source.c_str());
+		logPrintf("\nCould not open %s\n\n", source.c_str());
 		return false;
 	}
 
 	// Make target directory
 	if (FSUSER_CreateDirectory(archive, targetPath, FS_ATTRIBUTE_DIRECTORY) != 0) {
-		std::printf("\nCould not create %s\n\n", target.c_str());
+		logPrintf("\nCould not create %s\n\n", target.c_str());
 		return false;
 	}
 
@@ -110,7 +112,7 @@ bool renameRecursive(const FS_Archive& archive, const std::string& source, const
 
 		// Is a directory? Recurse rename
 		if (entry.attributes & FS_ATTRIBUTE_DIRECTORY) {
-			std::printf("  %s -> %s (DIR)\n", from.c_str(), to.c_str());
+			logPrintf("  %s -> %s (DIR)\n", from.c_str(), to.c_str());
 			if (!renameRecursive(archive, source + filePath, target + filePath)) {
 				return false;
 			}
@@ -118,10 +120,10 @@ bool renameRecursive(const FS_Archive& archive, const std::string& source, const
 			FS_Path sourceFilePath = fsMakePath(PATH_ASCII, from.c_str());
 			FS_Path targetFilePath = fsMakePath(PATH_ASCII, to.c_str());
 			if (FSUSER_RenameFile(archive, sourceFilePath, archive, targetFilePath) != 0) {
-				std::printf("\nCould not rename %s\n\n", (char*)sourceFilePath.data);
+				logPrintf("\nCould not rename %s\n\n", (char*)sourceFilePath.data);
 				return false;
 			}
-			std::printf("  %s -> %s\n", (char*)sourceFilePath.data, (char*)targetFilePath.data);
+			logPrintf("  %s -> %s\n", (char*)sourceFilePath.data, (char*)targetFilePath.data);
 		}
 	}
 

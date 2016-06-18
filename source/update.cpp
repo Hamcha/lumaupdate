@@ -12,11 +12,11 @@ static inline bool pathchange(u8* buf, const size_t bufSize, const std::string& 
 	u8 pathLength = path.length();
 
 	if (pathLength > MAXPATHLEN) {
-		std::printf("Cannot accept payload path: too long (max %d chars)\n", MAXPATHLEN);
+		logPrintf("Cannot accept payload path: too long (max %d chars)\n", MAXPATHLEN);
 		return false;
 	}
 
-	std::printf("Searching for \"%s\" in payload...\n", original);
+	logPrintf("Searching for \"%s\" in payload...\n", original);
 
 	size_t curProposedOffset = 0;
 	u8 curStringIndex = 0;
@@ -45,7 +45,7 @@ static inline bool pathchange(u8* buf, const size_t bufSize, const std::string& 
 
 	// Not found?
 	if (!found) {
-		std::printf("Could not find payload path, is this even a valid payload?\n");
+		logPrintf("Could not find payload path, is this even a valid payload?\n");
 		return false;
 	}
 
@@ -66,14 +66,14 @@ static inline bool pathchange(u8* buf, const size_t bufSize, const std::string& 
 static inline bool backupA9LH(const std::string& payloadName) {
 	std::ifstream original(payloadName, std::ifstream::binary);
 	if (!original.good()) {
-		std::printf("Could not open %s\n", payloadName.c_str());
+		logPrintf("Could not open %s\n", payloadName.c_str());
 		return false;
 	}
 
 	std::string backupName = payloadName + ".bak";
 	std::ofstream target(backupName, std::ofstream::binary);
 	if (!target.good()) {
-		std::printf("Could not open %s\n", backupName.c_str());
+		logPrintf("Could not open %s\n", backupName.c_str());
 		original.close();
 		return false;
 	}
@@ -94,18 +94,18 @@ UpdateResult update(const UpdateArgs& args) {
 
 	// Back up local file if it exists
 	if (!args.backupExisting) {
-		std::printf("Payload backup is disabled in config, skipping...\n");
+		logPrintf("Payload backup is disabled in config, skipping...\n");
 	} else if (!fileExists(args.payloadPath)) {
-		std::printf("Original payload not found, skipping backup...\n");
+		logPrintf("Original payload not found, skipping backup...\n");
 	} else {
 		consoleScreen(GFX_TOP);
 		consoleSetProgressData("Backing up old payload", 0.1);
 		consoleScreen(GFX_BOTTOM);
 
-		std::printf("Copying %s to %s.bak...\n", args.payloadPath.c_str(), args.payloadPath.c_str());
+		logPrintf("Copying %s to %s.bak...\n", args.payloadPath.c_str(), args.payloadPath.c_str());
 		gfxFlushBuffers();
 		if (!backupA9LH(args.payloadPath)) {
-			std::printf("\nCould not backup %s (!!), aborting...\n", args.payloadPath.c_str());
+			logPrintf("\nCould not backup %s (!!), aborting...\n", args.payloadPath.c_str());
 			return { false, "BACKUP FAILED" };
 		}
 	}
@@ -114,14 +114,14 @@ UpdateResult update(const UpdateArgs& args) {
 	consoleSetProgressData("Downloading payload", 0.3);
 	consoleScreen(GFX_BOTTOM);
 
-	std::printf("Downloading %s\n", args.chosenVersion.url.c_str());
+	logPrintf("Downloading %s\n", args.chosenVersion.url.c_str());
 	gfxFlushBuffers();
 
 	u8* payloadData = nullptr;
 	size_t offset = 0;
 	size_t payloadSize = 0;
 	if (!releaseGetPayload(args.chosenVersion, args.isHourly, &payloadData, &offset, &payloadSize)) {
-		std::printf("FATAL\nCould not get A9LH payload...\n");
+		logPrintf("FATAL\nCould not get A9LH payload...\n");
 		std::free(payloadData);
 		return { false, "DOWNLOAD FAILED" };
 	}
@@ -131,7 +131,7 @@ UpdateResult update(const UpdateArgs& args) {
 		consoleSetProgressData("Applying path changing", 0.6);
 		consoleScreen(GFX_BOTTOM);
 
-		std::printf("Requested payload path is not %s, applying path patch...\n", PAYLOADPATH);
+		logPrintf("Requested payload path is not %s, applying path patch...\n", PAYLOADPATH);
 		if (!pathchange(payloadData + offset, payloadSize, args.payloadPath)) {
 			std::free(payloadData);
 			return { false, "PATHCHANGE FAILED" };
@@ -143,27 +143,27 @@ UpdateResult update(const UpdateArgs& args) {
 		consoleSetProgressData("Migrating AuReiNand -> Luma3DS", 0.8);
 		consoleScreen(GFX_BOTTOM);
 
-		std::printf("Migrating AuReiNand install to Luma3DS...\n");
+		logPrintf("Migrating AuReiNand install to Luma3DS...\n");
 		if (!arnMigrate()) {
-			std::printf("FATAL\nCould not migrate AuReiNand install (?)\n");
+			logPrintf("FATAL\nCould not migrate AuReiNand install (?)\n");
 			return { false, "MIGRATION FAILED" };
 		}
 	}
 
 	if (!lumaMigratePayloads()) {
-		std::printf("WARN\nCould not migrate payloads\n\n");
+		logPrintf("WARN\nCould not migrate payloads\n\n");
 	}
 
 	consoleScreen(GFX_TOP);
 	consoleSetProgressData("Saving payload to SD", 0.9);
 	consoleScreen(GFX_BOTTOM);
 
-	std::printf("Saving %s to SD (as %s)...\n", PAYLOADPATH, args.payloadPath.c_str());
+	logPrintf("Saving %s to SD (as %s)...\n", PAYLOADPATH, args.payloadPath.c_str());
 	std::ofstream a9lhfile("/" + args.payloadPath, std::ofstream::binary);
 	a9lhfile.write((const char*)(payloadData + offset), payloadSize);
 	a9lhfile.close();
 
-	std::printf("All done, freeing resources and exiting...\n");
+	logPrintf("All done, freeing resources and exiting...\n");
 	std::free(payloadData);
 
 	consoleClear();
@@ -175,17 +175,17 @@ UpdateResult update(const UpdateArgs& args) {
 UpdateResult restore(const UpdateArgs& args) {
 	// Rename current payload to .broken
 	if (std::rename(args.payloadPath.c_str(), (args.payloadPath + ".broken").c_str()) != 0) {
-		std::perror("Can't rename current version");
+		logPrintf("Can't rename current version");
 		return { false, "RENAME1 FAILED" };
 	}
 	// Rename .bak to current
 	if (std::rename((args.payloadPath + ".bak").c_str(), args.payloadPath.c_str()) != 0) {
-		std::perror("Can't rename backup to current payload name");
+		logPrintf("Can't rename backup to current payload name");
 		return { false, "RENAME2 FAILED" };
 	}
 	// Remove .broken
 	if (std::remove((args.payloadPath + ".broken").c_str()) != 0) {
-		std::perror("WARN: Could not remove current payload, please remove it manually");
+		logPrintf("WARN: Could not remove current payload, please remove it manually");
 	}
 	return { true, "NO ERROR" };
 }
