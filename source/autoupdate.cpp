@@ -5,13 +5,14 @@
 
 // Internal includes
 #include "archive.h"
+#include "console.h"
 #include "http.h"
 #include "utils.h"
 
 UpdaterInfo updaterGetInfo(const char* path) {
 	HomebrewLocation location = HomebrewLocation::Unknown;
 	HomebrewType type = HomebrewType::Unknown;
-	std::string sdmcLoc = "";
+	std::string sdmcLoc, smdcName;
 
 	if (path != nullptr) {
 		std::string source(path);
@@ -26,9 +27,12 @@ UpdaterInfo updaterGetInfo(const char* path) {
 		// Check for Homebrew
 		if (source.find(".3dsx") != std::string::npos) {
 			type = HomebrewType::Homebrew;
-			size_t start = source.find_first_of(':') + 2;
+			size_t start = source.find_first_of(':') + 1;
 			size_t end = source.find_last_of('/');
 			sdmcLoc = source.substr(start, end - start);
+
+			size_t extEnd = source.find_last_of('.');
+			smdcName = source.substr(end + 1, extEnd - end - 1);
 		}
 	}
 
@@ -44,7 +48,7 @@ UpdaterInfo updaterGetInfo(const char* path) {
 	aptCloseSession();
 #endif
 
-	return { type, location, sdmcLoc };
+	return { type, location, sdmcLoc, smdcName };
 }
 
 #ifndef FAKEDL
@@ -146,51 +150,100 @@ static void copyToFile(const std::string& path, const u8* fileData, const size_t
 	fout.close();
 }
 
-void updaterDoUpdate(LatestUpdaterInfo latest, UpdaterInfo current) {
-	//TODO Download payload
+UpdateResult updaterDoUpdate(LatestUpdaterInfo latest, UpdaterInfo current) {
+	consoleScreen(GFX_TOP);
+	consoleInitProgress("Updating Luma3DS Updater", "Downloading archive", 0.2);
+
+	consoleScreen(GFX_BOTTOM);
+	consoleClear();
+
 	u8* archiveData = nullptr;
 	u32 archiveSize = 0;
 	HTTPResponseInfo info;
 
-	httpGet(latest.url.c_str(), &archiveData, &archiveSize, true, &info);
-	std::printf("Download complete! Size: %lu\n", archiveSize);
+	try {
+		std::printf("Downloading %s...\n", latest.url.c_str());
+		httpGet(latest.url.c_str(), &archiveData, &archiveSize, true, &info);
+		std::printf("Download complete! Size: %lu\n", archiveSize);
+	} catch (const std::runtime_error& e) {
+		std::printf("\nFATAL: %s", e.what());
+		return { false, "DOWNLOAD FAILED" };
+	}
+
+	consoleScreen(GFX_TOP);
+	consoleSetProgressData("Checking archive integrity", 0.5);
+	consoleScreen(GFX_BOTTOM);
 
 	if (info.etag != "") {
 		std::printf("Performing integrity check... ");
 		if (!httpCheckETag(info.etag, archiveData, archiveSize)) {
-			std::printf(" ERR\r\n");
-			throw std::runtime_error("MD5 mismatch between server's and local file!\r\n");
+			std::printf(" ERR\nMD5 mismatch between server's and local file!\n");
+			return { false, "DOWNLOAD FAILED" };
 		}
-		std::printf(" OK\r\n");
+		std::printf(" OK\n");
 	} else {
-		std::printf("Skipping integrity check (no ETag found)\r\n");
+		std::printf("Skipping integrity check (no ETag found)\n");
 	}
 
-	ZipArchive archive(archiveData, archiveSize);
-	
-	switch (current.type) {
-	case HomebrewType::CIA:
-		// Extract CIA from archive, install it
-		u8* ciaData;
-		size_t ciaSize;
-		archive.extractFile("lumaupdater.cia", &ciaData, &ciaSize);
-		installCIA(ciaData, ciaSize);
-		break;
-	case HomebrewType::Homebrew:
-		// Extract 3dsx/smdh from archive
-		u8* hbData;
-		size_t hbSize;
-		archive.extractFile("3DS/lumaupdater/lumaupdater.3dsx", &hbData, &hbSize);
-		copyToFile(current.sdmcLoc + "/lumaupdater.3dsx", hbData, hbSize);
-		std::free(hbData);
+	consoleScreen(GFX_TOP);
+	consoleSetProgressData("Extracting archive contents", 0.8);
+	consoleScreen(GFX_BOTTOM);
 
-		u8* smdhData;
-		size_t smdhSize;
-		archive.extractFile("3DS/lumaupdater/lumaupdater.smdh", &smdhData, &smdhSize);
-		copyToFile(current.sdmcLoc + "/lumaupdater.smdh", hbData, hbSize);
-		std::free(smdhData);
-		break;
-	default:
-		throw std::domain_error("Trying to update an unknown install");
+	try {
+		ZipArchive archive(archiveData, archiveSize);
+
+		switch (current.type) {
+		case HomebrewType::CIA:
+			// Extract CIA from archive, install it
+			u8* ciaData;
+			size_t ciaSize;
+			std::printf("Extracting lumaupdater.cia");
+			archive.extractFile("lumaupdater.cia", &ciaData, &ciaSize);
+			std::printf(" [OK] (%u bytes)\n", ciaSize);
+			try {
+				std::printf("Installing lumaupdater.cia");
+				installCIA(ciaData, ciaSize);
+				std::printf(" [OK]\n");
+			} catch (const std::runtime_error& e) {
+				std::printf(" [ERR]\n\nFATAL: %s", e.what());
+				return { false, "CIA INSTALL FAILED" };
+			}
+			break;
+		case HomebrewType::Homebrew: {
+			// Extract 3dsx/smdh from archive
+			u8* hbData;
+			size_t hbSize;
+			std::printf("Extracting lumaupdater.3dsx");
+			archive.extractFile("3DS/lumaupdater/lumaupdater.3dsx", &hbData, &hbSize);
+			std::printf(" [OK] (%u bytes)\n", hbSize);
+
+
+			const std::string targetHb = current.sdmcLoc + "/" + current.sdmcName + ".3dsx";
+			std::printf("Copying to %s", targetHb.c_str());
+			copyToFile(targetHb, hbData, hbSize);
+			std::printf(" [OK]\n");
+			std::free(hbData);
+
+			u8* smdhData;
+			size_t smdhSize;
+			std::printf("Extracting lumaupdater.3dsx");
+			archive.extractFile("3DS/lumaupdater/lumaupdater.smdh", &smdhData, &smdhSize);
+			std::printf(" [OK] (%u bytes)\n", smdhSize);
+
+			const std::string targetSMDH = current.sdmcLoc + "/" + current.sdmcName + ".smdh";
+			std::printf("Copying to %s", targetSMDH.c_str());
+			copyToFile(targetSMDH, smdhData, smdhSize);
+			std::printf(" [OK]\n");
+			std::free(smdhData);
+			break;
+		}
+		default:
+			return { false, "UNKNOWN INSTALL" };
+		}
+	} catch (const std::runtime_error& e) {
+		std::printf("[ERR]\n\nFATAL: %s", e.what());
+		return { false, "EXTRACT FAILED" };
 	}
+
+	return { true, "NO ERROR" };
 }

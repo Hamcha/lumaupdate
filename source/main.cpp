@@ -537,6 +537,30 @@ int main(int argc, char* argv[]) {
 					gfxSwapBuffers();
 					gspWaitForVBlank();
 				}
+
+				if (selfupdateContinue) {
+					UpdateResult result = updaterDoUpdate(newUpdater, info);
+					consoleScreen(GFX_TOP);
+					consoleClear();
+					consolePrintHeader();
+					if (result.success) {
+						std::printf("\n  %sUpdater successfully updated%s\n" \
+							"\n  However, you need to restart the app for\n  changes to take effect"\
+							"\n\n  Press START to exit.",
+							CONSOLE_GREEN, CONSOLE_RESET);
+					} else {
+						std::printf("\n  %sUpdate failed%s\n\n  " \
+							"Something went wrong while trying to update," \
+							"\n  see screen below for details.\n\n  " \
+							"Reason for failure: %s\n\n  "
+							"If you think this is a bug, please open an\n  " \
+							"issue on the following URL:\n  https://github.com/Hamcha/lumaupdate/issues\n\n  " \
+							"Press START to exit.\n", CONSOLE_RED, CONSOLE_RESET, result.errcode.c_str());
+					}
+					gfxFlushBuffers();
+					WAIT_START
+					goto cleanup;
+				}
 			}
 
 			consoleScreen(GFX_TOP);
@@ -630,7 +654,7 @@ int main(int argc, char* argv[]) {
 				consoleScreen(GFX_TOP);
 				consoleClear();
 				consolePrintHeader();
-				std::printf("\n  %sUpdate failed%s.\n\n  " \
+				std::printf("\n  %sUpdate failed%s\n\n  " \
 					"Something went wrong while trying to update," \
 					"\n  see screen below for details.\n\n  " \
 					"Reason for failure: %s\n\n  "
@@ -644,7 +668,7 @@ int main(int argc, char* argv[]) {
 			if (redraw) {
 				consoleClear();
 				consolePrintHeader();
-				std::printf("\n  %sUpdate complete.%s\n", CONSOLE_GREEN, CONSOLE_RESET);
+				std::printf("\n  %sUpdate complete%s\n", CONSOLE_GREEN, CONSOLE_RESET);
 				if (updateInfo.backupExisting) {
 					std::printf("\n  In case something goes wrong you can restore\n  the old payload from %s.bak\n", updateInfo.payloadPath.c_str());
 				}
@@ -667,7 +691,7 @@ int main(int argc, char* argv[]) {
 			if (redraw) {
 				consoleClear();
 				consolePrintHeader();
-				std::printf("\n  %sRestore complete.%s\n" \
+				std::printf("\n  %sRestore complete%s\n" \
 					"\n  Press START to reboot.",
 					CONSOLE_GREEN, CONSOLE_RESET);
 				redraw = false;
@@ -684,7 +708,7 @@ int main(int argc, char* argv[]) {
 				consoleScreen(GFX_TOP);
 				consoleClear();
 				consolePrintHeader();
-				std::printf("\n  %sRestore failed%s.\n\n  " \
+				std::printf("\n  %sRestore failed%s\n\n  " \
 					"Something went wrong while trying to restore," \
 					"\n  see screen below for details.\n\n  " \
 					"Reason for failure: %s\n\n  "

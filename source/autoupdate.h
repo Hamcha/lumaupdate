@@ -2,6 +2,8 @@
 
 #include "libs.h"
 
+#include "update.h"
+
 //! Homebrew type (format)
 enum class HomebrewType {
 	Unknown,  //!< Can't detect what we are (?)
@@ -21,6 +23,7 @@ struct UpdaterInfo {
 	HomebrewType     type;     //!< Homebrew type (3dsx, cia, etc)
 	HomebrewLocation location; //!< Homebrew location (SDMC, 3DSLink, NAND etc)
 	std::string      sdmcLoc;  //!< Folder on SDMC (if homebrew)
+	std::string      sdmcName; //!< Name of the 3dsx file (if homebrew)
 };
 
 //! Latest Luma3DS Updater version info
@@ -51,4 +54,4 @@ LatestUpdaterInfo updaterGetLatest();
  *  \param latest Latest release info (for downloading)
  *  \param current Current updater install info (for installing)
  */
-void updaterDoUpdate(LatestUpdaterInfo latest, UpdaterInfo current);
+UpdateResult updaterDoUpdate(LatestUpdaterInfo latest, UpdaterInfo current);
