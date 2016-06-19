@@ -6,7 +6,14 @@
 
 #define MAXPATHLEN 37
 
+enum class PayloadType {
+	A9LH,    /*!< arm9loaderhax payload (arm9loaderhax.bin) */
+	Menuhax, /*!< menuhax payload (Luma3DS.dat)             */
+	Homebrew /*!< hblauncher payload (Luma3DS.3dsx/smdh)    */
+};
+
 struct UpdateArgs {
+	PayloadType  payloadType;    /*!< Type of payload to upgrade  */
 	std::string  payloadPath;    /*!< Path to Luma3DS payload     */
 	bool         backupExisting; /*!< Backup existing payload     */
 	bool         migrateARN;     /*!< Migrate from AuReiNand      */

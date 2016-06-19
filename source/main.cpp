@@ -56,6 +56,7 @@ struct UpdateInfo {
 	bool         backupExists   = false;
 
 	// Configuration options
+	PayloadType  payloadType    = PayloadType::A9LH;
 	std::string  payloadPath    = "/arm9loaderhax.bin";
 	bool         backupExisting = true;
 	bool         selfUpdate     = true;
@@ -69,7 +70,7 @@ struct UpdateInfo {
 	UpdateChoice choice = UpdateChoice(ChoiceType::NoChoice);
 
 	UpdateArgs getArgs() {
-		return UpdateArgs{ payloadPath, backupExisting, migrateARN, choice.chosenVersion, choice.isHourly };
+		return UpdateArgs{ payloadType, payloadPath, backupExisting, migrateARN, choice.chosenVersion, choice.isHourly };
 	}
 };
 
@@ -260,7 +261,7 @@ static UpdateChoice drawConfirmationScreen(const UpdateInfo& args, const bool us
 		consoleScreen(GFX_TOP);
 	}
 
-	int y = 11 + (!usingConfig ? 2 : 0) + (args.hourly != nullptr ? 1 : 0) + (backupVersionDetected ? 1 : 0);
+	int y = 12 + (!usingConfig ? 2 : 0) + (args.hourly != nullptr ? 1 : 0) + (backupVersionDetected ? 1 : 0);
 
 	consoleMoveTo(0, y);
 
@@ -389,6 +390,7 @@ int main(int argc, char* argv[]) {
 	UpdaterInfo info;
 	UpdateResult result;
 	Config config;
+	std::string payloadType;
 
 	aptInit();
 	amInit();
@@ -453,6 +455,20 @@ int main(int argc, char* argv[]) {
 	updateInfo.backupExisting = tolower(config.Get("backup", "y")[0]) == 'y';
 	updateInfo.selfUpdate = tolower(config.Get("selfupdate", "y")[0]) == 'y';
 	updateInfo.writeLog = tolower(config.Get("log enable", "y")[0]) == 'y';
+
+	payloadType = config.Get("payload type", "a9lh");
+	if (payloadType == "a9lh") {
+		updateInfo.payloadType = PayloadType::A9LH;
+	} else if (payloadType == "menuhax") {
+		updateInfo.payloadType = PayloadType::Menuhax;
+	} else if (payloadType == "homebrew") {
+		updateInfo.payloadType = PayloadType::Homebrew;
+	} else {
+		logPrintf("Unknown or wrong config value: '%s' for 'payload type'\n", payloadType.c_str());
+		gfxFlushBuffers();
+		WAIT_START
+		goto cleanup;
+	}
 
 	// Add initial slash to payload path, if missing
 	if (updateInfo.payloadPath[0] != '/') {
