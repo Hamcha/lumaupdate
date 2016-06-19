@@ -163,14 +163,6 @@ static UpdateChoice drawConfirmationScreen(const UpdateInfo& args, const bool us
 	static int hourlyOptionStart = INT_MAX;
 	static int extraOptionStart = INT_MAX;
 
-	const std::string latestStable = versionGetStable(args.currentVersion);
-	const std::string latestCommit = versionGetCommit(args.currentVersion);
-
-	const bool isDev = args.currentVersion.find("(dev)") != std::string::npos;
-
-	const bool haveLatestStable = latestStable == args.stable->name;
-	const bool haveLatestCommit = latestCommit == args.hourly->commits[isDev ? "dev hourly" : "hourly"];
-
 	const bool backupVersionDetected = args.backupExists && args.backupVersion != "";
 
 	handlePromptInput(status);
@@ -178,8 +170,7 @@ static UpdateChoice drawConfirmationScreen(const UpdateInfo& args, const bool us
 	if (status.optionChosen) {
 		if (status.selected < hourlyOptionStart) {
 			return UpdateChoice(ChoiceType::UpdatePayload, args.stable->versions[status.selected], false);
-		}
-		if (status.selected < extraOptionStart) {
+		} else if (status.selected < extraOptionStart) {
 			return UpdateChoice(ChoiceType::UpdatePayload, args.hourly->versions[status.selected - hourlyOptionStart], true);
 		}
 		int extraOptionID = status.selected - extraOptionStart;
@@ -214,6 +205,14 @@ static UpdateChoice drawConfirmationScreen(const UpdateInfo& args, const bool us
 	consoleScreen(GFX_TOP);
 
 	if (status.redrawTop) {
+		const std::string latestStable = versionGetStable(args.currentVersion);
+		const std::string latestCommit = versionGetCommit(args.currentVersion);
+
+		const bool isDev = args.currentVersion.find("(dev)") != std::string::npos;
+
+		const bool haveLatestStable = latestStable == args.stable->name;
+		const bool haveLatestCommit = latestCommit == args.hourly->commits[isDev ? "dev hourly" : "hourly"];
+
 		consoleClear();
 		consolePrintHeader();
 
@@ -221,22 +220,39 @@ static UpdateChoice drawConfirmationScreen(const UpdateInfo& args, const bool us
 			std::printf("  %sConfiguration not found, using default values%s\n\n", CONSOLE_MAGENTA, CONSOLE_RESET);
 		}
 
+		std::string payloadType;
+		switch (args.payloadType) {
+		case PayloadType::A9LH:
+			payloadType = "arm9loaderhax";
+			break;
+		case PayloadType::Menuhax:
+			payloadType = "menuhax";
+			break;
+		case PayloadType::Homebrew:
+			payloadType = "Homebrew";
+			break;
+		}
+
+		std::printf("  Payload type:   %s%s%s\n", CONSOLE_WHITE, payloadType.c_str(), CONSOLE_RESET);
 		std::printf("  Payload path:   %s%s%s\n", CONSOLE_WHITE, args.payloadPath.c_str(), CONSOLE_RESET);
 		std::printf("  Backup payload: %s%s%s\n\n",
 			(args.backupExisting ? CONSOLE_GREEN : CONSOLE_RED),
 			(args.backupExisting ? "Yes" : "No"),
-			CONSOLE_RESET
-		);
+			CONSOLE_RESET);
 
 		if (args.currentVersion != "") {
 			std::printf("  Current installed version: %s%s%s\n", (haveLatestStable ? CONSOLE_GREEN : CONSOLE_RED), args.currentVersion.c_str(), CONSOLE_RESET);
 		} else {
 			std::printf("  %sCould not detect current version%s\n\n", CONSOLE_MAGENTA, CONSOLE_RESET);
 		}
+
 		if (backupVersionDetected) {
-			bool backupIsLatest = args.backupVersion == args.stable->name;
-			std::printf("  Current backup version:    %s%s%s\n", (backupIsLatest ? CONSOLE_GREEN : CONSOLE_RED), args.backupVersion.c_str(), CONSOLE_RESET);
+			std::printf("  Current backup version:    %s%s%s\n",
+				(args.backupVersion == args.stable->name ? CONSOLE_GREEN : CONSOLE_RED),
+				args.backupVersion.c_str(),
+				CONSOLE_RESET);
 		}
+
 		std::printf("  Latest version (Github):   %s%s%s\n", CONSOLE_GREEN, args.stable->name.c_str(), CONSOLE_RESET);
 
 		if (args.hourly != nullptr) {
@@ -244,11 +260,9 @@ static UpdateChoice drawConfirmationScreen(const UpdateInfo& args, const bool us
 		}
 
 		if (haveLatestStable) {
-			if (haveLatestCommit || latestCommit == "") {
-				std::printf("\n  You seem to have the latest version already.\n");
-			} else {
-				std::printf("\n  A new hourly build of Luma3DS is available.\n");
-			}
+			std::printf(haveLatestCommit || latestCommit == ""
+				? "\n  You seem to have the latest version already.\n"
+				: "\n  A new hourly build of Luma3DS is available.\n");
 		} else {
 			std::printf("\n  A new stable version of Luma3DS is available.\n");
 		}
@@ -377,6 +391,64 @@ static SelfUpdateChoice drawUpdateNag(const LatestUpdaterInfo& latest) {
 	return SelfUpdateChoice::NoChoice;
 }
 
+static std::pair<bool, LatestUpdaterInfo> checkSelfUpdate(UpdaterInfo info) {
+	if (info.type == HomebrewType::Unknown) {
+		logPrintf("Could not detect install type, skipping self-update...\n");
+		return { false, {} };
+	}
+
+	if (info.location == HomebrewLocation::Remote) {
+		logPrintf("Updater launched over 3DSLink, skipping self-update...\n");
+		return { false, {} };
+	}
+
+	consoleScreen(GFX_TOP);
+	consoleSetProgressData("Checking for an updated updater", 0.2);
+	consoleScreen(GFX_BOTTOM);
+
+	logPrintf("Checking for new Luma3DS Updater releases...\n");
+	LatestUpdaterInfo newUpdater;
+	try {
+		newUpdater = updaterGetLatest();
+	} catch (const std::string& err) {
+		logPrintf("Got error: %s\nSkipping self-update...\n", err.c_str());
+		return { false, {} };
+	}
+
+	if (!newUpdater.isNewer) {
+		logPrintf("Current updater is already at latest release.\n");
+		return{ false, {} };
+	}
+
+	redraw = true;
+
+	// Show selfupdate nag
+	while (aptMainLoop()) {
+		hidScanInput();
+		u32 kDown = hidKeysDown();
+
+		switch (drawUpdateNag(newUpdater)) {
+		case SelfUpdateChoice::IgnoreUpdate:
+			return { false, {} };
+		case SelfUpdateChoice::SelfUpdate:
+			return { true, newUpdater };
+		case SelfUpdateChoice::NoChoice:
+			break;
+		};
+
+		if ((kDown & KEY_START) != 0) {
+			break;
+		}
+
+		// Flush and swap framebuffers
+		gfxFlushBuffers();
+		gfxSwapBuffers();
+		gspWaitForVBlank();
+	}
+
+	return { false, {} };
+}
+
 int main(int argc, char* argv[]) {
 	std::vector<std::string> cfgPaths = {
 		"/lumaupdater.cfg",
@@ -483,6 +555,13 @@ int main(int argc, char* argv[]) {
 		goto cleanup;
 	}
 
+	consoleScreen(GFX_TOP);
+	consoleSetProgressData("Detecting updater install", 0.1);
+	consoleScreen(GFX_BOTTOM);
+
+	// Check for selfupdate
+	logPrintf("Trying detection of current updater install...\n");
+	gfxFlushBuffers();
 	info = updaterGetInfo(argc > 0 ? argv[0] : nullptr);
 
 	if (updateInfo.writeLog) {
@@ -494,110 +573,37 @@ int main(int argc, char* argv[]) {
 	}
 
 	if (updateInfo.selfUpdate) {
-		consoleScreen(GFX_TOP);
-		consoleSetProgressData("Checking for an updated updater", 0.1);
-		consoleScreen(GFX_BOTTOM);
-
-		consoleScreen(GFX_TOP);
-		consoleSetProgressData("Detecting updater install", 0.2);
-		consoleScreen(GFX_BOTTOM);
-
-		// Check for selfupdate
-		logPrintf("Trying detection of current updater install...\n");
-		bool selfupdateContinue = true;
-
-		gfxFlushBuffers();
-
-		if (info.type == HomebrewType::Unknown) {
-			logPrintf("Could not detect install type, skipping self-update...\n");
-			selfupdateContinue = false;
-		}
-
-		if (info.location == HomebrewLocation::Remote) {
-			logPrintf("Updater launched over 3DSLink, skipping self-update...\n");
-			selfupdateContinue = false;
-		}
-
-
-		if (selfupdateContinue) {
-			logPrintf("Checking for new Luma3DS Updater releases...\n");
-			LatestUpdaterInfo newUpdater;
-			try {
-				newUpdater = updaterGetLatest();
-				selfupdateContinue = newUpdater.isNewer;
-				if (!newUpdater.isNewer) {
-					logPrintf("Current updater is already at latest release.\n");
-				}
-			} catch (const std::string& err) {
-				logPrintf("Got error: %s\nSkipping self-update...\n", err.c_str());
-				selfupdateContinue = false;
+		std::pair<bool, LatestUpdaterInfo> selfcheck = checkSelfUpdate(info);
+		if (selfcheck.first) {
+			UpdateResult result = updaterDoUpdate(selfcheck.second, info);
+			consoleScreen(GFX_TOP);
+			consoleClear();
+			consolePrintHeader();
+			if (result.success) {
+				std::printf("\n  %sUpdater successfully updated%s\n" \
+					"\n  However, you need to restart the app for\n  changes to take effect"\
+					"\n\n  Press START to exit.",
+					CONSOLE_GREEN, CONSOLE_RESET);
+			} else {
+				std::printf("\n  %sUpdate failed%s\n\n  " \
+					"Something went wrong while trying to update," \
+					"\n  see screen below for details.\n\n  " \
+					"Reason for failure: %s\n\n  "
+					"If you think this is a bug, please open an\n  " \
+					"issue on the following URL:\n  https://github.com/Hamcha/lumaupdate/issues\n\n  " \
+					"Press START to exit.\n", CONSOLE_RED, CONSOLE_RESET, result.errcode.c_str());
 			}
-
-			if (selfupdateContinue) {
-				redraw = true;
-
-				// Show selfupdate nag
-				bool choiceMade = false;
-				while (aptMainLoop() && !choiceMade) {
-					hidScanInput();
-					u32 kDown = hidKeysDown();
-					
-					switch (drawUpdateNag(newUpdater)) {
-					case SelfUpdateChoice::IgnoreUpdate:
-						selfupdateContinue = false;
-						choiceMade = true;
-						break;
-					case SelfUpdateChoice::SelfUpdate:
-						selfupdateContinue = true;
-						choiceMade = true;
-						break;
-					case SelfUpdateChoice::NoChoice:
-						choiceMade = false;
-						break;
-					};
-
-					if ((kDown & KEY_START) != 0) {
-						goto cleanup;
-					}
-
-					// Flush and swap framebuffers
-					gfxFlushBuffers();
-					gfxSwapBuffers();
-					gspWaitForVBlank();
-				}
-
-				if (selfupdateContinue) {
-					UpdateResult result = updaterDoUpdate(newUpdater, info);
-					consoleScreen(GFX_TOP);
-					consoleClear();
-					consolePrintHeader();
-					if (result.success) {
-						std::printf("\n  %sUpdater successfully updated%s\n" \
-							"\n  However, you need to restart the app for\n  changes to take effect"\
-							"\n\n  Press START to exit.",
-							CONSOLE_GREEN, CONSOLE_RESET);
-					} else {
-						std::printf("\n  %sUpdate failed%s\n\n  " \
-							"Something went wrong while trying to update," \
-							"\n  see screen below for details.\n\n  " \
-							"Reason for failure: %s\n\n  "
-							"If you think this is a bug, please open an\n  " \
-							"issue on the following URL:\n  https://github.com/Hamcha/lumaupdate/issues\n\n  " \
-							"Press START to exit.\n", CONSOLE_RED, CONSOLE_RESET, result.errcode.c_str());
-					}
-					gfxFlushBuffers();
-					WAIT_START
-					goto cleanup;
-				}
-			}
-
+			gfxFlushBuffers();
+			WAIT_START
+			goto cleanup;
+		} else {
 			consoleScreen(GFX_TOP);
 			consoleInitProgress("Loading Luma3DS Updater");
 		}
 		consoleScreen(GFX_BOTTOM);
 		consoleClear();
 	} else {
-	logPrintf("Skipping self-update checks as it's disabled\n");
+		logPrintf("Skipping self-update checks as it's disabled\n");
 	}
 
 	consoleScreen(GFX_TOP);
