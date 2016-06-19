@@ -174,7 +174,7 @@ ReleaseInfo releaseGetLatestHourly() {
 	return hourly;
 }
 
-bool releaseGetPayload(const ReleaseVer& release, const bool isHourly, u8** payloadData, size_t* offset, size_t* payloadSize) {
+bool releaseGetPayload(const PayloadType payloadType, const ReleaseVer& release, const bool isHourly, u8** payloadData, size_t* offset, size_t* payloadSize) {
 	u8* fileData = nullptr;
 	u32 fileSize = 0;
 	HTTPResponseInfo info;
@@ -224,14 +224,27 @@ bool releaseGetPayload(const ReleaseVer& release, const bool isHourly, u8** payl
 	logPrintf("\nExtracting payload");
 	gfxFlushBuffers();
 
+	std::string payloadPath;
+	switch (payloadType) {
+	case PayloadType::A9LH:
+		payloadPath = DEFAULT_A9LH_PATH;
+		break;
+	case PayloadType::Menuhax:
+		payloadPath = DEFAULT_MHAX_PATH;
+		break;
+	case PayloadType::Homebrew:
+		payloadPath = DEFAULT_3DSX_PATH;
+		break;
+	}
+
 	try {
 		if (isHourly) {
 			ZipArchive archive(fileData, fileSize);
-			archive.extractFile(std::string("out/") + PAYLOADPATH, payloadData, payloadSize);
+			archive.extractFile(std::string("out/") + payloadPath, payloadData, payloadSize);
 			offset = 0;
 		} else {
 			SzArchive archive(fileData, fileSize);
-			archive.extractFile(PAYLOADPATH, payloadData, offset, payloadSize);
+			archive.extractFile(payloadPath, payloadData, offset, payloadSize);
 		}
 	} catch (const std::runtime_error& e) {
 		logPrintf(" [ERR]\nFATAL: %s", e.what());

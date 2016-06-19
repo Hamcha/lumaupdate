@@ -2,7 +2,15 @@
 
 #include "libs.h"
 
-#define PAYLOADPATH "arm9loaderhax.bin"
+#define DEFAULT_A9LH_PATH "arm9loaderhax.bin"
+#define DEFAULT_MHAX_PATH "Luma3DS.dat"
+#define DEFAULT_3DSX_PATH "3DS/Luma3DS/Luma3DS.3dsx"
+
+enum class PayloadType {
+	A9LH,    /*!< arm9loaderhax payload (arm9loaderhax.bin) */
+	Menuhax, /*!< menuhax payload (Luma3DS.dat)             */
+	Homebrew /*!< hblauncher payload (Luma3DS.3dsx/smdh)    */
+};
 
 struct ReleaseVer {
 	std::string filename;
@@ -31,10 +39,11 @@ ReleaseInfo releaseGetLatestStable();
 ReleaseInfo releaseGetLatestHourly();
 
 /* \brief Update to stable version
- * Gets the A9LH payload (arm9loaderhax.bin) file from either a stable release or a hourly
+ * Gets the chosen payload (A9LH/Menuhax/3dsx) file from either a stable release or a hourly
  * The buffer must be free'd after used. If the release is not an hourly, the `payloadData` pointer must
  * increased by `offset` to get the correct bytes
  *
+ * \param type        Payload type to fetch
  * \param release     Release data
  * \param isHourly    Wether the release is a hourly (.zip) or stable (.7z)
  * \param payloadData Pointer to fill with the payload bytes (should be nullptr when passing)
@@ -43,4 +52,4 @@ ReleaseInfo releaseGetLatestHourly();
  *
  * \return true if everything succeeds, false otherwise
  */
-bool releaseGetPayload(const ReleaseVer& release, const bool isHourly, u8** payloadData, size_t* offset, size_t* payloadSize);
+bool releaseGetPayload(const PayloadType type, const ReleaseVer& release, const bool isHourly, u8** payloadData, size_t* offset, size_t* payloadSize);

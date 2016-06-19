@@ -120,18 +120,18 @@ UpdateResult update(const UpdateArgs& args) {
 	u8* payloadData = nullptr;
 	size_t offset = 0;
 	size_t payloadSize = 0;
-	if (!releaseGetPayload(args.chosenVersion, args.isHourly, &payloadData, &offset, &payloadSize)) {
+	if (!releaseGetPayload(args.payloadType, args.chosenVersion, args.isHourly, &payloadData, &offset, &payloadSize)) {
 		logPrintf("FATAL\nCould not get A9LH payload...\n");
 		std::free(payloadData);
 		return { false, "DOWNLOAD FAILED" };
 	}
 
-	if (args.payloadPath != std::string("/") + PAYLOADPATH) {
+	if (args.payloadType == PayloadType::A9LH && args.payloadPath != std::string("/") + DEFAULT_A9LH_PATH) {
 		consoleScreen(GFX_TOP);
 		consoleSetProgressData("Applying path changing", 0.6);
 		consoleScreen(GFX_BOTTOM);
 
-		logPrintf("Requested payload path is not %s, applying path patch...\n", PAYLOADPATH);
+		logPrintf("Requested payload path is not %s, applying path patch...\n", DEFAULT_A9LH_PATH);
 		if (!pathchange(payloadData + offset, payloadSize, args.payloadPath)) {
 			std::free(payloadData);
 			return { false, "PATHCHANGE FAILED" };
@@ -158,7 +158,7 @@ UpdateResult update(const UpdateArgs& args) {
 	consoleSetProgressData("Saving payload to SD", 0.9);
 	consoleScreen(GFX_BOTTOM);
 
-	logPrintf("Saving %s to SD (as %s)...\n", PAYLOADPATH, args.payloadPath.c_str());
+	logPrintf("Saving payload to SD (as %s)...\n", args.payloadPath.c_str());
 	std::ofstream a9lhfile("/" + args.payloadPath, std::ofstream::binary);
 	a9lhfile.write((const char*)(payloadData + offset), payloadSize);
 	a9lhfile.close();

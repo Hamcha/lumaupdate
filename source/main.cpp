@@ -226,7 +226,7 @@ static UpdateChoice drawConfirmationScreen(const UpdateInfo& args, const bool us
 			payloadType = "arm9loaderhax";
 			break;
 		case PayloadType::Menuhax:
-			payloadType = "menuhax";
+			payloadType = "Menuhax";
 			break;
 		case PayloadType::Homebrew:
 			payloadType = "Homebrew";
@@ -523,7 +523,7 @@ int main(int argc, char* argv[]) {
 	}
 
 	// Load config values
-	updateInfo.payloadPath = config.Get("payload path", PAYLOADPATH);
+	updateInfo.payloadPath = config.Get("payload path", DEFAULT_A9LH_PATH);
 	updateInfo.backupExisting = tolower(config.Get("backup", "y")[0]) == 'y';
 	updateInfo.selfUpdate = tolower(config.Get("selfupdate", "y")[0]) == 'y';
 	updateInfo.writeLog = tolower(config.Get("log enable", "y")[0]) == 'y';
