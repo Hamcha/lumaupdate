@@ -82,7 +82,7 @@ clean:
 
 # Archive
 
-$(ZIPNAME): $(OUTPUT).cia
+$(ZIPNAME): $(OUTPUT).cia $(OUTPUT).3dsx $(OUTPUT).smdh
 	mkdir -p $(CURDIR)/archive/3DS/lumaupdater
 	cp $(CURDIR)/lumaupdater.cfg $(CURDIR)/archive
 	cp $(OUTPUT).cia $(CURDIR)/archive
