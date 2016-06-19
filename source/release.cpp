@@ -244,7 +244,7 @@ bool releaseGetPayload(const PayloadType payloadType, const ReleaseVer& release,
 			offset = 0;
 		} else {
 			SzArchive archive(fileData, fileSize);
-			archive.extractFile(payloadPath, payloadData, offset, payloadSize);
+			archive.extractFile(payloadPath, payloadData, payloadSize, offset);
 		}
 	} catch (const std::runtime_error& e) {
 		logPrintf(" [ERR]\nFATAL: %s", e.what());
