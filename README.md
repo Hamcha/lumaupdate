@@ -4,6 +4,10 @@ Formerly known as "ARN Updater"
 
 A `arm9loaderhax.bin` updater for Luma3DS (formerly AuReiNand) as a 3DS homebrew (no more SD swaps!)
 
+## Usage
+
+Refer to the [wiki](https://github.com/Hamcha/lumaupdate/wiki) for usage information.
+
 ## Requirements
 
 - Your usual 3DS compilation environment
