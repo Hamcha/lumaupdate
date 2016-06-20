@@ -15,7 +15,7 @@ Refer to the [wiki](https://github.com/Hamcha/lumaupdate/wiki) for usage informa
 - [makerom](http://3dbrew.org/wiki/Makerom) and [bannertool](https://github.com/Steveice10/bannertool) somewhere in your `PATH` environment
 - zlib (get it from [devkitPro/3ds_portlibs](https://github.com/devkitPro/3ds_portlibs))
 
-<sup>* It appears ctrulib has breaking changes every once in a while, if you have trouble compiling, the latest tested working commit is [56a11197c7543daa10e2cb27238d36b210e91a83](https://github.com/smealum/ctrulib/commit/56a11197c7543daa10e2cb27238d36b210e91a83)</sup>
+<sup>* ctrulib has breaking changes every once in a while so if you have trouble compiling, the latest tested working commit is [56a1119](https://github.com/smealum/ctrulib/commit/56a11197c7543daa10e2cb27238d36b210e91a83)</sup>
 
 #### Optional
 
