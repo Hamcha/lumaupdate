@@ -2,14 +2,26 @@
 
 #include "utils.h"
 
-std::string versionMemsearch(const std::string& path) {
-	const static char searchString[] = " configuration";
+const std::string LumaVersion::toString(bool printBranch) const {
+	std::string currentVersionStr = release;
+	if (!commit.empty()) {
+		currentVersionStr += "-" + commit;
+	}
+	if (printBranch && isDev) {
+		currentVersionStr += " (dev)";
+	}
+	return currentVersionStr;
+}
+
+
+LumaVersion versionMemsearch(const std::string& path) {
+	const static char searchString[] = "Luma3DS v";
 	const static size_t searchStringLen = sizeof(searchString)/sizeof(char) - 1;
 
 	std::ifstream payloadFile(path, std::ios::binary | std::ios::ate);
 	if (!payloadFile) {
 		logPrintf("Could not open existing payload, does it exists?\n");
-		return "";
+		return LumaVersion{};
 	}
 
 	/* Load entire file into local buffer */
@@ -47,38 +59,36 @@ std::string versionMemsearch(const std::string& path) {
 	}
 
 	if (found) {
-		// Version is what comes before "configuration" but after " v"
+		// Version is what comes after " v" and before " configuration" 
+		curProposedOffset += searchStringLen;
 		size_t verOffset = curProposedOffset;
-		for (; verOffset > 0; --verOffset) {
-			if (payloadData[verOffset] == 'v' && payloadData[verOffset-1] == ' ') {
+		for (; verOffset < payloadSize; ++verOffset) {
+			if (payloadData[verOffset] == 'c' && payloadData[verOffset-1] == ' ') {
 				break;
 			}
 		}
 		// Get full version string
-		versionString = std::string(payloadData+verOffset+1, curProposedOffset-verOffset-1);
+		versionString = std::string(payloadData + curProposedOffset, verOffset - curProposedOffset - 1);
 	}
 
 	std::free(payloadData);
-	return versionString;
-}
 
-std::string versionGetStable(const std::string& version) {
-	const size_t separator = version.find("-");
+	const size_t separator = versionString.find("-");
 	if (separator == std::string::npos) {
-		return version;
+		return LumaVersion{ versionString, "", false };
 	}
-	return version.substr(0, separator);
-}
 
-std::string versionGetCommit(const std::string& version) {
-	const size_t separator = version.find("-");
-	if (separator == std::string::npos) {
-		return "";
-	}
-	const size_t end = version.find(" ");
+	LumaVersion version;
+	version.release = versionString.substr(0, separator);
+
+	const size_t end = versionString.find(" ", separator);
 	if (end == std::string::npos) {
-		return version.substr(separator + 1);
+		version.commit = versionString.substr(separator + 1);
+		version.isDev = false;
+	} else {
+		version.commit = versionString.substr(separator + 1, end - separator - 1);
+		version.isDev = versionString.find("(dev)", separator) != std::string::npos;
 	}
 
-	return version.substr(separator + 1, end - separator - 1);
+	return version;
 }

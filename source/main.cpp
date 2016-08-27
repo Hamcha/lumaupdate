@@ -50,8 +50,8 @@ struct UpdateChoice {
 
 struct UpdateInfo {
 	// Detected options
-	std::string  currentVersion;
-	std::string  backupVersion;
+	LumaVersion  currentVersion;
+	LumaVersion  backupVersion;
 	bool         migrateARN     = false;
 	bool         backupExists   = false;
 
@@ -98,7 +98,7 @@ static inline int drawChangelog(const std::string& name, const std::string& log,
 	consoleClear();
 	consoleMoveTo(1, 1);
 
-	if (log != "") {
+	if (!log.empty()) {
 		// Get full text
 		std::string releaseNotes = indent(stripMarkdown(log), 39);
 
@@ -163,7 +163,7 @@ static UpdateChoice drawConfirmationScreen(const UpdateInfo& args, const bool us
 	static int hourlyOptionStart = INT_MAX;
 	static int extraOptionStart = INT_MAX;
 
-	const bool backupVersionDetected = args.backupExists && args.backupVersion != "";
+	const bool backupVersionDetected = args.backupExists && !args.backupVersion.isValid();
 
 	handlePromptInput(status);
 
@@ -205,13 +205,9 @@ static UpdateChoice drawConfirmationScreen(const UpdateInfo& args, const bool us
 	consoleScreen(GFX_TOP);
 
 	if (status.redrawTop) {
-		const std::string latestStable = versionGetStable(args.currentVersion);
-		const std::string latestCommit = versionGetCommit(args.currentVersion);
-
-		const bool isDev = args.currentVersion.find("(dev)") != std::string::npos;
-
-		const bool haveLatestStable = latestStable == args.stable->name;
-		const bool haveLatestCommit = latestCommit == args.hourly->commits[isDev ? "dev hourly" : "hourly"];
+		const bool haveLatestStable = args.currentVersion.release == args.stable->name;
+		const bool haveLatestCommit = args.currentVersion.commit == args.hourly->commits[args.currentVersion
+			.isDev ? "dev hourly" : "hourly"];
 
 		consoleClear();
 		consolePrintHeader();
@@ -240,16 +236,16 @@ static UpdateChoice drawConfirmationScreen(const UpdateInfo& args, const bool us
 			(args.backupExisting ? "Yes" : "No"),
 			CONSOLE_RESET);
 
-		if (args.currentVersion != "") {
-			std::printf("  Current installed version: %s%s%s\n", (haveLatestStable ? CONSOLE_GREEN : CONSOLE_RED), args.currentVersion.c_str(), CONSOLE_RESET);
+		if (args.currentVersion.isValid()) {
+			std::printf("  Current installed version: %s%s%s\n", (haveLatestStable ? CONSOLE_GREEN : CONSOLE_RED), args.currentVersion.toString().c_str(), CONSOLE_RESET);
 		} else {
 			std::printf("  %sCould not detect current version%s\n\n", CONSOLE_MAGENTA, CONSOLE_RESET);
 		}
 
 		if (backupVersionDetected) {
 			std::printf("  Current backup version:    %s%s%s\n",
-				(args.backupVersion == args.stable->name ? CONSOLE_GREEN : CONSOLE_RED),
-				args.backupVersion.c_str(),
+				(args.backupVersion.toString() == args.stable->name ? CONSOLE_GREEN : CONSOLE_RED),
+				args.backupVersion.toString().c_str(),
 				CONSOLE_RESET);
 		}
 
@@ -260,7 +256,7 @@ static UpdateChoice drawConfirmationScreen(const UpdateInfo& args, const bool us
 		}
 
 		if (haveLatestStable) {
-			std::printf(haveLatestCommit || latestCommit == ""
+			std::printf(haveLatestCommit || args.currentVersion.commit.empty()
 				? "\n  You seem to have the latest version already.\n"
 				: "\n  A new hourly build of Luma3DS is available.\n");
 		} else {

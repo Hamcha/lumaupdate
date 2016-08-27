@@ -209,7 +209,7 @@ bool releaseGetPayload(const PayloadType payloadType, const ReleaseVer& release,
 		logPrintf("Skipping integrity check #1 (unknown size)\n");
 	}
 
-	if (info.etag != "") {
+	if (!info.etag.empty()) {
 		logPrintf("Integrity check #2");
 		if (!httpCheckETag(info.etag, fileData, fileSize)) {
 			logPrintf(" [ERR]\r\nMD5 mismatch between server's and local file!\n");

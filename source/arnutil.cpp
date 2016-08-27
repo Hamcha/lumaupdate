@@ -4,22 +4,21 @@
 
 bool renameRecursive(const FS_Archive& archive, const std::string& source, const std::string& target);
 
-bool arnVersionCheck(const std::string& versionString) {
+bool arnVersionCheck(const LumaVersion& version) {
 	// Bound checking before trying to do naughty things
-	const size_t verLength = versionString.length();
-	if (verLength < 1) {
+	if (version.release.empty()) {
 		logPrintf("Weird version string: it's empty (?)\n");
 		return false;
 	}
 
 	// Parse release number
-	std::string releaseStr = versionString;
+	std::string releaseStr = version.release;
 	bool hasMajor = false;
-	size_t relSeparator = versionString.find('.');
+	size_t relSeparator = version.release.find('.');
 
 	// "." found, get only release part and set major version flag
 	if (relSeparator != std::string::npos) {
-		releaseStr = versionString.substr(0, relSeparator);
+		releaseStr = version.release.substr(0, relSeparator);
 		hasMajor = true;
 	}
 	int release = std::atoi(releaseStr.c_str());
@@ -27,7 +26,7 @@ bool arnVersionCheck(const std::string& versionString) {
 	// Check major version if found and release is 5.x
 	if (release == 5 && hasMajor) {
 		// Parse major version number
-		std::string majorStr = versionString.substr(relSeparator+1);
+		std::string majorStr = version.release.substr(relSeparator+1);
 		size_t minSeparator = majorStr.find('.');
 
 		// "." found, get only release part and set major version flag

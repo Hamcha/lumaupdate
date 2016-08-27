@@ -174,7 +174,7 @@ UpdateResult updaterDoUpdate(LatestUpdaterInfo latest, UpdaterInfo current) {
 	consoleSetProgressData("Checking archive integrity", 0.5);
 	consoleScreen(GFX_BOTTOM);
 
-	if (info.etag != "") {
+	if (!info.etag.empty()) {
 		logPrintf("Performing integrity check... ");
 		if (!httpCheckETag(info.etag, archiveData, archiveSize)) {
 			logPrintf(" ERR\nMD5 mismatch between server's and local file!\n");
