@@ -38,14 +38,12 @@ UpdaterInfo updaterGetInfo(const char* path) {
 
 #ifdef UNIQUE_ID
 	// Check for CIA
-	aptOpenSession();
 	u64 appid = 0;
 	if (APT_GetProgramID(&appid) == 0) {
 		if ((appid & UNIQUE_ID) == UNIQUE_ID) {
 			type = HomebrewType::CIA;
 		}
 	}
-	aptCloseSession();
 #endif
 
 	return { type, location, sdmcLoc, smdcName };

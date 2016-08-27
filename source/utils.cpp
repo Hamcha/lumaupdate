@@ -181,7 +181,6 @@ void logPrintf(const char* format, ...) {
 	va_list args;
 	va_start(args, format);
 	if (_logfile != nullptr) {
-		char buff[512];
 		vfprintf(_logfile, format, args);
 	}
 	vprintf(format, args);

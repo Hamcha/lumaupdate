@@ -707,9 +707,7 @@ int main(int argc, char* argv[]) {
 			}
 			if ((kDown & KEY_START) != 0) {
 				// Reboot!
-				aptOpenSession();
 				APT_HardwareResetAsync();
-				aptCloseSession();
 			}
 			break;
 		case Restoring:
@@ -728,9 +726,7 @@ int main(int argc, char* argv[]) {
 			}
 			if ((kDown & KEY_START) != 0) {
 				// Reboot!
-				aptOpenSession();
 				APT_HardwareResetAsync();
-				aptCloseSession();
 			}
 			break;
 		case RestoreFailed:

@@ -21,7 +21,7 @@ void httpGet(const char* url, u8** buf, u32* size, const bool verbose, HTTPRespo
 	CHECK(httpcBeginRequest(&context), "Could not begin request");
 
 	u32 statuscode = 0;
-	CHECK(httpcGetResponseStatusCode(&context, &statuscode, 0), "Could not get status code");
+	CHECK(httpcGetResponseStatusCode(&context, &statuscode), "Could not get status code");
 	if (statuscode != 200) {
 		// Handle 3xx codes
 		if (statuscode >= 300 && statuscode < 400) {
