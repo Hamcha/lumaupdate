@@ -13,6 +13,11 @@ struct LumaVersion {
 	bool isValid() const { return !release.empty(); }
 };
 
+/*! \brief Tries to detect the current Luma3DS version by using SVC 0x2e (when supported)
+ *
+ *  \return LumaVersion struct containing all the information that could be retrieved
+ */
+LumaVersion versionSvc();
 
 /*! \brief Tries to detect currently installed Luma3DS/AuReiNand version by searching the payload
  *

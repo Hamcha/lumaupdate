@@ -2,6 +2,17 @@
 
 #include "libs.h"
 
+#ifdef __GNUC__
+#define NAKED __attribute__((naked))
+#define UNUSED __attribute__((unused))
+#else
+// Visual studio really hates GCC-specific syntax (I mean, it's right)
+#undef PACKED
+#define PACKED
+#define NAKED
+#define UNUSED
+#endif
+
 #define CHECK(val, msg) if (val != 0) { throw std::runtime_error(formatErrMessage(msg, val)); }
 
 /*! \brief Formats error messages so they are more readable as exceptions

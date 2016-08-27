@@ -608,7 +608,12 @@ int main(int argc, char* argv[]) {
 
 	// Try to detect current version
 	logPrintf("Trying detection of current payload version...\n");
-	updateInfo.currentVersion = versionMemsearch(updateInfo.payloadPath);
+
+	// Try using SVC 0x2E before falling back to the legacy method (memsearch)
+	updateInfo.currentVersion = versionSvc();
+	if (!updateInfo.currentVersion.isValid()) {
+		updateInfo.currentVersion = versionMemsearch(updateInfo.payloadPath);
+	}
 
 	// Detect bak version, if exists
 	if (fileExists(updateInfo.payloadPath + ".bak")) {

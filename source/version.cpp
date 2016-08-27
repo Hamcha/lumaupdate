@@ -13,6 +13,52 @@ const std::string LumaVersion::toString(bool printBranch) const {
 	return currentVersionStr;
 }
 
+/* Luma3DS 0x2e svc version struct */
+struct PACKED SvcLumaVersion {
+	char magic[4];
+	uint8_t major;
+	uint8_t minor;
+	uint8_t build;
+	uint8_t flags;
+	uint32_t commit;
+	uint32_t unused;
+};
+
+
+int NAKED svcGetLumaVersion(SvcLumaVersion UNUSED *info) {
+	asm volatile(
+		"svc 0x2E\n"
+		"bx lr"
+	);
+}
+
+
+LumaVersion versionSvc() {
+	SvcLumaVersion info;
+	if (svcGetLumaVersion(&info) != 0) {
+		return LumaVersion{};
+	}
+
+	LumaVersion version;
+
+	std::stringstream releaseBuilder;
+	releaseBuilder << (int)info.major << "." << (int)info.minor;
+	if (info.build > 0) {
+		releaseBuilder << "." << (int)info.build;
+	}
+	version.release = releaseBuilder.str();
+
+	if (info.commit > 0) {
+		std::stringstream commitBuilder;
+		commitBuilder << std::hex << info.commit;
+		version.commit = commitBuilder.str();
+	}
+
+	version.isDev = (info.flags & 0x1) == 0x1;
+
+	logPrintf("%s\n", version.toString().c_str());
+	return version;
+}
 
 LumaVersion versionMemsearch(const std::string& path) {
 	const static char searchString[] = "Luma3DS v";
@@ -59,7 +105,7 @@ LumaVersion versionMemsearch(const std::string& path) {
 	}
 
 	if (found) {
-		// Version is what comes after " v" and before " configuration" 
+		// Version is what comes after " v" and before " configuration"
 		curProposedOffset += searchStringLen;
 		size_t verOffset = curProposedOffset;
 		for (; verOffset < payloadSize; ++verOffset) {
