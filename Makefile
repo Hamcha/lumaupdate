@@ -124,7 +124,7 @@ $(BUILD)/%.bnr: $(BANNER_IMAGE) $(BANNER_AUDIO)
 	$(BANNERTOOL) makebanner $(BANNER_IMAGE_ARG) $(BANNER_IMAGE) $(BANNER_AUDIO_ARG) $(BANNER_AUDIO) -o $@
 
 $(BUILD)/%.icn: $(ICON)
-	$(BANNERTOOL) makesmdh -s "$(APP_TITLE)" -l "$(APP_TITLE)" -p "$(APP_TITLE)" -i $(ICON) -f visible,extendedbanner,nosavebackups,ratingrequired --cero 153 --esrb 153 --usk 153 --pegigen 153 --pegiptr 153 --pegibbfc 153 --cob 153 --grb 153 --cgsrr 153 -o $@
+	$(BANNERTOOL) makesmdh -s "$(APP_TITLE)" -l "$(APP_DESCRIPTION)" -p "$(APP_AUTHOR)" -i $(ICON) -f visible,extendedbanner,nosavebackups,ratingrequired --cero 153 --esrb 153 --usk 153 --pegigen 153 --pegiptr 153 --pegibbfc 153 --cob 153 --grb 153 --cgsrr 153 -o $@
 
 # Source
 
