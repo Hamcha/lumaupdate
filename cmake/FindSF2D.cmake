@@ -17,10 +17,14 @@ if(NOT DEVKITPRO)
     msys_to_cmake_path("$ENV{DEVKITPRO}" DEVKITPRO)
 endif()
 
+set(LIBSF2D_PATHS $ENV{CTRULIB} libctru ctrulib ${DEVKITPRO}/libctru ${DEVKITPRO}/ctrulib)
+
 find_path(LIBSF2D_INCLUDE_DIR sf2d.h
+          PATHS ${LIBSF2D_PATHS}
           PATH_SUFFIXES include )
 
 find_library(LIBSF2D_LIBRARY NAMES sf2d libsf2d.a
+          PATHS ${LIBSF2D_PATHS}
           PATH_SUFFIXES lib)
 
 set(LIBSF2D_LIBRARIES ${LIBSF2D_LIBRARY} )

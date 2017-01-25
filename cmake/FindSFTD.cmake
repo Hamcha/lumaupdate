@@ -17,10 +17,14 @@ if(NOT DEVKITPRO)
     msys_to_cmake_path("$ENV{DEVKITPRO}" DEVKITPRO)
 endif()
 
+set(LIBSFTD_PATHS $ENV{CTRULIB} libctru ctrulib ${DEVKITPRO}/libctru ${DEVKITPRO}/ctrulib)
+
 find_path(LIBSFTD_INCLUDE_DIR sftd.h
+          PATHS ${LIBSFTD_PATHS}
           PATH_SUFFIXES include )
 
 find_library(LIBSFTD_LIBRARY NAMES sftd libsftd.a
+          PATHS ${LIBSFTD_PATHS}
           PATH_SUFFIXES lib)
 
 set(LIBSFTD_LIBRARIES ${LIBSFTD_LIBRARY} )

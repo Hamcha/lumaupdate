@@ -17,10 +17,14 @@ if(NOT DEVKITPRO)
     msys_to_cmake_path("$ENV{DEVKITPRO}" DEVKITPRO)
 endif()
 
+set(CITRO3D_PATHS $ENV{CTRULIB} libctru ctrulib ${DEVKITPRO}/libctru ${DEVKITPRO}/ctrulib)
+
 find_path(CITRO3D_INCLUDE_DIR citro3d.h
+          PATHS ${CITRO3D_PATHS}
           PATH_SUFFIXES include )
 
 find_library(CITRO3D_LIBRARY NAMES citro3d libcitro3d.a
+          PATHS ${CITRO3D_PATHS}
           PATH_SUFFIXES lib)
 
 set(CITRO3D_LIBRARIES ${CITRO3D_LIBRARY} )
