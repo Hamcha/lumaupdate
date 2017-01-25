@@ -6,9 +6,7 @@ list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_LIST_DIR}/cmake)
 include(Tools3DS)
 
 # Sources
-file(GLOB_RECURSE SOURCE_FILES
-    source/*
-)
+file(GLOB_RECURSE SOURCE_FILES source/*)
 add_executable(lumaupdater ${SOURCE_FILES})
 
 # Dependencies
@@ -18,11 +16,10 @@ find_package(SF2D REQUIRED)
 find_package(SFTD REQUIRED)
 target_link_libraries(lumaupdater 3ds::sf2d 3ds::sftd 3ds::citro3d 3ds::ctrulib)
 
-# Fonts
-file(GLOB_RECURSE FONT_FILES
-    fonts/*.ttf
-)
-target_embed_file(lumaupdater ${FONT_FILES})
+# Resources
+file(GLOB_RECURSE FONT_FILES data/fonts/*.ttf)
+file(GLOB_RECURSE CERT_FILES data/certs/*.cer)
+target_embed_file(lumaupdater ${DATA_FILES} ${CERT_FILES})
 
 # Luma Updater final targets
 add_3dsx_target(lumaupdater)
