@@ -14,5 +14,5 @@ file(GLOB_RECURSE SOURCE_FILES
     source/*
 )
 add_executable(lumaupdater ${SOURCE_FILES})
-target_link_libraries(lumaupdater 3ds::ctrulib 3ds::citro3d 3ds::sf2d 3ds::sftd)
+target_link_libraries(lumaupdater 3ds::sf2d 3ds::sftd 3ds::citro3d 3ds::ctrulib)
 add_3dsx_target(lumaupdater)
