@@ -6,6 +6,17 @@ project(LumaUpdater C CXX ASM)
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_LIST_DIR}/cmake)
 include(Tools3DS)
 
+# App metadata (for 3dsx and CIA target)
+
+set(APP_TITLE  "Luma Updater")
+set(APP_DESC   "Updater for Luma3DS")
+set(APP_AUTHOR "Hamcha")
+
+set(APP_ICON  meta/lumaicon.png)
+set(APP_RSF   meta/rominfo.rsf)
+set(APP_CGFX  meta/luma.cgfx)
+set(APP_SOUND meta/jingle.wav)
+
 # Sources
 file(GLOB_RECURSE SOURCE_FILES source/*)
 add_executable(lumaupdater ${SOURCE_FILES})
@@ -22,9 +33,9 @@ file(GLOB_RECURSE FONT_FILES data/fonts/*.ttf)
 file(GLOB_RECURSE CERT_FILES data/certs/*.cer)
 target_embed_file(lumaupdater ${DATA_FILES} ${CERT_FILES})
 
-# Luma Updater final targets
-add_3dsx_target(lumaupdater)
-#TODO CIA
+# Final targets
+add_3dsx_target(lumaupdater ${APP_TITLE} ${APP_DESC} ${APP_AUTHOR} ${APP_ICON})
+add_cia_target(lumaupdater ${APP_RSF} ${APP_CGFX} ${APP_SOUND} ${APP_TITLE} ${APP_DESC} ${APP_AUTHOR} ${APP_ICON})
 
 # Add netload target for testing
 add_netload_target(netload lumaupdater)

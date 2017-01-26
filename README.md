@@ -1,4 +1,4 @@
-# Luma Updater
+Luma Updater
 
 **WORK IN PROGRESS** *This is the "reboot" branch, a complete rewrite of Luma Updater, expect  missing features and bugs! (more than standard Luma Updater, at least)*
 
@@ -36,4 +36,5 @@ Refer to `LICENSE-3dscmake.txt` for the full license copy.
 - Luma3DS builds (and development) by [Aurora Wright](https://github.com/AuroraWright), [TuxSH](https://github.com/TuxSH) and [other contributors](https://github.com/AuroraWright/Luma3DS/graphs/contributors)
 - Hourlies built and provided by [astronautlevel](https://github.com/astronautlevel2)
 - Cmake based on Lectem's [3ds-cmake](https://github.com/Lectem/3ds-cmake) templates
+- CIA jingle by [Cydon @ FreeSound](https://www.freesound.org/people/cydon/)
 
