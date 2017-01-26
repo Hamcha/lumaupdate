@@ -37,19 +37,19 @@ public:
 	 *  \param keys Key or keys to check (OR'd)
 	 *  \return true if the key is being held, false otherwise
 	 */
-	static const bool IsKeyHeld(u32 keys);
+	static const bool IsKeyHeld(const u32 keys);
 
 	/*! \brief Check if one or more keys are pressed down
 	 *  \param keys Key or keys to check (OR'd)
 	 *  \return true if the key is pressed down, false otherwise
 	 */
-	static const bool IsKeyDown(u32 keys);
+	static const bool IsKeyDown(const u32 keys);
 
 	/*! \brief Check if one or more keys have been just released
 	 *  \param keys Key or keys to check (OR'd)
 	 *  \return true if the key has been released, false otherwise
 	 */
-	static const bool IsKeyUp(u32 keys);
+	static const bool IsKeyUp(const u32 keys);
 
 	//
 	// Input state variables

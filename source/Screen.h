@@ -11,4 +11,4 @@ public:
 	virtual void render() = 0;
 };
 
-typedef Screen* ScreenRef;
+typedef Screen& ScreenRef;
