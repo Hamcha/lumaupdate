@@ -2,38 +2,41 @@
 
 #include "Input.h"
 
-void Application::SetScreen(const gfxScreen_t target, Screen& newScreen) {
-	switch (target) {
-	case GFX_TOP:
-		topScreen = newScreen;
-		break;
-	case GFX_BOTTOM:
-		bottomScreen = newScreen;
-		break;
-	}
+Application::Application() {
+	// Initialize SF2D
+	sf2d_init();
+	sf2d_set_clear_color(RGBA8(0x40, 0x40, 0x40, 0xFF));
+	sf2d_set_3D(0);
+
+	// Initialize SFTD
+	sftd_init();
+}
+
+Application::~Application() {
+	// Dispose SF2D
+	sf2d_fini();
+
+	// Dispose SFTD
+	sftd_fini();
 }
 
 int Application::Run() {
+	// Main loop
 	while (aptMainLoop() && keepRunning) {
+		// Refresh input
 		Input::Get().ScanInput();
 
-		if (Input::IsKeyDown(KEY_START)) {
-			break;
-		}
-
 		// Render top and bottom screens
-		sf2d_start_frame(GFX_TOP, GFX_LEFT);
-		topScreen.render();
-		sf2d_end_frame();
-
-		sf2d_start_frame(GFX_BOTTOM, GFX_LEFT);
-		bottomScreen.render();
-		sf2d_end_frame();
+		currentState.Render();
 
 		sf2d_swapbuffers();
 	}
 
 	return returnCode;
+}
+
+void Application::SetState(State& newState) {
+	currentState = newState;
 }
 
 void Application::Exit(const int retCode) {

@@ -1,10 +1,10 @@
 #pragma once
 
-#include "Screen.h"
+#include "State.h"
 
-/*! \brief Empty screen (for initial status) */
-class NoScreen : public Screen {
-	void render() {}
+/*! \brief Empty state (for initial status) */
+class NoState : public State {
+	void Render() {}
 };
 
 /*! \brief Application logic and screen manager class */
@@ -36,12 +36,11 @@ public:
 	 */
 	int Run();
 
-	/*! \brief Switch to a new screen
+	/*! \brief Switch to a new UI state
 	 *
-	 *  \param target    Screen to render to (GFX_TOP / GFX_BOTTOM)
 	 *  \param newScreen Screen to switch to
 	 */
-	void SetScreen(const gfxScreen_t target, Screen& newScreen);
+	void SetState(State& newState);
 
 	/*! \brief Signal the application to exit on next frame 
 	 *
@@ -50,21 +49,17 @@ public:
 	void Exit(const int retCode = 0);
 
 protected:
-	Application()
-		: topScreen(noScreen), bottomScreen(noScreen) {
-		sf2d_init();
-		sf2d_set_clear_color(RGBA8(0x40, 0x40, 0x40, 0xFF));
-		sf2d_set_3D(0);;
-	}
-
-	~Application() {
-		sf2d_fini();
-	}
+	Application();
+	~Application();
 
 private:
-	ScreenRef topScreen, bottomScreen;
-	NoScreen noScreen; // Empty screen (initial value for both screens)
+	State& currentState = noState;
+	NoState noState; // Empty screen (initial value for both screens)
 
 	bool keepRunning = true; // Wether the app should keep running
 	int returnCode = 0;
+
+	// Load and unload libraries
+	void InitLibraries();
+	void DisposeLibraries();
 };
