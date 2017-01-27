@@ -26,12 +26,24 @@ find_package(CTRULIB REQUIRED)
 find_package(CITRO3D REQUIRED)
 find_package(SF2D REQUIRED)
 find_package(SFTD REQUIRED)
-target_link_libraries(lumaupdater 3ds::sf2d 3ds::sftd 3ds::citro3d 3ds::ctrulib)
+find_package(FREETYPE REQUIRED)
+find_package(PNG REQUIRED)
+find_package(ZLIB REQUIRED)
+target_link_libraries(lumaupdater
+	3ds::sf2d
+	3ds::sftd
+	3ds::ports::freetype
+	3ds::ports::png
+	3ds::ports::zlib
+	3ds::citro3d
+	3ds::ctrulib
+)
 
 # Resources
 file(GLOB_RECURSE FONT_FILES data/fonts/*.ttf)
 file(GLOB_RECURSE CERT_FILES data/certs/*.cer)
-target_embed_file(lumaupdater ${DATA_FILES} ${CERT_FILES})
+add_binary_library(lumaupdater_bin ${FONT_FILES} ${CERT_FILES})
+target_link_libraries(lumaupdater lumaupdater_bin)
 
 # Final targets
 add_3dsx_target(lumaupdater ${APP_TITLE} ${APP_DESC} ${APP_AUTHOR} ${APP_ICON})
