@@ -42,7 +42,7 @@ public:
 	 */
 	void SetState(State& newState);
 
-	/*! \brief Signal the application to exit on next frame 
+	/*! \brief Signal the application to exit on next frame
 	 *
 	 *  \param returnCode (OPTIONAL) Return code
 	 */
@@ -58,8 +58,4 @@ private:
 
 	bool keepRunning = true; // Wether the app should keep running
 	int returnCode = 0;
-
-	// Load and unload libraries
-	void InitLibraries();
-	void DisposeLibraries();
 };
