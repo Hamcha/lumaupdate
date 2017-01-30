@@ -1,6 +1,7 @@
 #include "MainState.h"
 
 void MainState::Render() {
+	RenderScreen(GFX_TOP, &loadingScreen);
 	RenderScreen(GFX_BOTTOM, &console);
 
 	//TODO Handle this stuff

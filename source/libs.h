@@ -3,11 +3,10 @@
 // 3DS core libraries
 #include <3ds.h>
 
-// SF2D
+// SF2D / SFTD / SFIL
 #include <sf2d.h>
-
-// SFTD
 #include <sftd.h>
+#include <sfil.h>
 
 // STL
 #include <string>

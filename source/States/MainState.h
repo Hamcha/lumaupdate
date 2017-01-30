@@ -3,6 +3,7 @@
 #include "../State.h"
 
 #include "../Screens/ConsoleScreen.h"
+#include "../Screens/ProgressScreen.h"
 
 class MainState : public State {
 public:
@@ -22,4 +23,7 @@ private:
 
 	//! Console screen for writing current status and debug info
 	ConsoleScreen console;
+
+	//! Progress screen for showing a pretty loading bar during detect/fetch phase
+	ProgressScreen loadingScreen;
 };

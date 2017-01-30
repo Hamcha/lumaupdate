@@ -26,12 +26,14 @@ find_package(CTRULIB REQUIRED)
 find_package(CITRO3D REQUIRED)
 find_package(SF2D REQUIRED)
 find_package(SFTD REQUIRED)
+find_package(SFIL REQUIRED)
 find_package(FREETYPE REQUIRED)
 find_package(PNG REQUIRED)
 find_package(ZLIB REQUIRED)
 target_link_libraries(lumaupdater
 	3ds::sf2d
 	3ds::sftd
+	3ds::sfil
 	3ds::ports::freetype
 	3ds::ports::png
 	3ds::ports::zlib
@@ -40,9 +42,10 @@ target_link_libraries(lumaupdater
 )
 
 # Resources
-file(GLOB_RECURSE FONT_FILES data/fonts/*.ttf)
-file(GLOB_RECURSE CERT_FILES data/certs/*.cer)
-add_binary_library(lumaupdater_bin ${FONT_FILES} ${CERT_FILES})
+file(GLOB_RECURSE FONT_FILES  data/fonts/*.ttf)
+file(GLOB_RECURSE CERT_FILES  data/certs/*.cer)
+file(GLOB_RECURSE IMAGE_FILES data/images/*)
+add_binary_library(lumaupdater_bin ${FONT_FILES} ${CERT_FILES} ${IMAGE_FILES})
 target_link_libraries(lumaupdater lumaupdater_bin)
 
 # Get version if possible
