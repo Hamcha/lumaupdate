@@ -3,7 +3,7 @@
 #include <cybertrust_cer.h>
 #include <digicert_cer.h>
 
-constexpr void assert(const int returnValue, const char* errorMessage) {
+inline void assert(const int returnValue, const char* errorMessage) {
 	if (returnValue != 0) {
 		//TODO Format error message a little
 		throw std::runtime_error(errorMessage);

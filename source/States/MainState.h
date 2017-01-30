@@ -2,6 +2,8 @@
 
 #include "../State.h"
 
+#include "../Screens/ConsoleScreen.h"
+
 class MainState : public State {
 public:
 	void Render();
@@ -15,5 +17,9 @@ private:
 		Wait,   //! Waiting for user input
 	};
 
+	//! Current state of the application (loading/main menu)
 	MainMenuState currentState = MainMenuState::Detect;
+
+	//! Console screen for writing current status and debug info
+	ConsoleScreen console;
 };

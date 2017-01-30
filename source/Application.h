@@ -2,11 +2,6 @@
 
 #include "State.h"
 
-/*! \brief Empty state (for initial status) */
-class NoState : public State {
-	void Render() {}
-};
-
 /*! \brief Application logic and screen manager class */
 class Application {
 public:
@@ -40,7 +35,7 @@ public:
 	 *
 	 *  \param newScreen Screen to switch to
 	 */
-	void SetState(State& newState);
+	void SetState(State* newState);
 
 	/*! \brief Signal the application to exit on next frame
 	 *
@@ -53,8 +48,7 @@ protected:
 	~Application();
 
 private:
-	State& currentState = noState;
-	NoState noState; // Empty screen (initial value for both screens)
+	std::unique_ptr<State> currentState;
 
 	bool keepRunning = true; // Wether the app should keep running
 	int returnCode = 0;

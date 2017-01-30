@@ -12,3 +12,5 @@
 // STL
 #include <string>
 #include <vector>
+#include <stdexcept>
+#include <memory>

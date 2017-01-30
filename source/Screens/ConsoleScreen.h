@@ -4,12 +4,25 @@
 
 class ConsoleScreen : public Screen {
 public:
-	void Render();
+	// Console screen parameters
+	u16 margin   = 5;  //!< Text margin from screen borders
+	u16 fontSize = 12; //!< Font size
 
+	void Render();
 	ConsoleScreen();
+	~ConsoleScreen();
+
+	/*! \brief Write text to console screen
+	 *  \param text Text to write
+	 */
+	void Write(const std::string text);
+
+	/*! \brief Write a line to console screen
+	 *  \param text Line to write
+	 */
+	void WriteLine(const std::string text);
 
 private:
-	static sftd_font* ConsoleFont;
-
-	std::string content;
+	sftd_font* font;
+	std::vector<std::string> lines;
 };
