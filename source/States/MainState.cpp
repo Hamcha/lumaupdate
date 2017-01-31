@@ -19,6 +19,7 @@ MainState::MainState() {
 	console.Write(std::string("Luma Updater ") + GIT_VERSION);
 
 	loadingScreen.SetStepTitle("Detecting installed version");
+	loadingScreen.SetStepTitle("Checking for updates");
 	loadingScreen.SetStepTitle("Checking for new versions of Luma3DS");
-	loadingScreen.SetStepProgress(1, 3);
+	loadingScreen.SetStepProgress(3, 10);
 }

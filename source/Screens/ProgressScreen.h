@@ -12,7 +12,8 @@ public:
 	void SetStepProgress(int currentProgress, int maxProgress = 10);
 
 private:
-	sftd_font* font;
+	sftd_font* bigfont;
+	sftd_font* smallfont;
 	sf2d_texture* background;
 	std::string currentStep;
 	std::vector<std::string> pastSteps;
