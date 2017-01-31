@@ -13,6 +13,51 @@ ProgressScreen::~ProgressScreen() {
 }
 
 void ProgressScreen::Render() {
+	static const int ProgressTitleLeft = 20;
+	static const int ProgressTitleHeight = 90;
+	static const u16 ProgressTitleSize = 20;
+	static const u32 ProgressTitleColor = RGBA8(0, 0, 0, 255);
+	static const u8  ProgressPastMax = 5;
+	static const u16 ProgressPastSize = 15;
+	static const u16 ProgressPastMargin = 5;
+	static const u32 ProgressPastColor = RGBA8(40, 40, 40, 100);
+	static const int ProgressBoxLeft = ProgressTitleLeft + 5;
+	static const int ProgressBoxHeight = ProgressTitleHeight + 35;
+	static const int ProgressBoxSize = 10;
+	static const int ProgressBoxMargin = 10;
+	static const u32 ProgressColorGreen = RGBA8(0, 200, 100, 200);
+	static const u32 ProgressColorGrey = RGBA8(40, 40, 40, 40);
 	// Draw background first
 	sf2d_draw_texture(background, 0, 0);
+
+	//TODO Draw past steps
+	for (u8 pastIndex = 0; pastIndex < ProgressPastMax && pastIndex < pastSteps.size(); ++pastIndex) {
+		sftd_draw_text(font,
+					   ProgressTitleLeft, ProgressTitleHeight - (pastIndex * (ProgressPastSize + ProgressPastMargin)),
+					   ProgressPastColor, ProgressPastSize, pastSteps[pastIndex].c_str());
+	}
+
+	// Draw current step
+	sftd_draw_text(font, ProgressTitleLeft, ProgressTitleHeight, ProgressTitleColor, ProgressTitleSize, currentStep.c_str());
+
+	// Draw progress (as squares)
+	//TODO Improve this
+	for (u16 index = 0; index < currentStepProgressCount; ++index) {
+		sf2d_draw_rectangle(ProgressBoxLeft + (index * (ProgressBoxSize + ProgressBoxMargin)), ProgressBoxHeight,
+							ProgressBoxSize, ProgressBoxSize,
+							index < currentStepProgress ? ProgressColorGreen : ProgressColorGrey);
+	}
+}
+
+void ProgressScreen::SetStepTitle(std::string stepTitle, bool archivePrevious) {
+	if (archivePrevious) {
+		pastSteps.push_back(currentStep);
+	}
+	//TODO Animate step transition
+	currentStep = stepTitle;
+}
+
+void ProgressScreen::SetStepProgress(int currentProgress, int maxProgress) {
+	currentStepProgress = currentProgress;
+	currentStepProgressCount = maxProgress;
 }

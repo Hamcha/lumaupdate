@@ -25,7 +25,7 @@ void ConsoleScreen::Render() {
 	// Calculate how many lines to print and where
 	u16 currentHeight = margin;
 	std::vector<u16> heights;
-	for (auto it = lines.rbegin(); it != lines.rend() && currentHeight <= screenHeight - (margin*2); ++it) {
+	for (auto it = lines.rbegin(); it != lines.rend() && currentHeight <= screenHeight - (margin * 2); ++it) {
 		int txwidth, txheight;
 		sftd_calc_bounding_box(&txwidth, &txheight, font, fontSize, actualScreenWidth, (*it).c_str());
 		currentHeight += txheight;
@@ -57,7 +57,7 @@ void ConsoleScreen::Write(const std::string text) {
 		if (index == std::string::npos) {
 			break;
 		}
-		
+
 		// Otherwise, add a new line, advance offset and continue
 		lines.push_back("");
 		offset = index + 1;
