@@ -1,14 +1,32 @@
 #include "MainState.h"
 
+void MainState::SetState(const MainMenuState newState) {
+	currentState = newState;
+	drawFrame = true;
+}
+
 void MainState::Render() {
 	RenderScreen(GFX_TOP, &loadingScreen);
 	RenderScreen(GFX_BOTTOM, &console);
 
-	//TODO Handle this stuff
 	switch (currentState) {
 		case MainMenuState::Detect:
+			if (drawFrame) {
+				loadingScreen.SetStepTitle("Detecting installed version");
+				loadingScreen.SetStepProgressInfinite();
+				drawFrame = false;
+			}
+			Utils::GetLumaVersion(&currentLumaVersion);
+			//TODO Handle invalid version (Luma too old?)
+			console.WriteLine("Luma3DS version detected: " + Utils::FormatLumaVersion(currentLumaVersion));
+			SetState(MainMenuState::Fetch);
 			break;
 		case MainMenuState::Fetch:
+			if (drawFrame) {
+				loadingScreen.SetStepTitle("Looking for new Luma3DS releases");
+				loadingScreen.SetStepProgressInfinite();
+				drawFrame = false;
+			}
 			break;
 		case MainMenuState::Wait:
 			break;
@@ -16,10 +34,7 @@ void MainState::Render() {
 }
 
 MainState::MainState() {
-	console.Write(std::string("Luma Updater ") + GIT_VERSION);
-
-	loadingScreen.SetStepTitle("Detecting installed version");
-	loadingScreen.SetStepTitle("Checking for updates");
-	loadingScreen.SetStepTitle("Checking for new versions of Luma3DS");
-	loadingScreen.SetStepProgress(3, 10);
+	currentState = MainMenuState::Detect;
+	console.WriteLine(std::string("Luma Updater ") + GIT_VERSION);
+	console.Write("\n");
 }

@@ -16,6 +16,9 @@ Application::Application() {
 
 	// Initialize default state
 	SetState(new MainState());
+
+	// Initialize lastFrameTime to a sane value
+	lastFrameTime = osGetTime();
 }
 
 Application::~Application() {
@@ -29,6 +32,10 @@ Application::~Application() {
 int Application::Run() {
 	// Main loop
 	while (aptMainLoop() && keepRunning) {
+		// Calculate delta time
+		int currentTime = osGetTime();
+		deltaTime = (currentTime - lastFrameTime) / 1000.f;
+
 		// Refresh input
 		Input::Get().ScanInput();
 
@@ -36,10 +43,16 @@ int Application::Run() {
 		currentState->Render();
 
 		sf2d_swapbuffers();
+		lastFrameTime = currentTime;
 	}
 
 	return returnCode;
 }
+
+float Application::DeltaTime() {
+	return deltaTime;
+}
+
 
 void Application::SetState(State* newState) {
 	currentState = std::unique_ptr<State>(newState);

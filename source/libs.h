@@ -10,6 +10,7 @@
 
 // STL
 #include <string>
+#include <sstream>
 #include <vector>
 #include <stdexcept>
 #include <memory>

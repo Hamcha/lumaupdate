@@ -43,12 +43,20 @@ public:
 	 */
 	void Exit(const int retCode = 0);
 
+	/*! \brief Get delta time (time since last frame) in seconds 
+	 *
+	 *  \return Time since last frame (in seconds)
+	 */
+	float DeltaTime();
+
 protected:
 	Application();
 	~Application();
 
 private:
 	std::unique_ptr<State> currentState;
+	int lastFrameTime = 0;
+	float deltaTime = 0;
 
 	bool keepRunning = true; // Wether the app should keep running
 	int returnCode = 0;

@@ -1,5 +1,10 @@
 #include "ProgressScreen.h"
 
+#include "../Application.h"
+#include "../Utils.h"
+
+#include <cmath>
+
 #include <OpenSans_Regular_ttf.h>
 #include <loading_bg_png.h>
 
@@ -34,29 +39,52 @@ void ProgressScreen::Render() {
 	static const int ProgressBoxHeight = ProgressTitleHeight + 35;
 	static const int ProgressBoxSize = 10;
 	static const int ProgressBoxMargin = 10;
-	static const u32 ProgressColorGreen = RGBA8(0, 200, 100, 200);
-	static const u32 ProgressColorGrey = RGBA8(40, 40, 40, 40);
+	static const u32 ProgressBoxColorGreen = RGBA8(0, 200, 100, 150);
+	static const u32 ProgressBoxColorGrey = RGBA8(140, 190, 170, 100);
+	static const float ProgressBoxAnimationOffset = 0.9f;
+	static const float ProgressBoxAnimationSpeed = -6.f;
+	static const float ProgressBoxAnimationWeight = 0.6f;
+
 	// Draw background first
 	sf2d_draw_texture(background, 0, 0);
 
 	// Draw past steps
 	for (u8 pastIndex = 0; pastIndex < ProgressPastMax && pastIndex < pastSteps.size(); ++pastIndex) {
 		sftd_draw_text(smallfont,
-					   ProgressTitleLeft, ProgressTitleHeight - ((pastIndex + 1) * (ProgressPastSize + ProgressPastMargin)),
+					   ProgressBoxLeft, ProgressTitleHeight - ((pastIndex + 1) * (ProgressPastSize + ProgressPastMargin)),
 					   ProgressPastColor, ProgressPastSize, pastSteps[pastSteps.size() - pastIndex - 1].c_str());
 	}
 
 	// Draw current step
 	sftd_draw_text(bigfont,
-				   ProgressTitleLeft, ProgressTitleHeight,
+				   ProgressBoxLeft, ProgressTitleHeight,
 				   ProgressTitleColor, ProgressTitleSize, currentStep.c_str());
 
 	// Draw progress (as squares)
-	//TODO Improve this
+	//// Calculate total bar width so it can be drawn at center
+	const u16 screenWidth = sf2d_get_current_screen() == GFX_TOP ? 400 : 320;
+	const u16 totalProgressWidth = currentStepProgressCount * (ProgressBoxSize + ProgressBoxMargin) - ProgressBoxMargin;
+	const u16 centerBarLeft = (screenWidth - totalProgressWidth) / 2;
+	//// Calculate global animation values
+	currentAnimationTimer += Application::Get().DeltaTime();
+
 	for (u16 index = 0; index < currentStepProgressCount; ++index) {
-		sf2d_draw_rectangle(ProgressBoxLeft + (index * (ProgressBoxSize + ProgressBoxMargin)), ProgressBoxHeight,
-							ProgressBoxSize, ProgressBoxSize,
-							index < currentStepProgress ? ProgressColorGreen : ProgressColorGrey);
+		// Calculate horizontal position
+		const float horPosition = centerBarLeft + (index * (ProgressBoxSize + ProgressBoxMargin));
+
+		// Get box color
+		u32 boxColor = ProgressBoxColorGrey;
+		if (index < currentStepProgress) {
+			const u8 boxAlpha = ProgressBoxColorGreen >> 24;
+
+			float animationOffset = std::sin(currentAnimationTimer * ProgressBoxAnimationSpeed + (index * ProgressBoxAnimationOffset));
+			u8 alphaOffset = (u8)(boxAlpha + animationOffset * ProgressBoxAnimationWeight * 128.f);
+
+			boxColor = (ProgressBoxColorGreen & 0x00ffffff) | (alphaOffset << 24);
+		}
+
+		// Draw box
+		sf2d_draw_rectangle(horPosition, ProgressBoxHeight, ProgressBoxSize, ProgressBoxSize, boxColor);
 	}
 }
 
@@ -72,3 +100,5 @@ void ProgressScreen::SetStepProgress(int currentProgress, int maxProgress) {
 	currentStepProgress = currentProgress;
 	currentStepProgressCount = maxProgress;
 }
+
+void ProgressScreen::SetStepProgressInfinite() { SetStepProgress(3, 3); }
