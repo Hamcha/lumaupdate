@@ -406,8 +406,8 @@ static std::pair<bool, LatestUpdaterInfo> checkSelfUpdate(UpdaterInfo info) {
 	LatestUpdaterInfo newUpdater;
 	try {
 		newUpdater = updaterGetLatest();
-	} catch (const std::string& err) {
-		logPrintf("Got error: %s\nSkipping self-update...\n", err.c_str());
+	} catch (const std::runtime_error& e) {
+		logPrintf("Got error: %s\nSkipping self-update...\n", e.what());
 		return { false, {} };
 	}
 
