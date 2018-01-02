@@ -1,4 +1,6 @@
-# Luma Updater
+# Luma Updater (outdated and unmaintained)
+
+**This homebrew has been outdated for a while and won't work anymore, if you still want an updater for Luma3DS (on Boot9strap) please use [Kaoru's version](https://github.com/KunoichiZ/lumaupdate)**
 
 Formerly known as "ARN Updater"
 
