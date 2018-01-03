@@ -1,5 +1,5 @@
 #include "utils.h"
-
+#include <cmath>
 #include <stdarg.h>
 
 std::string formatErrMessage(const char* msg, const Result& val) {

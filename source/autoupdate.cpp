@@ -63,7 +63,7 @@ LatestUpdaterInfo updaterGetLatest() {
 #ifdef FAKEDL
 	return {};
 #else
-	static const char* ReleaseURL = "https://api.github.com/repos/Hamcha/lumaupdate/releases/latest";
+	static const char* ReleaseURL = "https://api.github.com/repos/KunoichiZ/lumaupdate/releases/latest";
 
 	jsmn_parser p = {};
 	jsmn_init(&p);
